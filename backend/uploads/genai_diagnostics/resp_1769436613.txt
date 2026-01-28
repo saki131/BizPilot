@@ -1,0 +1,66 @@
+=== repr(response) ===
+response:
+GenerateContentResponse(
+    done=True,
+    iterator=None,
+    result=protos.GenerateContentResponse({
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```json\n{\n  \"success\": false,\n  \"salesPersonId\": \"8\",\n  \"deliveryDate\": \"2025-10-22\",\n  \"taxRateId\": \"1\",\n  \"details\": [\n    {\n      \"productId\": \"8\",\n      \"quantity\": 24,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"11\",\n      \"quantity\": 6,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"38\",\n      \"quantity\": 2,\n      \"unitPrice\": 2500\n    },\n    {\n      \"productId\": \"39\",\n      \"quantity\": 1,\n      \"unitPrice\": 2500\n    },\n    {\n      \"productId\": \"14\",\n      \"quantity\": 2,\n      \"unitPrice\": 5000\n    }\n  ],\n  \"failureReason\": \"\u5546\u54c1\u660e\u7d30\u306e5\u884c\u76ee\uff08\u30cf\u30a4\u30c7\u30fc\u30eb\uff09\u3067\u3001\u6570\u91cf\u3068\u5358\u4fa1\u304b\u3089\u8a08\u7b97\u3055\u308c\u308b\u91d1\u984d (2 * 5000 = 10000) \u304c\u8a18\u8f09\u3055\u308c\u3066\u3044\u308b\u91d1\u984d (5000) \u3068\u4e00\u81f4\u3057\u307e\u305b\u3093\u3002\"\n}\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finish_reason": "STOP",
+          "index": 0
+        }
+      ],
+      "usage_metadata": {
+        "prompt_token_count": 1442,
+        "candidates_token_count": 291,
+        "total_token_count": 4867
+      },
+      "model_version": "gemini-2.5-flash"
+    }),
+)
+
+=== text ===
+```json
+{
+  "success": false,
+  "salesPersonId": "8",
+  "deliveryDate": "2025-10-22",
+  "taxRateId": "1",
+  "details": [
+    {
+      "productId": "8",
+      "quantity": 24,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "11",
+      "quantity": 6,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "38",
+      "quantity": 2,
+      "unitPrice": 2500
+    },
+    {
+      "productId": "39",
+      "quantity": 1,
+      "unitPrice": 2500
+    },
+    {
+      "productId": "14",
+      "quantity": 2,
+      "unitPrice": 5000
+    }
+  ],
+  "failureReason": "商品明細の5行目（ハイデール）で、数量と単価から計算される金額 (2 * 5000 = 10000) が記載されている金額 (5000) と一致しません。"
+}
+```

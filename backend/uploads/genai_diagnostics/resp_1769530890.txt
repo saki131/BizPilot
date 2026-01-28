@@ -1,0 +1,76 @@
+=== repr(response) ===
+response:
+GenerateContentResponse(
+    done=True,
+    iterator=None,
+    result=protos.GenerateContentResponse({
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```json\n{\n  \"success\": true,\n  \"salesPersonId\": \"8\",\n  \"deliveryDate\": \"2025-10-22\",\n  \"taxRateId\": \"1\",\n  \"details\": [\n    {\n      \"productId\": \"1\",\n      \"quantity\": 30,\n      \"unitPrice\": 1200\n    },\n    {\n      \"productId\": \"2\",\n      \"quantity\": 12,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"3\",\n      \"quantity\": 6,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"4\",\n      \"quantity\": 6,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"5\",\n      \"quantity\": 3,\n      \"unitPrice\": 3500\n    },\n    {\n      \"productId\": \"6\",\n      \"quantity\": 1,\n      \"unitPrice\": 5000\n    },\n    {\n      \"productId\": \"7\",\n      \"quantity\": 6,\n      \"unitPrice\": 3000\n    }\n  ]\n}\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finish_reason": "STOP",
+          "index": 0
+        }
+      ],
+      "usage_metadata": {
+        "prompt_token_count": 1442,
+        "candidates_token_count": 295,
+        "total_token_count": 3646,
+        "cached_content_token_count": 971
+      },
+      "model_version": "gemini-2.5-flash"
+    }),
+)
+
+=== text ===
+```json
+{
+  "success": true,
+  "salesPersonId": "8",
+  "deliveryDate": "2025-10-22",
+  "taxRateId": "1",
+  "details": [
+    {
+      "productId": "1",
+      "quantity": 30,
+      "unitPrice": 1200
+    },
+    {
+      "productId": "2",
+      "quantity": 12,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "3",
+      "quantity": 6,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "4",
+      "quantity": 6,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "5",
+      "quantity": 3,
+      "unitPrice": 3500
+    },
+    {
+      "productId": "6",
+      "quantity": 1,
+      "unitPrice": 5000
+    },
+    {
+      "productId": "7",
+      "quantity": 6,
+      "unitPrice": 3000
+    }
+  ]
+}
+```

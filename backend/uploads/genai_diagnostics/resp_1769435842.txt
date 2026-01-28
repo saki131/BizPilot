@@ -1,0 +1,50 @@
+=== repr(response) ===
+response:
+GenerateContentResponse(
+    done=True,
+    iterator=None,
+    result=protos.GenerateContentResponse({
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```json\n{\n  \"success\": true,\n  \"salesPersonId\": \"8\",\n  \"deliveryDate\": \"2025-11-14\",\n  \"taxRateId\": \"1\",\n  \"details\": [\n    {\n      \"productId\": \"38\",\n      \"quantity\": 1,\n      \"unitPrice\": 2500\n    },\n    {\n      \"productId\": \"39\",\n      \"quantity\": 2,\n      \"unitPrice\": 2500\n    }\n  ]\n}\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finish_reason": "STOP",
+          "index": 0
+        }
+      ],
+      "usage_metadata": {
+        "prompt_token_count": 1442,
+        "candidates_token_count": 130,
+        "total_token_count": 2414
+      },
+      "model_version": "gemini-2.5-flash"
+    }),
+)
+
+=== text ===
+```json
+{
+  "success": true,
+  "salesPersonId": "8",
+  "deliveryDate": "2025-11-14",
+  "taxRateId": "1",
+  "details": [
+    {
+      "productId": "38",
+      "quantity": 1,
+      "unitPrice": 2500
+    },
+    {
+      "productId": "39",
+      "quantity": 2,
+      "unitPrice": 2500
+    }
+  ]
+}
+```

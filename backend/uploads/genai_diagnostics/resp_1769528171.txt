@@ -1,0 +1,67 @@
+=== repr(response) ===
+response:
+GenerateContentResponse(
+    done=True,
+    iterator=None,
+    result=protos.GenerateContentResponse({
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```json\n{\n  \"success\": false,\n  \"salesPersonId\": \"8\",\n  \"deliveryDate\": \"2025-10-22\",\n  \"taxRateId\": \"1\",\n  \"details\": [\n    {\n      \"productId\": \"8\",\n      \"quantity\": 24,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"11\",\n      \"quantity\": 6,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"38\",\n      \"quantity\": 2,\n      \"unitPrice\": 2500\n    },\n    {\n      \"productId\": \"39\",\n      \"quantity\": 1,\n      \"unitPrice\": 2500\n    },\n    {\n      \"productId\": \"14\",\n      \"quantity\": 2,\n      \"unitPrice\": 5000\n    }\n  ],\n  \"failureReason\": \"\u5546\u54c1\u300e\u30cf\u30a4\u30c7\u30fc\u30eb\u300f(\u5546\u54c1ID: 14) \u306e\u91d1\u984d\u8a08\u7b97\u306b\u4e0d\u6574\u5408\u304c\u3042\u308a\u307e\u3059\u3002\u6570\u91cf(2) * \u5358\u4fa1(5000) = 10000 \u3068\u306a\u308a\u307e\u3059\u304c\u3001\u8a18\u8f09\u91d1\u984d\u306f5000\u3067\u3059\u3002\"\n}\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finish_reason": "STOP",
+          "index": 0
+        }
+      ],
+      "usage_metadata": {
+        "prompt_token_count": 1442,
+        "candidates_token_count": 294,
+        "total_token_count": 4083,
+        "cached_content_token_count": 485
+      },
+      "model_version": "gemini-2.5-flash"
+    }),
+)
+
+=== text ===
+```json
+{
+  "success": false,
+  "salesPersonId": "8",
+  "deliveryDate": "2025-10-22",
+  "taxRateId": "1",
+  "details": [
+    {
+      "productId": "8",
+      "quantity": 24,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "11",
+      "quantity": 6,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "38",
+      "quantity": 2,
+      "unitPrice": 2500
+    },
+    {
+      "productId": "39",
+      "quantity": 1,
+      "unitPrice": 2500
+    },
+    {
+      "productId": "14",
+      "quantity": 2,
+      "unitPrice": 5000
+    }
+  ],
+  "failureReason": "商品『ハイデール』(商品ID: 14) の金額計算に不整合があります。数量(2) * 単価(5000) = 10000 となりますが、記載金額は5000です。"
+}
+```

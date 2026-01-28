@@ -1,0 +1,110 @@
+=== repr(response) ===
+response:
+GenerateContentResponse(
+    done=True,
+    iterator=None,
+    result=protos.GenerateContentResponse({
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "\u7d0d\u54c1\u66f8\u306e\u753b\u50cf\u3092\u89e3\u6790\u3057\u3001\u4ee5\u4e0b\u306e\u60c5\u5831\u3092\u62bd\u51fa\u3057\u307e\u3057\u305f\u3002\n\n**\u62bd\u51fa\u7d50\u679c\u306e\u6839\u62e0:**\n\n1.  **\u7d0d\u54c1\u65e5 (deliveryDate)**:\n    *   \u753b\u50cf\u4e0a\u90e8\u306b\u300cR7\u5e7410\u670822\u65e5\u300d\u3068\u8a18\u8f09\u3055\u308c\u3066\u3044\u307e\u3059\u3002\u4ee4\u548c7\u5e74\u306f\u897f\u66a62025\u5e74\u306a\u306e\u3067\u3001\u300c2025-10-22\u300d\u3068\u7279\u5b9a\u3057\u307e\u3057\u305f\u3002\n\n2.  **\u8ca9\u58f2\u54e1 (salesPersonId)**:\n    *   \u7d0d\u54c1\u66f8\u306e\u4e2d\u592e\u4e0a\u90e8\u306b\u300c\u4e2d\u672c\u5e78\u5b50 \u69d8\u300d\u3068\u8a18\u8f09\u3055\u308c\u3066\u3044\u307e\u3059\u3002\u30de\u30b9\u30bf\u30c7\u30fc\u30bf\u306b\u57fa\u3065\u304d\u3001\u300c\u4e2d\u672c \u5e78\u5b50\u300d\u306eID\u300c8\u300d\u3092\u7279\u5b9a\u3057\u307e\u3057\u305f\u3002\n\n3.  **\u7a0e\u7387 (taxRateId)**:\n    *   \u4e0b\u90e8\u306b\u300c\u7a0e\u7387 10%\u300d\u3068\u8a18\u8f09\u3055\u308c\u3066\u3044\u307e\u3059\u3002\u30de\u30b9\u30bf\u30c7\u30fc\u30bf\u306b\u57fa\u3065\u304d\u3001\u300c10%\u300d\u306eID\u300c1\u300d\u3092\u7279\u5b9a\u3057\u307e\u3057\u305f\u3002\n\n4.  **\u5546\u54c1\u660e\u7d30 (details)**:\n    *   **1\u884c\u76ee**:\n        *   \u54c1\u540d: \u300c\u3042\u308c\u808c\u30af\u30ea\u30fc\u30e0\u300d\u2192 \u5546\u54c1ID\u300c8\u300d\n        *   \u6570\u91cf: \u300c24\u300d\n        *   \u5358\u4fa1: \u300c3000\u300d\n        *   \u91d1\u984d\u8a08\u7b97\u30c1\u30a7\u30c3\u30af: 24 \\* 3000 = 72000\u3002\u8a18\u8f09\u91d1\u984d\u300c72000\u300d\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002\n    *   **2\u884c\u76ee**:\n        *   \u54c1\u540d: \u300c\u30a2\u30af\u30a2\u30ab\u30e9\u30fc\u2462\u300d\u2192 \u5546\u54c1ID\u300c11\u300d\n        *   \u6570\u91cf: \u300c6\u300d\n        *   \u5358\u4fa1: \u300c3000\u300d\n        *   \u91d1\u984d\u8a08\u7b97\u30c1\u30a7\u30c3\u30af: 6 \\* 3000 = 18000\u3002\u8a18\u8f09\u91d1\u984d\u300c18000\u300d\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002\n    *   **3\u884c\u76ee**:\n        *   \u54c1\u540d: \u300c\u30b7\u30e3\u30f3\u30d7\u30fc\u300d\u2192 \u8aad\u307f\u53d6\u308a\u30eb\u30fc\u30eb\u306b\u3088\u308a\u300c\u30cf\u30a4\u30b7\u30e3\u30f3\u30d7\u30fc\u300d\u2192 \u5546\u54c1ID\u300c38\u300d\n        *   \u6570\u91cf: \u300c2\u300d\n        *   \u5358\u4fa1: \u300c2500\u300d\n        *   \u91d1\u984d\u8a08\u7b97\u30c1\u30a7\u30c3\u30af: 2 \\* 2500 = 5000\u3002\u8a18\u8f09\u91d1\u984d\u300c5000\u300d\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002\n    *   **4\u884c\u76ee**:\n        *   \u54c1\u540d: \u300c\u30ea\u30f3\u30b9\u300d\u2192 \u8aad\u307f\u53d6\u308a\u30eb\u30fc\u30eb\u306b\u3088\u308a\u300c\u30ea\u30f3\u30b9\uff06\u30d8\u30a2\u30d1\u30c3\u30af\u300d\u2192 \u5546\u54c1ID\u300c39\u300d\n        *   \u6570\u91cf: \u300c1\u300d\n        *   \u5358\u4fa1: \u300c2500\u300d\n        *   \u91d1\u984d\u8a08\u7b97\u30c1\u30a7\u30c3\u30af: 1 \\* 2500 = 2500\u3002\u8a18\u8f09\u91d1\u984d\u300c2500\u300d\u3068\u4e00\u81f4\u3057\u307e\u3059\u3002\n    *   **5\u884c\u76ee**:\n        *   \u54c1\u540d: \u300c\u30cf\u30a4\u30c7\u30fc\u30eb\u300d\u2192 \u5546\u54c1ID\u300c14\u300d\n        *   \u6570\u91cf: \u300c2\u300d\n        *   \u5358\u4fa1: \u300c5000\u300d\n        *   \u91d1\u984d\u8a08\u7b97\u30c1\u30a7\u30c3\u30af: 2 \\* 5000 = 10000\u3002\u3057\u304b\u3057\u3001\u8a18\u8f09\u91d1\u984d\u306f\u300c5000\u300d\u3067\u3042\u308a\u3001\u4e0d\u4e00\u81f4\u3067\u3059\u3002\n\n5.  **\u91d1\u984d\u306e\u6574\u5408\u6027\u30c1\u30a7\u30c3\u30af (success / failureReason)**:\n    *   \u4e0a\u8a185\u884c\u76ee\u306e\u660e\u7d30\u306b\u304a\u3044\u3066\u3001\u6570\u91cf\u3068\u5358\u4fa1\u304b\u3089\u7b97\u51fa\u3055\u308c\u308b\u91d1\u984d(10000)\u3068\u8a18\u8f09\u3055\u308c\u3066\u3044\u308b\u91d1\u984d(5000)\u304c\u4e00\u81f4\u3057\u306a\u3044\u305f\u3081\u3001`success: false` \u3068\u5224\u65ad\u3057\u3001\u305d\u306e\u7406\u7531\u3092`failureReason`\u306b\u8a18\u8f09\u3057\u307e\u3057\u305f\u3002\n    *   \u306a\u304a\u3001\u6d88\u8cbb\u7a0e\u984d\uff0810250\uff09\u3068\u7a0e\u8fbc\u5408\u8a08\u91d1\u984d\uff08112750\uff09\u306f\u3001\u7d0d\u54c1\u66f8\u306b\u8a18\u8f09\u3055\u308c\u3066\u3044\u308b\u5404\u660e\u7d30\u91d1\u984d\uff085\u884c\u76ee\u30925000\u3068\u3057\u3066\u8a08\u7b97\uff09\u306b\u57fa\u3065\u3044\u3066\u6b63\u3057\u304f\u8a08\u7b97\u3055\u308c\u3066\u3044\u307e\u3059\u3002\u3057\u304b\u3057\u3001\u500b\u5225\u306e\u660e\u7d30\u306b\u304a\u3051\u308b\u300c\u6570\u91cf\u00d7\u5358\u4fa1\u300d\u3068\u300c\u91d1\u984d\u300d\u306e\u6574\u5408\u6027\u304c\u6700\u512a\u5148\u3055\u308c\u308b\u305f\u3081\u3001\u4e0d\u4e00\u81f4\u3068\u3057\u3066\u3044\u307e\u3059\u3002\n\n```json\n{\n  \"success\": false,\n  \"salesPersonId\": \"8\",\n  \"deliveryDate\": \"2025-10-22\",\n  \"taxRateId\": \"1\",\n  \"details\": [\n    {\n      \"productId\": \"8\",\n      \"quantity\": 24,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"11\",\n      \"quantity\": 6,\n      \"unitPrice\": 3000\n    },\n    {\n      \"productId\": \"38\",\n      \"quantity\": 2,\n      \"unitPrice\": 2500\n    },\n    {\n      \"productId\": \"39\",\n      \"quantity\": 1,\n      \"unitPrice\": 2500\n    },\n    {\n      \"productId\": \"14\",\n      \"quantity\": 2,\n      \"unitPrice\": 5000\n    }\n  ],\n  \"failureReason\": \"5\u884c\u76ee\u306e\u5546\u54c1\u300c\u30cf\u30a4\u30c7\u30fc\u30eb\u300d\u306e\u91d1\u984d\u304c\u6570\u91cf\u3068\u5358\u4fa1\u304b\u3089\u7b97\u51fa\u3055\u308c\u308b\u5024\u3068\u4e00\u81f4\u3057\u307e\u305b\u3093\u30022(\u6570\u91cf) * 5000(\u5358\u4fa1) = 10000\u3067\u3059\u304c\u3001\u8a18\u8f09\u91d1\u984d\u306f5000\u3067\u3059\u3002\"\n}\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finish_reason": "STOP",
+          "index": 0
+        }
+      ],
+      "usage_metadata": {
+        "prompt_token_count": 1442,
+        "candidates_token_count": 1121,
+        "total_token_count": 4642
+      },
+      "model_version": "gemini-2.5-flash"
+    }),
+)
+
+=== text ===
+納品書の画像を解析し、以下の情報を抽出しました。
+
+**抽出結果の根拠:**
+
+1.  **納品日 (deliveryDate)**:
+    *   画像上部に「R7年10月22日」と記載されています。令和7年は西暦2025年なので、「2025-10-22」と特定しました。
+
+2.  **販売員 (salesPersonId)**:
+    *   納品書の中央上部に「中本幸子 様」と記載されています。マスタデータに基づき、「中本 幸子」のID「8」を特定しました。
+
+3.  **税率 (taxRateId)**:
+    *   下部に「税率 10%」と記載されています。マスタデータに基づき、「10%」のID「1」を特定しました。
+
+4.  **商品明細 (details)**:
+    *   **1行目**:
+        *   品名: 「あれ肌クリーム」→ 商品ID「8」
+        *   数量: 「24」
+        *   単価: 「3000」
+        *   金額計算チェック: 24 \* 3000 = 72000。記載金額「72000」と一致します。
+    *   **2行目**:
+        *   品名: 「アクアカラー③」→ 商品ID「11」
+        *   数量: 「6」
+        *   単価: 「3000」
+        *   金額計算チェック: 6 \* 3000 = 18000。記載金額「18000」と一致します。
+    *   **3行目**:
+        *   品名: 「シャンプー」→ 読み取りルールにより「ハイシャンプー」→ 商品ID「38」
+        *   数量: 「2」
+        *   単価: 「2500」
+        *   金額計算チェック: 2 \* 2500 = 5000。記載金額「5000」と一致します。
+    *   **4行目**:
+        *   品名: 「リンス」→ 読み取りルールにより「リンス＆ヘアパック」→ 商品ID「39」
+        *   数量: 「1」
+        *   単価: 「2500」
+        *   金額計算チェック: 1 \* 2500 = 2500。記載金額「2500」と一致します。
+    *   **5行目**:
+        *   品名: 「ハイデール」→ 商品ID「14」
+        *   数量: 「2」
+        *   単価: 「5000」
+        *   金額計算チェック: 2 \* 5000 = 10000。しかし、記載金額は「5000」であり、不一致です。
+
+5.  **金額の整合性チェック (success / failureReason)**:
+    *   上記5行目の明細において、数量と単価から算出される金額(10000)と記載されている金額(5000)が一致しないため、`success: false` と判断し、その理由を`failureReason`に記載しました。
+    *   なお、消費税額（10250）と税込合計金額（112750）は、納品書に記載されている各明細金額（5行目を5000として計算）に基づいて正しく計算されています。しかし、個別の明細における「数量×単価」と「金額」の整合性が最優先されるため、不一致としています。
+
+```json
+{
+  "success": false,
+  "salesPersonId": "8",
+  "deliveryDate": "2025-10-22",
+  "taxRateId": "1",
+  "details": [
+    {
+      "productId": "8",
+      "quantity": 24,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "11",
+      "quantity": 6,
+      "unitPrice": 3000
+    },
+    {
+      "productId": "38",
+      "quantity": 2,
+      "unitPrice": 2500
+    },
+    {
+      "productId": "39",
+      "quantity": 1,
+      "unitPrice": 2500
+    },
+    {
+      "productId": "14",
+      "quantity": 2,
+      "unitPrice": 5000
+    }
+  ],
+  "failureReason": "5行目の商品「ハイデール」の金額が数量と単価から算出される値と一致しません。2(数量) * 5000(単価) = 10000ですが、記載金額は5000です。"
+}
+```

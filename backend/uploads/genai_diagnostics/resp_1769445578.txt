@@ -1,0 +1,52 @@
+=== repr(response) ===
+response:
+GenerateContentResponse(
+    done=True,
+    iterator=None,
+    result=protos.GenerateContentResponse({
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```json\n{\n  \"success\": false,\n  \"salesPersonId\": \"12\",\n  \"deliveryDate\": \"2025-11-08\",\n  \"taxRateId\": \"1\",\n  \"details\": [\n    {\n      \"productId\": \"33\",\n      \"quantity\": 10,\n      \"unitPrice\": 200\n    },\n    {\n      \"productId\": \"34\",\n      \"quantity\": 10,\n      \"unitPrice\": 200\n    }\n  ],\n  \"failureReason\": \"\u8a08\u7b97\u3055\u308c\u305f\u7a0e\u8fbc\u5408\u8a08\u91d1\u984d (4400\u5186) \u3068\u8a18\u8f09\u3055\u308c\u305f\u7a0e\u8fbc\u5408\u8a08\u91d1\u984d (4000\u5186) \u304c\u4e00\u81f4\u3057\u307e\u305b\u3093\u3002\"\n}\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finish_reason": "STOP",
+          "index": 0
+        }
+      ],
+      "usage_metadata": {
+        "prompt_token_count": 1442,
+        "candidates_token_count": 167,
+        "total_token_count": 4425,
+        "cached_content_token_count": 485
+      },
+      "model_version": "gemini-2.5-flash"
+    }),
+)
+
+=== text ===
+```json
+{
+  "success": false,
+  "salesPersonId": "12",
+  "deliveryDate": "2025-11-08",
+  "taxRateId": "1",
+  "details": [
+    {
+      "productId": "33",
+      "quantity": 10,
+      "unitPrice": 200
+    },
+    {
+      "productId": "34",
+      "quantity": 10,
+      "unitPrice": 200
+    }
+  ],
+  "failureReason": "計算された税込合計金額 (4400円) と記載された税込合計金額 (4000円) が一致しません。"
+}
+```
