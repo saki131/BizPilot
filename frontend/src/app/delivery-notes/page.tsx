@@ -59,6 +59,16 @@ interface RecognitionResult {
     quantity: number;
     unitPrice: number;
   }>;
+  // 一部コードで API からの解析結果を `parsedData` として扱うための互換プロパティ
+  parsedData?: {
+    salesPersonId?: string;
+    deliveryDate?: string;
+    products?: Array<{
+      productId: string;
+      quantity: number;
+      unitPrice: number;
+    }>;
+  };
   failureReason?: string;
 }
 
@@ -182,13 +192,16 @@ export default function DeliveryNotesPage() {
     if (!result.success || !result.parsedData) return false;
     
     const { salesPersonId, deliveryDate, products } = result.parsedData;
-    
+
     // 納品書一覧から同一のデータを検索
+    const salesPersonIdNum = salesPersonId ? parseInt(salesPersonId, 10) : undefined;
+    if (!salesPersonIdNum || !deliveryDate || !products) return false;
+
     return deliveryNotes.some(note => {
       // 販売員IDと納品日が一致するかチェック
-      if (note.sales_person_id !== salesPersonId) return false;
+      if (note.sales_person_id !== salesPersonIdNum) return false;
       if (note.delivery_date !== deliveryDate) return false;
-      
+
       // 商品明細の数が一致するかチェック
       if (note.details.length !== products.length) return false;
       
@@ -486,7 +499,7 @@ export default function DeliveryNotesPage() {
           product_id: parseInt(detail.product_id),
           quantity: parseInt(detail.quantity),
           unit_price: product?.price || 0, // 商品マスタから単価を自動設定
-          remarks: detail.remarks || ''
+          remarks: (detail as any).remarks || ''
         };
       });
 
