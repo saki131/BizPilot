@@ -1,0 +1,725 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useDropzone } from 'react-dropzone';
+import { Upload, FileImage, X } from 'lucide-react';
+
+interface DeliveryNote {
+  id: number;
+  sales_person_id: number;
+  tax_rate_id: number;
+  delivery_date: string;
+  billing_date: string;
+  delivery_note_number: string;
+  remarks?: string;
+  details: DeliveryNoteDetail[];
+}
+
+interface DeliveryNoteDetail {
+  id: number;
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+  remarks?: string;
+}
+
+interface SalesPerson {
+  id: number;
+  name: string;
+}
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+}
+
+interface Contractor {
+  id: number;
+  name: string;
+}
+
+interface RecognitionResult {
+  success: boolean;
+  salesPersonId?: string;
+  deliveryDate?: string;
+  billingDate?: string;
+  taxRateId?: string;
+  details?: Array<{
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+  failureReason?: string;
+}
+
+interface UploadedImage {
+  file: File;
+  preview: string;
+  recognitionResult?: RecognitionResult;
+}
+
+export default function DeliveryNotesPage() {
+  const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
+  const [salesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [activeTab, setActiveTab] = useState<'list' | 'manual' | 'recognition'>('list');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [isRecognizing, setIsRecognizing] = useState(false);
+  const [newDeliveryNote, setNewDeliveryNote] = useState({
+    sales_person_id: '',
+    tax_rate_id: '1', // Default tax rate
+    delivery_date: '',
+    billing_date: '',
+    delivery_note_number: '',
+    remarks: '',
+    details: [{ product_id: '', quantity: '', unit_price: '', remarks: '' }]
+  });
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    loadData();
+  }, [router]);
+
+  const loadData = async () => {
+    try {
+      const [deliveryNotesRes, salesPersonsRes, productsRes, contractorsRes] = await Promise.all([
+        apiClient.getDeliveryNotes(),
+        apiClient.getSalesPersons(),
+        apiClient.getProducts(),
+        apiClient.getContractors(),
+      ]);
+
+      if (deliveryNotesRes.data) setDeliveryNotes(deliveryNotesRes.data);
+      if (salesPersonsRes.data) setSalesPersons(salesPersonsRes.data);
+      if (productsRes.data) setProducts(productsRes.data);
+      if (contractorsRes.data) setContractors(contractorsRes.data);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    }
+  };
+
+  // Image recognition functions
+  const onDrop = async (acceptedFiles: File[]) => {
+    const newImages: UploadedImage[] = acceptedFiles.map(file => ({
+      file,
+      preview: URL.createObjectURL(file)
+    }));
+    
+    setUploadedImages(prev => [...prev, ...newImages]);
+    
+    // Process each image
+    for (const image of newImages) {
+      await recognizeImage(image);
+    }
+  };
+
+  const recognizeImage = async (image: UploadedImage) => {
+    setIsRecognizing(true);
+    try {
+      const result = await apiClient.recognizeImage(image.file);
+      if (result.data) {
+        image.recognitionResult = result.data.recognition_result;
+        setUploadedImages(prev => [...prev]); // Trigger re-render
+      }
+    } catch (error) {
+      console.error('Recognition failed:', error);
+      image.recognitionResult = { success: false, failureReason: '認識に失敗しました' };
+      setUploadedImages(prev => [...prev]);
+    } finally {
+      setIsRecognizing(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => {
+      const newImages = [...prev];
+      URL.revokeObjectURL(newImages[index].preview);
+      newImages.splice(index, 1);
+      return newImages;
+    });
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png']
+    },
+    multiple: true
+  });
+
+  const handleCreate = async () => {
+    try {
+      const details = newDeliveryNote.details.map(detail => ({
+        product_id: parseInt(detail.product_id),
+        quantity: parseInt(detail.quantity),
+        unit_price: parseInt(detail.unit_price),
+        remarks: detail.remarks
+      }));
+
+      const result = await apiClient.createDeliveryNote({
+        sales_person_id: parseInt(newDeliveryNote.sales_person_id),
+        tax_rate_id: parseInt(newDeliveryNote.tax_rate_id),
+        delivery_date: newDeliveryNote.delivery_date,
+        billing_date: newDeliveryNote.billing_date,
+        delivery_note_number: newDeliveryNote.delivery_note_number,
+        remarks: newDeliveryNote.remarks,
+        details
+      });
+
+      if (result?.data) {
+        setIsDialogOpen(false);
+        setNewDeliveryNote({
+          sales_person_id: '',
+          tax_rate_id: '1',
+          delivery_date: '',
+          billing_date: '',
+          delivery_note_number: '',
+          remarks: '',
+          details: [{ product_id: '', quantity: '', unit_price: '', remarks: '' }]
+        });
+        loadData();
+      }
+    } catch (error) {
+      console.error('Failed to create delivery note:', error);
+    }
+  };
+
+  const addDetail = () => {
+    setNewDeliveryNote({
+      ...newDeliveryNote,
+      details: [...newDeliveryNote.details, { product_id: '', quantity: '', unit_price: '', remarks: '' }]
+    });
+  };
+
+  const updateDetail = (index: number, field: string, value: string) => {
+    const updatedDetails = [...newDeliveryNote.details];
+    updatedDetails[index] = { ...updatedDetails[index], [field]: value };
+    setNewDeliveryNote({ ...newDeliveryNote, details: updatedDetails });
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <h1 className="text-3xl font-bold text-gray-900">納品書管理</h1>
+            <Button onClick={() => router.push('/dashboard')} variant="outline">
+              ダッシュボードに戻る
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 mb-6">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('list')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'list'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                一覧
+              </button>
+              <button
+                onClick={() => setActiveTab('manual')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'manual'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                手動作成
+              </button>
+              <button
+                onClick={() => setActiveTab('recognition')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'recognition'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                画像認識
+              </button>
+            </nav>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'list' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>納品書一覧</CardTitle>
+                <CardDescription>納品書の管理を行います</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>納品書番号</TableHead>
+                      <TableHead>販売員</TableHead>
+                      <TableHead>納品日</TableHead>
+                      <TableHead>請求日</TableHead>
+                      <TableHead>合計金額</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deliveryNotes.map((note) => (
+                      <TableRow key={note.id}>
+                        <TableCell>{note.delivery_note_number}</TableCell>
+                        <TableCell>
+                          {salesPersons.find(sp => sp.id === note.sales_person_id)?.name}
+                        </TableCell>
+                        <TableCell>{note.delivery_date}</TableCell>
+                        <TableCell>{note.billing_date}</TableCell>
+                        <TableCell>
+                          ¥{note.details.reduce((sum, detail) => sum + (detail.quantity * detail.unit_price), 0).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'manual' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>納品書手動作成</CardTitle>
+                <CardDescription>納品書を手動で作成します</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>新規作成</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>納品書新規作成</DialogTitle>
+                      <DialogDescription>
+                        新しい納品書を作成します。
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="sales_person" className="text-right">
+                          営業担当
+                        </Label>
+                        <Select value={newDeliveryNote.sales_person_id} onValueChange={(value) => setNewDeliveryNote({ ...newDeliveryNote, sales_person_id: value })}>
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="営業担当を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {salesPersons.map((person) => (
+                              <SelectItem key={person.id} value={person.id.toString()}>
+                                {person.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="delivery_date" className="text-right">
+                          納品日
+                        </Label>
+                        <Input
+                          id="delivery_date"
+                          type="date"
+                          value={newDeliveryNote.delivery_date}
+                          onChange={(e) => setNewDeliveryNote({ ...newDeliveryNote, delivery_date: e.target.value })}
+                          className="col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="billing_date" className="text-right">
+                          請求日
+                        </Label>
+                        <Input
+                          id="billing_date"
+                          type="date"
+                          value={newDeliveryNote.billing_date}
+                          onChange={(e) => setNewDeliveryNote({ ...newDeliveryNote, billing_date: e.target.value })}
+                          className="col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="delivery_note_number" className="text-right">
+                          納品書番号
+                        </Label>
+                        <Input
+                          id="delivery_note_number"
+                          value={newDeliveryNote.delivery_note_number}
+                          onChange={(e) => setNewDeliveryNote({ ...newDeliveryNote, delivery_note_number: e.target.value })}
+                          className="col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="remarks" className="text-right">
+                          備考
+                        </Label>
+                        <Input
+                          id="remarks"
+                          value={newDeliveryNote.remarks}
+                          onChange={(e) => setNewDeliveryNote({ ...newDeliveryNote, remarks: e.target.value })}
+                          className="col-span-3"
+                        />
+                      </div>
+                      <div className="col-span-4">
+                        <Label>明細</Label>
+                        {newDeliveryNote.details.map((detail, index) => (
+                          <div key={index} className="grid grid-cols-12 gap-2 mt-2 p-4 border rounded">
+                            <div className="col-span-3">
+                              <Label>商品</Label>
+                              <Select value={detail.product_id} onValueChange={(value) => updateDetail(index, 'product_id', value)}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="商品を選択" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map((product) => (
+                                    <SelectItem key={product.id} value={product.id.toString()}>
+                                      {product.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="col-span-2">
+                              <Label>数量</Label>
+                              <Input
+                                type="number"
+                                value={detail.quantity}
+                                onChange={(e) => updateDetail(index, 'quantity', e.target.value)}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Label>単価</Label>
+                              <Input
+                                type="number"
+                                value={detail.unit_price}
+                                onChange={(e) => updateDetail(index, 'unit_price', e.target.value)}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Label>備考</Label>
+                              <Input
+                                value={detail.remarks}
+                                onChange={(e) => updateDetail(index, 'remarks', e.target.value)}
+                              />
+                            </div>
+                            <div className="col-span-3 flex items-end">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeDetail(index)}
+                                className="mr-2"
+                              >
+                                削除
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={addDetail}
+                          className="mt-2"
+                        >
+                          明細追加
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button onClick={handleCreate}>作成</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'recognition' && (
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="営業担当を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {salesPersons.map((person) => (
+                              <SelectItem key={person.id} value={person.id.toString()}>
+                                {person.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="delivery_date" className="text-right">
+                          納品日
+                        </Label>
+                        <Input
+                          id="delivery_date"
+                          type="date"
+                          value={newDeliveryNote.delivery_date}
+                          onChange={(e) => setNewDeliveryNote({ ...newDeliveryNote, delivery_date: e.target.value })}
+                          className="col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="billing_date" className="text-right">
+                          請求日
+                        </Label>
+                        <Input
+                          id="billing_date"
+                          type="date"
+                          value={newDeliveryNote.billing_date}
+                          onChange={(e) => setNewDeliveryNote({ ...newDeliveryNote, billing_date: e.target.value })}
+                          className="col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="delivery_note_number" className="text-right">
+                          納品書番号
+                        </Label>
+                        <Input
+                          id="delivery_note_number"
+                          value={newDeliveryNote.delivery_note_number}
+                          onChange={(e) => setNewDeliveryNote({ ...newDeliveryNote, delivery_note_number: e.target.value })}
+                          className="col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="remarks" className="text-right">
+                          備考
+                        </Label>
+                        <Input
+                          id="remarks"
+                          value={newDeliveryNote.remarks}
+                          onChange={(e) => setNewDeliveryNote({ ...newDeliveryNote, remarks: e.target.value })}
+                          className="col-span-3"
+                        />
+                      </div>
+
+                      <div className="col-span-4">
+                        <Label>明細</Label>
+                        {newDeliveryNote.details.map((detail, index) => (
+                          <div key={index} className="grid grid-cols-12 gap-2 mt-2 p-4 border rounded">
+                            <div className="col-span-3">
+                              <Label>商品</Label>
+                              <Select value={detail.product_id} onValueChange={(value) => updateDetail(index, 'product_id', value)}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="商品を選択" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map((product) => (
+                                    <SelectItem key={product.id} value={product.id.toString()}>
+                                      {product.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="col-span-2">
+                              <Label>数量</Label>
+                              <Input
+                                type="number"
+                                value={detail.quantity}
+                                onChange={(e) => updateDetail(index, 'quantity', e.target.value)}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Label>単価</Label>
+                              <Input
+                                type="number"
+                                value={detail.unit_price}
+                                onChange={(e) => updateDetail(index, 'unit_price', e.target.value)}
+                              />
+                            </div>
+                            <div className="col-span-3">
+                              <Label>備考</Label>
+                              <Input
+                                value={detail.remarks}
+                                onChange={(e) => updateDetail(index, 'remarks', e.target.value)}
+                              />
+                            </div>
+                            <div className="col-span-2 flex items-end">
+                              {index === newDeliveryNote.details.length - 1 && (
+                                <Button onClick={addDetail} variant="outline" size="sm">
+                                  +
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button onClick={handleCreate}>作成</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>納品書番号</TableHead>
+                    <TableHead>営業担当</TableHead>
+                    <TableHead>納品日</TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deliveryNotes.map((note) => (
+                    <TableRow key={note.id}>
+                      <TableCell>{note.id}</TableCell>
+                      <TableCell>{note.delivery_note_number}</TableCell>
+                      <TableCell>
+                        {salesPersons.find(p => p.id === note.sales_person_id)?.name || '不明'}
+                      </TableCell>
+                      <TableCell>{note.delivery_date}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm">編集</Button>
+                        <Button variant="destructive" size="sm" className="ml-2">削除</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          )}
+
+          {activeTab === 'recognition' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>納品書画像認識</CardTitle>
+                <CardDescription>納品書の画像をアップロードして自動認識します</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Image Upload Area */}
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    isDragActive
+                      ? 'border-blue-400 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  {isDragActive ? (
+                    <p className="text-lg text-blue-600">画像をここにドロップ...</p>
+                  ) : (
+                    <div>
+                      <p className="text-lg text-gray-600 mb-2">
+                        納品書の画像をドラッグ＆ドロップするか、クリックして選択してください
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        JPEG, PNG 形式に対応（複数ファイル可）
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recognition Status */}
+                {isRecognizing && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-blue-800">画像を認識しています...</p>
+                  </div>
+                )}
+
+                {/* Uploaded Images */}
+                {uploadedImages.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-medium mb-4">認識結果</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {uploadedImages.map((image, index) => (
+                        <Card key={index}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex items-center space-x-2">
+                                <FileImage className="h-5 w-5 text-gray-500" />
+                                <span className="text-sm text-gray-600">{image.file.name}</span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeImage(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            
+                            <img
+                              src={image.preview}
+                              alt="Uploaded"
+                              className="w-full h-48 object-cover rounded-lg mb-4"
+                            />
+                            
+                            {image.recognitionResult && (
+                              <div className="space-y-2">
+                                {image.recognitionResult.success ? (
+                                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <p className="text-green-800 font-medium">認識成功</p>
+                                    <div className="mt-2 text-sm text-green-700">
+                                      <p>販売員: {salesPersons.find(sp => sp.id.toString() === image.recognitionResult?.salesPersonId)?.name}</p>
+                                      <p>納品日: {image.recognitionResult.deliveryDate}</p>
+                                      <p>商品数: {image.recognitionResult.details?.length}個</p>
+                                    </div>
+                                    <Button
+                                      className="mt-3"
+                                      size="sm"
+                                      onClick={() => {
+                                        // TODO: 認識結果を編集フォームに反映
+                                        console.log('Edit recognition result:', image.recognitionResult);
+                                      }}
+                                    >
+                                      このデータを使用
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <p className="text-red-800 font-medium">認識失敗</p>
+                                    <p className="text-sm text-red-700 mt-1">
+                                      {image.recognitionResult.failureReason}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

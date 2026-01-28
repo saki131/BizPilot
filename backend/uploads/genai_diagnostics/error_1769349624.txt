@@ -1,0 +1,15 @@
+Exception:
+Traceback (most recent call last):
+  File "C:\Users\Owner\workspace\backend\genai_wrapper.py", line 80, in generate_content_with_image
+    raise RuntimeError("google.genai client does not expose a supported generate method")
+RuntimeError: google.genai client does not expose a supported generate method
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Owner\workspace\backend\routers\delivery_notes.py", line 93, in recognize_delivery_note_image
+    response = generate_content_with_image(MODEL_NAME, prompt, image_data)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Owner\workspace\backend\genai_wrapper.py", line 86, in generate_content_with_image
+    raise RuntimeError(f"google.genai call failed: {e}")
+RuntimeError: google.genai call failed: google.genai client does not expose a supported generate method
