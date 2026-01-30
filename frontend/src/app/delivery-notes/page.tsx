@@ -1451,7 +1451,7 @@ export default function DeliveryNotesPage() {
                                         <div className="space-y-2 text-sm text-green-700 flex-1">
                                           <div className="flex justify-between py-1 border-b border-green-200">
                                             <span className="font-medium">販売員:</span>
-                                            <span>{salesPersons.find(sp => sp.id.toString() === image.recognitionResult?.salesPersonId)?.name || '不明'}</span>
+                                            <span>{salesPersons.find(sp => sp.id === Number(image.recognitionResult?.salesPersonId))?.name || '不明'}</span>
                                           </div>
                                           <div className="flex justify-between py-1 border-b border-green-200">
                                             <span className="font-medium">納品日:</span>
@@ -1462,7 +1462,7 @@ export default function DeliveryNotesPage() {
                                             <p className="font-medium mb-2">📋 商品明細:</p>
                                             <div className="space-y-1 max-h-[300px] overflow-y-auto">
                                               {image.recognitionResult.details?.map((detail, idx) => {
-                                                const product = products.find(p => p.id.toString() === detail.productId);
+                                                const product = products.find(p => p.id === Number(detail.productId));
                                                 const amount = detail.quantity * detail.unitPrice;
                                                 return (
                                                   <div key={idx} className="bg-white bg-opacity-70 p-2 rounded text-xs">
