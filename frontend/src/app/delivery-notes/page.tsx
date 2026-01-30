@@ -50,21 +50,21 @@ interface Contractor {
 
 interface RecognitionResult {
   success: boolean;
-  salesPersonId?: string;
+  salesPersonId?: number | string;
   deliveryDate?: string;
   billingDate?: string;
-  taxRateId?: string;
+  taxRateId?: number | string;
   details?: Array<{
-    productId: string;
+    productId: number | string;
     quantity: number;
     unitPrice: number;
   }>;
   // 一部コードで API からの解析結果を `parsedData` として扱うための互換プロパティ
   parsedData?: {
-    salesPersonId?: string;
+    salesPersonId?: number | string;
     deliveryDate?: string;
     products?: Array<{
-      productId: string;
+      productId: number | string;
       quantity: number;
       unitPrice: number;
     }>;
@@ -1451,7 +1451,12 @@ export default function DeliveryNotesPage() {
                                         <div className="space-y-2 text-sm text-green-700 flex-1">
                                           <div className="flex justify-between py-1 border-b border-green-200">
                                             <span className="font-medium">販売員:</span>
-                                            <span>{salesPersons.find(sp => sp.id === Number(image.recognitionResult?.salesPersonId))?.name || '不明'}</span>
+                                            <span>{(() => {
+                                              const spId = image.recognitionResult?.salesPersonId;
+                                              const found = salesPersons.find(sp => sp.id === Number(spId));
+                                              console.log('[DEBUG] salesPersonId:', spId, 'type:', typeof spId, 'salesPersons count:', salesPersons.length, 'found:', found);
+                                              return found?.name || `不明 (ID: ${spId})`;
+                                            })()}</span>
                                           </div>
                                           <div className="flex justify-between py-1 border-b border-green-200">
                                             <span className="font-medium">納品日:</span>
