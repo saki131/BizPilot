@@ -6,6 +6,7 @@ alembic
 pydantic
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt
 python-multipart
 httpx
 python-dotenv

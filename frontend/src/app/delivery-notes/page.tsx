@@ -194,7 +194,7 @@ export default function DeliveryNotesPage() {
     const { salesPersonId, deliveryDate, products } = result.parsedData;
 
     // 納品書一覧から同一のデータを検索
-    const salesPersonIdNum = salesPersonId ? parseInt(salesPersonId, 10) : undefined;
+    const salesPersonIdNum = salesPersonId ? (typeof salesPersonId === 'number' ? salesPersonId : parseInt(salesPersonId, 10)) : undefined;
     if (!salesPersonIdNum || !deliveryDate || !products) return false;
 
     return deliveryNotes.some(note => {
@@ -413,7 +413,7 @@ export default function DeliveryNotesPage() {
 
       // 明細データを整形
       const details = result.details?.map(d => ({
-        product_id: parseInt(d.productId),
+        product_id: typeof d.productId === 'number' ? d.productId : parseInt(d.productId),
         quantity: parseInt(d.quantity.toString()),
         unit_price: parseInt(d.unitPrice.toString()),
         remarks: ''
@@ -421,8 +421,8 @@ export default function DeliveryNotesPage() {
 
       // DBに直接登録
       const response = await apiClient.createDeliveryNote({
-        sales_person_id: parseInt(result.salesPersonId),
-        tax_rate_id: parseInt(result.taxRateId),
+        sales_person_id: typeof result.salesPersonId === 'number' ? result.salesPersonId : parseInt(result.salesPersonId),
+        tax_rate_id: typeof result.taxRateId === 'number' ? result.taxRateId : parseInt(result.taxRateId),
         delivery_date: result.deliveryDate,
         billing_date: formatDate(billingDate),
         delivery_note_number: deliveryNoteNumber,
@@ -1451,12 +1451,11 @@ export default function DeliveryNotesPage() {
                                         <div className="space-y-2 text-sm text-green-700 flex-1">
                                           <div className="flex justify-between py-1 border-b border-green-200">
                                             <span className="font-medium">販売員:</span>
-                                            <span>{(() => {
-                                              const spId = image.recognitionResult?.salesPersonId;
-                                              const found = salesPersons.find(sp => sp.id === Number(spId));
-                                              console.log('[DEBUG] salesPersonId:', spId, 'type:', typeof spId, 'salesPersons count:', salesPersons.length, 'found:', found);
-                                              return found?.name || `不明 (ID: ${spId})`;
-                                            })()}</span>
+                                            <span>
+                                              {salesPersons.find(sp => sp.id === Number(image.recognitionResult?.salesPersonId))?.name 
+                                                || salesPersons.find(sp => String(sp.id) === String(image.recognitionResult?.salesPersonId))?.name
+                                                || `不明 (ID=${image.recognitionResult?.salesPersonId}, 販売員数=${salesPersons.length})`}
+                                            </span>
                                           </div>
                                           <div className="flex justify-between py-1 border-b border-green-200">
                                             <span className="font-medium">納品日:</span>
@@ -1467,7 +1466,8 @@ export default function DeliveryNotesPage() {
                                             <p className="font-medium mb-2">📋 商品明細:</p>
                                             <div className="space-y-1 max-h-[300px] overflow-y-auto">
                                               {image.recognitionResult.details?.map((detail, idx) => {
-                                                const product = products.find(p => p.id === Number(detail.productId));
+                                                const product = products.find(p => p.id === Number(detail.productId)) 
+                                                  || products.find(p => String(p.id) === String(detail.productId));
                                                 const amount = detail.quantity * detail.unitPrice;
                                                 return (
                                                   <div key={idx} className="bg-white bg-opacity-70 p-2 rounded text-xs">

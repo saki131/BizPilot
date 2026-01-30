@@ -15,7 +15,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://172.16.0.71:3000", 
-        "https://biz-pilot.vercel.app"  # Vercel本番環境
+        "https://biz-pilot.vercel.app",  # Vercel本番環境（旧）
+        "https://biz-pilot-mu.vercel.app"  # Vercel本番環境（新）
     ],
     allow_credentials=True,
     allow_methods=["*"],

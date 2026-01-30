@@ -15,11 +15,16 @@ import re
 from pathlib import Path
 from config import settings
 from genai_wrapper import configure as genai_configure, generate_content_with_image
+import os
 
 router = APIRouter(prefix="/delivery-notes", tags=["delivery notes"])
 
 # Configure GenAI client (wrapper handles legacy/new SDKs)
-genai_configure(settings.GEMINI_API_KEY)
+# Debug: Print API key info at startup
+_api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_KEY", "")
+print(f"[DEBUG] GEMINI_API_KEY from settings: {'*****' + _api_key[-8:] if _api_key else 'EMPTY'}")
+print(f"[DEBUG] GEMINI_KEY env var: {'*****' + os.getenv('GEMINI_KEY', '')[-8:] if os.getenv('GEMINI_KEY') else 'EMPTY'}")
+genai_configure(_api_key)
 MODEL_NAME = 'gemini-2.5-flash'
 
 def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
@@ -51,15 +56,23 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
         prompt = f"""
 納品書の画像を解析して、以下のJSON形式で情報を抽出してください。
 
+【重要】IDは必ず数字のみで返してください。名前ではなくIDの数字を使用すること。
+
 【マスタデータ】
-販売員: {', '.join(sales_person_list)}
-商品: {', '.join(product_list)}
-税率: {', '.join(tax_rate_list)}
+販売員一覧（ID: 名前の形式）:
+{chr(10).join(sales_person_list)}
+
+商品一覧（ID: 商品名 (価格)の形式）:
+{chr(10).join(product_list)}
+
+税率一覧（ID: 表示名 (税率%)の形式）:
+{chr(10).join(tax_rate_list)}
 
 【商品名の読み取りルール】
 - 「"」や省略記号は直前の商品名を継承
 - 「シャンプー」→「ハイシャンプー」
 - 「リンス」→「リンス＆ヘアパック」
+- 画像から読み取った商品名に最も近いマスタの商品を選択し、そのIDを使用
 
 【数値の読み取りルール】
 - 数量: 整数
@@ -67,22 +80,27 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
 - 金額の整合性チェック必須
 
 【出力JSON形式】
+必ず以下の形式のJSONのみを出力してください。説明文は不要です。
 {{
-  "success": true/false,
-  "salesPersonId": "販売員ID",
-  "deliveryDate": "YYYY-MM-DD",
-  "taxRateId": "税率ID",
+  "success": true,
+  "salesPersonId": 1,
+  "deliveryDate": "2026-01-15",
+  "taxRateId": 1,
   "details": [
     {{
-      "productId": "商品ID",
-      "quantity": 数量,
-      "unitPrice": 単価
+      "productId": 1,
+      "quantity": 2,
+      "unitPrice": 1000
     }}
-  ],
-  "failureReason": "失敗時の理由"
+  ]
 }}
 
-販売員、納品日、税率、商品明細（商品ID、数量、単価）が特定でき、金額が一致する場合はsuccess: true
+【注意事項】
+- salesPersonId, taxRateId, productIdは必ず数字（整数）で返すこと
+- 文字列ではなく数値型で返すこと
+- 販売員が特定できない場合はsalesPersonIdをnullにする
+- 商品が特定できない場合はその明細を除外する
+- 失敗時は {{"success": false, "failureReason": "理由"}} を返す
 """
         
         print(f"Prompt length: {len(prompt)} chars")
