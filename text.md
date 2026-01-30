@@ -31,7 +31,7 @@
 - **RDBMS**: PostgreSQL 15
 
 #### 外部API・サービス
-- **AI/OCR**: Google Gemini API (gemini-1.5-flash)
+- **AI/OCR**: Google Gemini API (gemini-2.5-flash)
 - **ファイルストレージ**: Google Drive API
 - **PDF生成**: ReportLab (Python) または react-pdf
 

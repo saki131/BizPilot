@@ -25,22 +25,29 @@ def configure(api_key: str):
     If neither package is installed, this function is a no-op and later calls
     will raise a clear error.
     """
+    # Always override GOOGLE_API_KEY environment variable to ensure consistent API key usage
+    if api_key:
+        os.environ["GOOGLE_API_KEY"] = api_key
+        os.environ["GEMINI_API_KEY"] = api_key  # Also set GEMINI_API_KEY for consistency
+        print(f"[DEBUG genai_wrapper] Set GOOGLE_API_KEY and GEMINI_API_KEY to ...{api_key[-10:]}")
+    
     if HAS_GENAI_NEW:
-        # google.genai typically uses environment-based auth; set env var as fallback
-        os.environ.setdefault("GOOGLE_API_KEY", api_key)
         # also try to create a client instance if the SDK exposes Client
         try:
             global _GENAI_CLIENT
             _GENAI_CLIENT = genai_new.Client(api_key=api_key)
-            logger.info("Initialized google.genai Client")
-        except Exception:
+            print("[DEBUG genai_wrapper] Initialized google.genai Client")
+        except Exception as e:
             _GENAI_CLIENT = None
-            logger.info("google.genai available; will use environment-based auth")
-    elif HAS_GENAI_LEGACY:
+            print(f"[DEBUG genai_wrapper] google.genai Client init failed: {e}, will use environment-based auth")
+    
+    # Always configure legacy SDK if available (since we prefer it in generate_content_with_image)
+    if HAS_GENAI_LEGACY:
         genai_legacy.configure(api_key=api_key)
-        logger.info("Configured google.generativeai (legacy)")
-    else:
-        logger.warning("No GenAI SDK installed (google.genai or google.generativeai). Calls will fail until installed.")
+        print(f"[DEBUG genai_wrapper] Configured google.generativeai (legacy) with key ending ...{api_key[-10:]}")
+    
+    if not HAS_GENAI_NEW and not HAS_GENAI_LEGACY:
+        print("[DEBUG genai_wrapper] No GenAI SDK installed!")
 
 
 class GenAIResponse:
