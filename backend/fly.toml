@@ -1,0 +1,15 @@
+app = "bizpilot-backend"
+primary_region = "sjc"
+
+[[services]]
+internal_port = 8000
+protocol = "tcp"
+ports = [
+  { handlers = ["http"], port = 80 },
+  { handlers = ["tls", "http"], port = 443 }
+]
+
+[services.concurrency]
+type = "requests"
+hard_limit = 25
+soft_limit = 20
