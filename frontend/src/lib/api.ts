@@ -22,10 +22,18 @@ class ApiClient {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
-    // Load token from localStorage if available
+    // Token will be loaded dynamically in getAccessToken()
+  }
+
+  private getAccessToken(): string | null {
+    // Always try to get the latest token from localStorage
     if (typeof window !== 'undefined') {
-      this.accessToken = localStorage.getItem('access_token');
+      const storedToken = localStorage.getItem('access_token');
+      if (storedToken) {
+        this.accessToken = storedToken;
+      }
     }
+    return this.accessToken;
   }
 
   private async request<T>(
@@ -44,8 +52,9 @@ class ApiClient {
       headers['Content-Type'] = headers['Content-Type'] || 'application/json';
     }
 
-    if (this.accessToken) {
-      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    const token = this.getAccessToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {
@@ -54,7 +63,7 @@ class ApiClient {
         headers,
       });
 
-      if (response.status === 401 && this.accessToken) {
+      if (response.status === 401 && token) {
         // Try to refresh token
         const refreshResult = await this.refreshToken();
         if (refreshResult.data) {
