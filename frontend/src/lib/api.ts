@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://172.16.0.71:8002/api';
+const API_BASE_URL = 'https://bizpilot-backend.fly.dev/api';
 
 interface LoginRequest {
   username: string;

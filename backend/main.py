@@ -12,7 +12,11 @@ app = FastAPI(title="Invoice Management API", version="1.0.0")
 # CORS設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://172.16.0.71:3000"],  # Next.jsのデフォルトポート + モバイルアクセス
+    allow_origins=[
+        "http://localhost:3000",
+        "http://172.16.0.71:3000", 
+        "https://biz-pilot.vercel.app"  # Vercel本番環境
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
