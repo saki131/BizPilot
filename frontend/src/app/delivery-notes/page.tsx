@@ -91,6 +91,7 @@ export default function DeliveryNotesPage() {
   const [salesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [apiDebugInfo, setApiDebugInfo] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'list' | 'manual' | 'recognition'>('list');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<DeliveryNote | null>(null);
@@ -225,12 +226,28 @@ export default function DeliveryNotesPage() {
         apiClient.getContractors(),
       ]);
 
+      console.log('API Responses:', { 
+        salesPersonsRes, 
+        productsRes, 
+        deliveryNotesRes,
+        contractorsRes 
+      });
+
+      // デバッグ情報を設定
+      setApiDebugInfo(`SP: ${salesPersonsRes.data ? (salesPersonsRes.data as any[]).length : 'err:' + salesPersonsRes.error}, Prod: ${productsRes.data ? (productsRes.data as any[]).length : 'err:' + productsRes.error}`);
+
       if (deliveryNotesRes.data) setDeliveryNotes(deliveryNotesRes.data as DeliveryNote[]);
-      if (salesPersonsRes.data) setSalesPersons(salesPersonsRes.data as SalesPerson[]);
+      if (salesPersonsRes.data) {
+        console.log('Setting salesPersons:', salesPersonsRes.data);
+        setSalesPersons(salesPersonsRes.data as SalesPerson[]);
+      } else {
+        console.error('salesPersonsRes has no data:', salesPersonsRes);
+      }
       if (productsRes.data) setProducts(productsRes.data as Product[]);
       if (contractorsRes.data) setContractors(contractorsRes.data as Contractor[]);
     } catch (error) {
       console.error('Failed to load data:', error);
+      setApiDebugInfo(`エラー: ${error}`);
     }
   };
 
@@ -666,6 +683,12 @@ export default function DeliveryNotesPage() {
     <div className="min-h-screen bg-gray-50">
       <main className="max-w-7xl mx-auto pt-4 pb-6 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
+          {/* Debug Info - 一時的 */}
+          {apiDebugInfo && (
+            <div className="mb-4 p-2 bg-yellow-100 border border-yellow-400 text-yellow-800 text-xs rounded">
+              Debug: {apiDebugInfo} | 販売員数: {salesPersons.length} | 商品数: {products.length}
+            </div>
+          )}
           {/* Tab Navigation */}
           <div className="border-b border-gray-200 mb-6">
             <nav className="-mb-px flex space-x-8">
