@@ -19,7 +19,6 @@ COMPANY_INFO = {
     "postal_code": "〒004-0063",
     "address1": "北海道札幌市厚別区",
     "address2": "厚別西3条3丁目4-1",
-    "registration_number": "T1234567890123",  # インボイス登録番号
 }
 
 # 振込先情報
@@ -153,7 +152,6 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["address1"])
     pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address2"])
-    pdf.drawString(right_x, y_right - 38*mm, f"登録番号: {COMPANY_INFO['registration_number']}")
     
     # ハンコ枠（丸）
     stamp_x = width - 25*mm
@@ -331,9 +329,18 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 10)
     pdf.drawString(20*mm, remarks_y, "【備考】")
     pdf.setFont(font_name, 9)
-    pdf.drawString(20*mm, remarks_y - 7*mm, "・恐れ入りますが、振込手数料はご負担願います。")
+    
+    # 但し書きの内容を出力
+    remark_offset = 7*mm
+    if invoice.note:
+        pdf.drawString(20*mm, remarks_y - remark_offset, f"・{invoice.note}")
+        remark_offset += 7*mm
+    
+    pdf.drawString(20*mm, remarks_y - remark_offset, "・恐れ入りますが、振込手数料はご負担願います。")
+    remark_offset += 7*mm
+    
     if discount_rate:
-        pdf.drawString(20*mm, remarks_y - 14*mm, 
+        pdf.drawString(20*mm, remarks_y - remark_offset, 
                        f"・適用割引率: {discount_rate_percent:.0f}%（税抜{discount_rate.threshold_amount:,}円以上）")
     
     # ===== フッター =====
