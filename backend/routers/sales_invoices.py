@@ -184,6 +184,10 @@ def generate_invoice_for_sales_person(
     
     # Calculate discount
     discount_rate_value = float(discount_rate.rate)
+    # If rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
+    if discount_rate_value >= 1:
+        discount_rate_value = discount_rate_value / 100
+    
     quota_discount_amount = int(quota_subtotal * discount_rate_value)
     non_quota_discount_amount = int(non_quota_subtotal * discount_rate_value)
     
