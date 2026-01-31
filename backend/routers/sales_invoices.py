@@ -197,7 +197,11 @@ def generate_invoice_for_sales_person(
     total_amount_ex_tax = quota_total + non_quota_total
     
     # Calculate tax (floor rounding) - apply to total amount excluding tax
-    tax_amount = int(total_amount_ex_tax * float(tax_rate.rate))
+    tax_rate_value = float(tax_rate.rate)
+    # If tax rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
+    if tax_rate_value >= 1:
+        tax_rate_value = tax_rate_value / 100
+    tax_amount = int(total_amount_ex_tax * tax_rate_value)
     
     total_amount_inc_tax = total_amount_ex_tax + tax_amount
     
@@ -399,16 +403,22 @@ async def update_invoice_fields(
         invoice.discount_rate_id = update_data.discount_rate_id
         
         # 割引額と合計を再計算
-        invoice.quota_discount_amount = int(invoice.quota_subtotal * discount_rate.rate / 100)
+        discount_rate_value = float(discount_rate.rate)
+        if discount_rate_value >= 1:
+            discount_rate_value = discount_rate_value / 100
+        invoice.quota_discount_amount = int(invoice.quota_subtotal * discount_rate_value)
         invoice.quota_total = invoice.quota_subtotal - invoice.quota_discount_amount
-        invoice.non_quota_discount_amount = int(invoice.non_quota_subtotal * discount_rate.rate / 100)
+        invoice.non_quota_discount_amount = int(invoice.non_quota_subtotal * discount_rate_value)
         invoice.non_quota_total = invoice.non_quota_subtotal - invoice.non_quota_discount_amount
         invoice.total_amount_ex_tax = invoice.quota_total + invoice.non_quota_total + (invoice.non_discountable_amount or 0)
         
         # 消費税を計算
         tax_rate = db.query(TaxRate).filter(TaxRate.deleted_flag == False).first()
         if tax_rate:
-            invoice.tax_amount = int(invoice.total_amount_ex_tax * tax_rate.rate / 100)
+            tax_rate_value = float(tax_rate.rate)
+            if tax_rate_value >= 1:
+                tax_rate_value = tax_rate_value / 100
+            invoice.tax_amount = int(invoice.total_amount_ex_tax * tax_rate_value)
         invoice.total_amount_inc_tax = invoice.total_amount_ex_tax + invoice.tax_amount
     
     if update_data.note is not None:
@@ -485,6 +495,8 @@ async def update_invoice_discount_rate(
     
     # Recalculate with new discount rate
     discount_rate_value = float(discount_rate.rate)
+    if discount_rate_value >= 1:
+        discount_rate_value = discount_rate_value / 100
     quota_discount_amount = int(invoice.quota_subtotal * discount_rate_value)
     non_quota_discount_amount = int(invoice.non_quota_subtotal * discount_rate_value)
     
@@ -497,7 +509,10 @@ async def update_invoice_discount_rate(
     tax_rate = db.query(TaxRate).filter(
         TaxRate.is_active == True
     ).order_by(TaxRate.effective_date.desc()).first()
-    tax_amount = int(quota_total * float(tax_rate.rate))
+    tax_rate_value = float(tax_rate.rate)
+    if tax_rate_value >= 1:
+        tax_rate_value = tax_rate_value / 100
+    tax_amount = int(total_amount_ex_tax * tax_rate_value)
     
     total_amount_inc_tax = total_amount_ex_tax + tax_amount
     
