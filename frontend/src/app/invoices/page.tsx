@@ -95,6 +95,10 @@ export default function InvoicesPage() {
     try {
       const response = await apiClient.getSalesInvoices();
       if (response.data) {
+        console.log('[DEBUG] Invoices from API:', response.data);
+        response.data.forEach((inv: any) => {
+          console.log(`[DEBUG]   Invoice ${inv.id}: discount_rate=${inv.discount_rate} (type: ${typeof inv.discount_rate}), discount_rate*100=${inv.discount_rate * 100}`);
+        });
         setInvoices(response.data as SalesInvoice[]);
       }
     } catch (error) {
@@ -119,6 +123,10 @@ export default function InvoicesPage() {
     try {
       const response = await apiClient.getDiscountRates();
       if (response.data) {
+        console.log('[DEBUG] Discount rates from API:', response.data);
+        response.data.forEach((rate: any) => {
+          console.log(`[DEBUG]   ID=${rate.id}, rate=${rate.rate} (type: ${typeof rate.rate}), rate*100=${rate.rate * 100}`);
+        });
         setDiscountRates(response.data as DiscountRate[]);
       }
     } catch (error) {

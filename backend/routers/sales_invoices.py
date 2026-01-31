@@ -562,6 +562,9 @@ async def get_sales_invoices(
                 amount=detail.amount
             ))
         
+        discount_rate_value = float(discount_rate.rate) if discount_rate else 0.0
+        print(f"[DEBUG API] Invoice {invoice.id}: discount_rate.rate={discount_rate.rate if discount_rate else None}, discount_rate_value={discount_rate_value}")
+        
         result.append(InvoiceResponse(
             id=invoice.id,
             sales_person_id=invoice.sales_person_id,
@@ -572,7 +575,7 @@ async def get_sales_invoices(
             invoice_date=invoice.invoice_date,
             receipt_date=invoice.receipt_date,
             discount_rate_id=invoice.discount_rate_id,
-            discount_rate=float(discount_rate.rate) if discount_rate else 0.0,
+            discount_rate=discount_rate_value,
             quota_subtotal=invoice.quota_subtotal,
             quota_discount_amount=invoice.quota_discount_amount,
             quota_total=invoice.quota_total,
