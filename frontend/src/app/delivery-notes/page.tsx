@@ -271,8 +271,12 @@ export default function DeliveryNotesPage() {
     setIsRecognizing(true);
     try {
       const result = await apiClient.recognizeImage(image.file);
+      console.log('🔍 認識API レスポンス:', result);
+      
       if (result.data) {
         image.recognitionResult = (result.data as any).recognition_result;
+        console.log('✅ 認識結果:', image.recognitionResult);
+        console.log('📊 salesPersonId:', image.recognitionResult?.salesPersonId, 'typeof:', typeof image.recognitionResult?.salesPersonId);
         
         // DB内の納品書と照合して重複チェック
         if (image.recognitionResult?.success) {
