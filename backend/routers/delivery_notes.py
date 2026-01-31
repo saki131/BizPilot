@@ -14,18 +14,24 @@ import traceback
 import re
 from pathlib import Path
 from config import settings
-from genai_wrapper import configure as genai_configure, generate_content_with_image
+from genai_wrapper import configure as genai_configure, generate_content_with_image, set_api_keys
 import os
 
 router = APIRouter(prefix="/delivery-notes", tags=["delivery notes"])
 
-# Configure GenAI client (wrapper handles legacy/new SDKs)
-# Debug: Print API key info at startup
-_api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_KEY", "")
-print(f"[DEBUG] GEMINI_API_KEY from settings: {'*****' + _api_key[-8:] if _api_key else 'EMPTY'}")
-print(f"[DEBUG] GEMINI_KEY env var: {'*****' + os.getenv('GEMINI_KEY', '')[-8:] if os.getenv('GEMINI_KEY') else 'EMPTY'}")
-genai_configure(_api_key)
-MODEL_NAME = 'gemini-2.5-flash-lite'  # 費用対効果と高スループット向けに最適化
+# Configure GenAI client with multiple API keys
+_api_keys = settings.GEMINI_API_KEYS
+if _api_keys:
+    print(f"[DEBUG] Loaded {len(_api_keys)} Gemini API key(s)")
+    for i, key in enumerate(_api_keys):
+        print(f"[DEBUG] API Key {i+1}: ...{key[-8:] if len(key) >= 8 else '***'}")
+    set_api_keys(_api_keys)
+    # Configure with first key initially
+    genai_configure(_api_keys[0])
+else:
+    print(f"[WARNING] No Gemini API keys found in environment")
+    
+MODEL_NAME = 'gemini-2.5-flash'  # 費用対効果と高スループット向けに最適化
 
 def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
     """Gemini APIを使って納品書画像を認識する"""
