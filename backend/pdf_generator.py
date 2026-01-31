@@ -153,14 +153,32 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["address1"])
     pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address2"])
     
-    # ハンコ枠（丸）
+    # ハンコ画像
     stamp_x = width - 25*mm
     stamp_y = y_right - 15*mm
-    stamp_radius = 8*mm
-    pdf.circle(stamp_x, stamp_y, stamp_radius, stroke=1, fill=0)
-    pdf.setFont(font_name, 7)
-    pdf.drawCentredString(stamp_x, stamp_y + 2*mm, "ドクター")
-    pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "フェリス")
+    stamp_width = 16*mm
+    stamp_height = 16*mm
+    
+    # 画像ファイルのパス
+    stamp_image_path = os.path.join(os.path.dirname(__file__), "static", "stamp.png")
+    
+    try:
+        # 画像を描画
+        pdf.drawImage(stamp_image_path, 
+                     stamp_x - stamp_width/2, 
+                     stamp_y - stamp_height/2, 
+                     width=stamp_width, 
+                     height=stamp_height,
+                     preserveAspectRatio=True,
+                     mask='auto')
+    except Exception as e:
+        # 画像が見つからない場合は従来の円とテキストで描画
+        print(f"Warning: Stamp image not found at {stamp_image_path}, using text fallback: {e}")
+        stamp_radius = 8*mm
+        pdf.circle(stamp_x, stamp_y, stamp_radius, stroke=1, fill=0)
+        pdf.setFont(font_name, 7)
+        pdf.drawCentredString(stamp_x, stamp_y + 2*mm, "ドクター")
+        pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "フェリス")
     
     # ===== 請求金額ボックス =====
     box_y = height - 95*mm
