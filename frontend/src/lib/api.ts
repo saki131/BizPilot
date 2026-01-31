@@ -77,6 +77,14 @@ class ApiClient {
             const data = await retryResponse.json();
             return { data };
           }
+        } else {
+          // Refresh failed, clear tokens and redirect to login
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/login';
+          }
+          return { error: 'Session expired. Please login again.' };
         }
       }
 
