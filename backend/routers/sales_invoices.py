@@ -196,8 +196,8 @@ def generate_invoice_for_sales_person(
     
     total_amount_ex_tax = quota_total + non_quota_total
     
-    # Calculate tax (floor rounding)
-    tax_amount = int(quota_total * float(tax_rate.rate))
+    # Calculate tax (floor rounding) - apply to total amount excluding tax
+    tax_amount = int(total_amount_ex_tax * float(tax_rate.rate))
     
     total_amount_inc_tax = total_amount_ex_tax + tax_amount
     
