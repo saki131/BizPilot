@@ -221,14 +221,17 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     # 割引率の取得
     # rateが1以上ならパーセント値（例：20=20%）、1未満なら小数値（例：0.20=20%）として扱う
     raw_rate = float(discount_rate.rate) if discount_rate else 0
+    print(f"[DEBUG PDF] raw_rate from DB: {raw_rate}, type: {type(discount_rate.rate) if discount_rate else None}")
     if raw_rate >= 1:
         # パーセント値として保存されている場合（例：20 = 20%）
         discount_rate_percent = raw_rate
         discount_rate_decimal = raw_rate / 100
+        print(f"[DEBUG PDF] Using as percent value: percent={discount_rate_percent}, decimal={discount_rate_decimal}")
     else:
         # 小数値として保存されている場合（例：0.20 = 20%）
         discount_rate_percent = raw_rate * 100
         discount_rate_decimal = raw_rate
+        print(f"[DEBUG PDF] Using as decimal value: percent={discount_rate_percent}, decimal={discount_rate_decimal}")
     
     # 明細データ
     row_height = 6*mm
