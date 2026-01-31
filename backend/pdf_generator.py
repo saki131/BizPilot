@@ -40,22 +40,38 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # 日本語フォント設定（Windowsの場合）
+    # 日本語フォント設定
+    font_name = 'Helvetica'  # デフォルトフォント
     try:
-        # MS ゴシックを使用
+        # MS ゴシックを使用（Windows環境）
         font_path = "C:\\Windows\\Fonts\\msgothic.ttc"
         pdfmetrics.registerFont(TTFont('Japanese', font_path))
-        pdf.setFont('Japanese', 12)
+        font_name = 'Japanese'
     except:
-        # フォントが見つからない場合はHelveticaを使用
-        pdf.setFont('Helvetica', 12)
+        # Linux環境用の代替フォント（Notoフォント等）
+        try:
+            import os
+            # Fly.ioやLinux環境でのフォントパス
+            font_candidates = [
+                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            ]
+            for font_path in font_candidates:
+                if os.path.exists(font_path):
+                    pdfmetrics.registerFont(TTFont('Japanese', font_path))
+                    font_name = 'Japanese'
+                    break
+        except:
+            pass
+    
+    pdf.setFont(font_name, 12)
     
     # タイトル
-    pdf.setFont('Japanese', 18)
+    pdf.setFont(font_name, 18)
     pdf.drawString(50*mm, height - 30*mm, "請 求 書")
     
     # 請求書番号
-    pdf.setFont('Japanese', 10)
+    pdf.setFont(font_name, 10)
     pdf.drawString(50*mm, height - 40*mm, f"請求書番号: {invoice.invoice_number}")
     
     # 販売員情報
@@ -68,7 +84,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     # 明細テーブルヘッダー
     y_position = height - 80*mm
-    pdf.setFont('Japanese', 9)
+    pdf.setFont(font_name, 9)
     pdf.drawString(15*mm, y_position, "商品名")
     pdf.drawString(65*mm, y_position, "数量")
     pdf.drawString(80*mm, y_position, "単価")
@@ -99,7 +115,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         # ページ送り判定（簡易版）
         if y_position < 50*mm:
             pdf.showPage()
-            pdf.setFont('Japanese', 9)
+            pdf.setFont(font_name, 9)
             y_position = height - 30*mm
     
     # 合計欄
@@ -107,7 +123,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.line(15*mm, y_position, 195*mm, y_position)
     
     y_position -= 8*mm
-    pdf.setFont('Japanese', 9)
+    pdf.setFont(font_name, 9)
     
     # 商品小計行
     total_subtotal = invoice.quota_subtotal + invoice.non_quota_subtotal
@@ -150,7 +166,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     y_position -= 8*mm
     pdf.line(15*mm, y_position, 195*mm, y_position)
     y_position -= 6*mm
-    pdf.setFont('Japanese', 10)
+    pdf.setFont(font_name, 10)
     pdf.drawString(15*mm, y_position, "合計金額（税抜）")
     pdf.drawRightString(118*mm, y_position, f"¥{total_subtotal:,}")
     pdf.drawString(122*mm, y_position, f"{discount_rate_percent:.0f}%")
@@ -159,7 +175,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     # 消費税
     y_position -= 8*mm
-    pdf.setFont('Japanese', 9)
+    pdf.setFont(font_name, 9)
     pdf.drawString(15*mm, y_position, "消費税率")
     pdf.drawString(50*mm, y_position, "10%")
     
@@ -171,7 +187,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     y_position -= 8*mm
     pdf.line(15*mm, y_position, 195*mm, y_position)
     y_position -= 8*mm
-    pdf.setFont('Japanese', 12)
+    pdf.setFont(font_name, 12)
     pdf.drawString(15*mm, y_position, "税込合計:")
     pdf.drawRightString(178*mm, y_position, f"¥{invoice.total_amount_inc_tax:,}")
     

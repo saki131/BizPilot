@@ -385,8 +385,25 @@ export default function DeliveryNotesPage() {
   };
 
   const useRecognitionResult = async (result: RecognitionResult) => {
-    if (!result.success || !result.salesPersonId || !result.deliveryDate || !result.taxRateId) {
-      alert('認識結果が不完全です');
+    // デバッグ情報
+    console.log('Recognition Result:', {
+      success: result.success,
+      salesPersonId: result.salesPersonId,
+      deliveryDate: result.deliveryDate,
+      taxRateId: result.taxRateId,
+      details: result.details,
+      detailsLength: result.details?.length
+    });
+
+    if (!result.success || !result.salesPersonId || !result.deliveryDate || !result.taxRateId || !result.details || result.details.length === 0) {
+      const missing = [];
+      if (!result.success) missing.push('success');
+      if (!result.salesPersonId) missing.push('販売員ID');
+      if (!result.deliveryDate) missing.push('納品日');
+      if (!result.taxRateId) missing.push('税率ID');
+      if (!result.details || result.details.length === 0) missing.push('商品明細');
+      
+      alert(`認識結果が不完全です\n不足: ${missing.join(', ')}`);
       return;
     }
 
@@ -1452,14 +1469,6 @@ export default function DeliveryNotesPage() {
                                     {image.recognitionResult.success ? (
                                       <div className="p-3 bg-green-50 border border-green-200 rounded-lg h-full flex flex-col">
                                         <p className="text-green-800 font-medium mb-3">✓ 認識成功</p>
-                                        {/* 一時的なデバッグ情報 */}
-                                        <div className="mb-2 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs">
-                                          <div>認識されたID: {JSON.stringify(image.recognitionResult?.salesPersonId)} (型: {typeof image.recognitionResult?.salesPersonId})</div>
-                                          <div>販売員数: {salesPersons.length}</div>
-                                          <div>販売員ID一覧: {salesPersons.slice(0, 5).map(sp => `${sp.id}(${sp.name})`).join(', ')}</div>
-                                          <div>Number変換: {Number(image.recognitionResult?.salesPersonId)}</div>
-                                          <div>検索結果: {JSON.stringify(salesPersons.find(sp => sp.id === Number(image.recognitionResult?.salesPersonId)))}</div>
-                                        </div>
                                         <div className="space-y-2 text-sm text-green-700 flex-1">
                                           <div className="flex justify-between py-1 border-b border-green-200">
                                             <span className="font-medium">販売員:</span>
@@ -1516,8 +1525,12 @@ export default function DeliveryNotesPage() {
                                           className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
                                           size="sm"
                                           onClick={() => {
+                                            console.log('🔘 DBに登録ボタンクリック');
                                             if (image.recognitionResult) {
+                                              console.log('📝 登録する認識結果:', image.recognitionResult);
                                               useRecognitionResult(image.recognitionResult);
+                                            } else {
+                                              console.error('❌ 認識結果がありません');
                                             }
                                           }}
                                         >
