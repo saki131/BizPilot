@@ -23,19 +23,23 @@ def setup_japanese_font():
     except:
         try:
             import os
-            # Linux環境用フォント
+            # Linux環境用フォント（Noto CJK）
             font_candidates = [
-                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
                 "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
                 "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
             ]
             for fp in font_candidates:
                 if os.path.exists(fp):
                     pdfmetrics.registerFont(TTFont('Japanese', fp))
                     font_name = 'Japanese'
+                    print(f"Japanese font loaded: {fp}")
                     break
-        except:
-            pass
+            if font_name == 'Helvetica':
+                print("WARNING: Japanese font not found, using Helvetica (Japanese characters will not display)")
+        except Exception as e:
+            print(f"Font loading error: {e}")
     return font_name
 
 
