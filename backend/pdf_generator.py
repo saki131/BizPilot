@@ -7,9 +7,30 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.colors import black, white
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
+import os
 
 from models import SalesInvoice, SalesInvoiceDetail, Product, SalesPerson, DiscountRate
+
+# 会社情報（固定値）
+COMPANY_INFO = {
+    "name": "株式会社ドクターフェリス",
+    "representative": "前鼻 和美",
+    "postal_code": "〒530-0001",
+    "address1": "大阪府大阪市北区梅田1-2-3",
+    "address2": "梅田ビル5F",
+    "tel": "TEL: 06-1234-5678",
+    "registration_number": "T1234567890123",  # インボイス登録番号
+}
+
+# 振込先情報
+BANK_INFO = {
+    "bank_name": "三菱UFJ銀行",
+    "branch_name": "梅田支店",
+    "account_type": "普通",
+    "account_number": "1234567",
+    "account_holder": "カ）ドクターフェリス",
+}
 
 
 def setup_japanese_font():
@@ -23,7 +44,6 @@ def setup_japanese_font():
         print(f"Japanese font loaded: {font_path}")
     except:
         try:
-            import os
             # Linux環境用フォント（IPAゴシック - TTF形式）
             font_candidates = [
                 "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
@@ -40,23 +60,12 @@ def setup_japanese_font():
                     break
             if font_name == 'Helvetica':
                 print("WARNING: Japanese font not found, using Helvetica (Japanese characters will not display)")
-                # List available fonts for debugging
                 import glob
                 ttf_fonts = glob.glob("/usr/share/fonts/**/*.ttf", recursive=True)
-                print(f"Available TTF fonts: {ttf_fonts[:10]}")  # Show first 10
+                print(f"Available TTF fonts: {ttf_fonts[:10]}")
         except Exception as e:
             print(f"Font loading error: {e}")
     return font_name
-
-
-def draw_box(pdf, x, y, w, h, fill=False):
-    """四角枠を描画"""
-    if fill:
-        pdf.setFillColor(black)
-        pdf.rect(x, y, w, h, stroke=1, fill=1)
-        pdf.setFillColor(white)
-    else:
-        pdf.rect(x, y, w, h, stroke=1, fill=0)
 
 
 def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
@@ -92,6 +101,20 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 10)
     pdf.setLineWidth(0.5)
     
+    # 請求日・支払期日の計算
+    billing_date = invoice.end_date if invoice.end_date else datetime.now().date()
+    # 支払期日：請求日の翌月末
+    if billing_date.month == 12:
+        payment_due = billing_date.replace(year=billing_date.year + 1, month=1, day=28)
+    else:
+        next_month = billing_date.month + 1
+        if next_month in [1, 3, 5, 7, 8, 10, 12]:
+            payment_due = billing_date.replace(month=next_month, day=31)
+        elif next_month in [4, 6, 9, 11]:
+            payment_due = billing_date.replace(month=next_month, day=30)
+        else:  # 2月
+            payment_due = billing_date.replace(month=next_month, day=28)
+    
     # ===== ヘッダー部分 =====
     # 請求書タイトル（中央上部、大きく）
     pdf.setFont(font_name, 24)
@@ -103,25 +126,48 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 10)
     pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice.invoice_number}")
     
-    # 発行日（右上）
-    issue_date = datetime.now().strftime("%Y年%m月%d日")
-    pdf.drawRightString(width - 15*mm, height - 22*mm, f"発行日: {issue_date}")
-    
-    # ===== 宛名部分（左側） =====
-    y_addr = height - 45*mm
+    # ===== 左側：宛名部分 =====
+    y_left = height - 45*mm
     pdf.setFont(font_name, 14)
     sales_person_name = sales_person.name if sales_person else ""
-    pdf.drawString(20*mm, y_addr, f"{sales_person_name}　様")
+    pdf.drawString(20*mm, y_left, f"{sales_person_name}　様")
     
     # 下線
     pdf.setLineWidth(1)
-    pdf.line(20*mm, y_addr - 2*mm, 80*mm, y_addr - 2*mm)
+    pdf.line(20*mm, y_left - 2*mm, 80*mm, y_left - 2*mm)
     pdf.setLineWidth(0.5)
     
-    # ===== 請求金額ボックス（中央大きく） =====
-    box_y = height - 75*mm
+    # 請求日・支払期日
+    pdf.setFont(font_name, 10)
+    pdf.drawString(20*mm, y_left - 12*mm, f"請求日: {billing_date.strftime('%Y年%m月%d日')}")
+    pdf.drawString(20*mm, y_left - 20*mm, f"支払期日: {payment_due.strftime('%Y年%m月%d日')}")
+    
+    # ===== 右側：会社情報 =====
+    y_right = height - 45*mm
+    right_x = width - 80*mm
+    pdf.setFont(font_name, 11)
+    pdf.drawString(right_x, y_right, COMPANY_INFO["name"])
+    pdf.setFont(font_name, 9)
+    pdf.drawString(right_x, y_right - 6*mm, f"代表取締役 {COMPANY_INFO['representative']}")
+    pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO["postal_code"])
+    pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["address1"])
+    pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address2"])
+    pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["tel"])
+    pdf.drawString(right_x, y_right - 38*mm, f"登録番号: {COMPANY_INFO['registration_number']}")
+    
+    # ハンコ枠（丸）
+    stamp_x = width - 25*mm
+    stamp_y = y_right - 15*mm
+    stamp_radius = 8*mm
+    pdf.circle(stamp_x, stamp_y, stamp_radius, stroke=1, fill=0)
+    pdf.setFont(font_name, 7)
+    pdf.drawCentredString(stamp_x, stamp_y + 2*mm, "ドクター")
+    pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "フェリス")
+    
+    # ===== 請求金額ボックス =====
+    box_y = height - 95*mm
     box_height = 18*mm
-    box_width = 120*mm
+    box_width = 130*mm
     box_x = (width - box_width) / 2
     
     # 外枠
@@ -134,29 +180,22 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawString(box_x + 5*mm, box_y + 11*mm, "ご請求金額")
     
     # 金額
-    pdf.setFont(font_name, 20)
+    pdf.setFont(font_name, 22)
     total_amount = f"¥{invoice.total_amount_inc_tax:,}-"
     pdf.drawRightString(box_x + box_width - 10*mm, box_y + 5*mm, total_amount)
     
     # 税込表示
     pdf.setFont(font_name, 9)
-    pdf.drawRightString(box_x + box_width - 10*mm, box_y + 13*mm, "（税込）")
-    
-    # ===== 請求期間 =====
-    pdf.setFont(font_name, 10)
-    period_y = box_y - 10*mm
-    start_date = invoice.start_date.strftime("%Y年%m月%d日") if invoice.start_date else ""
-    end_date = invoice.end_date.strftime("%Y年%m月%d日") if invoice.end_date else ""
-    pdf.drawCentredString(width / 2, period_y, f"請求期間: {start_date} ～ {end_date}")
+    pdf.drawRightString(box_x + box_width - 10*mm, box_y + 14*mm, "（税込）")
     
     # ===== 明細テーブル =====
-    table_top = period_y - 15*mm
+    table_top = box_y - 10*mm
     table_left = 15*mm
     table_right = width - 15*mm
     table_width = table_right - table_left
     
     # 列幅定義
-    col_widths = [60*mm, 20*mm, 25*mm, 30*mm, 30*mm]  # 商品名、数量、単価、金額、備考
+    col_widths = [70*mm, 20*mm, 28*mm, 32*mm, 15*mm]  # 商品名、数量、単価、金額、ノルマ
     col_positions = [table_left]
     for w in col_widths[:-1]:
         col_positions.append(col_positions[-1] + w)
@@ -175,8 +214,11 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         if i == 0:
             pdf.drawString(col_positions[i] + 2*mm, header_y, header)
         else:
-            # 右寄せ
             pdf.drawCentredString(col_positions[i] + col_widths[i] / 2, header_y, header)
+    
+    # 縦線（ヘッダー）
+    for pos in col_positions[1:]:
+        pdf.line(pos, table_top - header_height, pos, table_top)
     
     # 明細データ
     row_height = 6*mm
@@ -190,7 +232,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         pdf.rect(table_left, y, table_width, row_height, stroke=1, fill=0)
         
         # 縦線
-        for i, pos in enumerate(col_positions[1:], 1):
+        for pos in col_positions[1:]:
             pdf.line(pos, y, pos, y + row_height)
         
         # データ
@@ -215,15 +257,15 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
             pdf.drawCentredString(col_positions[4] + col_widths[4] / 2, row_text_y, "○")
         
         # ページ送り判定
-        if y < 60*mm:
+        if y < 80*mm:
             pdf.showPage()
             pdf.setFont(font_name, 8)
             y = height - 30*mm
     
     # ===== 集計部分 =====
     summary_top = y - 5*mm
-    summary_left = table_left + 80*mm
-    summary_width = table_width - 80*mm
+    summary_left = table_left + 90*mm
+    summary_width = table_width - 90*mm
     summary_row_height = 7*mm
     
     discount_rate_percent = float(discount_rate.rate) * 100 if discount_rate else 0
@@ -242,7 +284,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     for i, (label, value) in enumerate(summary_rows):
         row_y = summary_top - (i + 1) * summary_row_height
         
-        # 背景（合計行のみ薄いグレー）
+        # 背景
         if i == 4:  # 税抜合計
             pdf.setFillGray(0.95)
             pdf.rect(summary_left, row_y, summary_width, summary_row_height, stroke=1, fill=1)
@@ -250,8 +292,8 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         else:
             pdf.rect(summary_left, row_y, summary_width, summary_row_height, stroke=1, fill=0)
         
-        # 縦線（ラベルと金額の区切り）
-        pdf.line(summary_left + 40*mm, row_y, summary_left + 40*mm, row_y + summary_row_height)
+        # 縦線
+        pdf.line(summary_left + 45*mm, row_y, summary_left + 45*mm, row_y + summary_row_height)
         
         # ラベル
         pdf.drawString(summary_left + 2*mm, row_y + 2*mm, label)
@@ -267,22 +309,36 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFillGray(0)
     pdf.setLineWidth(0.5)
     
-    pdf.line(summary_left + 40*mm, total_row_y, summary_left + 40*mm, total_row_y + summary_row_height + 2*mm)
+    pdf.line(summary_left + 45*mm, total_row_y, summary_left + 45*mm, total_row_y + summary_row_height + 2*mm)
     
     pdf.setFont(font_name, 11)
     pdf.drawString(summary_left + 2*mm, total_row_y + 3*mm, "税込合計")
     pdf.setFont(font_name, 14)
     pdf.drawRightString(summary_left + summary_width - 3*mm, total_row_y + 2*mm, f"¥{invoice.total_amount_inc_tax:,}")
     
-    # ===== フッター =====
-    footer_y = 25*mm
-    pdf.setFont(font_name, 8)
-    pdf.drawCentredString(width / 2, footer_y, "上記の通りご請求申し上げます。")
+    # ===== 振込先情報 =====
+    bank_y = total_row_y - 20*mm
+    pdf.setFont(font_name, 10)
+    pdf.drawString(20*mm, bank_y, "【お振込先】")
+    pdf.setFont(font_name, 9)
+    pdf.drawString(20*mm, bank_y - 7*mm, f"{BANK_INFO['bank_name']}　{BANK_INFO['branch_name']}")
+    pdf.drawString(20*mm, bank_y - 14*mm, f"{BANK_INFO['account_type']}　{BANK_INFO['account_number']}")
+    pdf.drawString(20*mm, bank_y - 21*mm, f"口座名義: {BANK_INFO['account_holder']}")
     
-    # 割引率情報
+    # ===== 備考欄 =====
+    remarks_y = bank_y - 35*mm
+    pdf.setFont(font_name, 10)
+    pdf.drawString(20*mm, remarks_y, "【備考】")
+    pdf.setFont(font_name, 9)
+    pdf.drawString(20*mm, remarks_y - 7*mm, "・恐れ入りますが、振込手数料はご負担願います。")
     if discount_rate:
-        pdf.drawString(20*mm, footer_y - 8*mm, 
-                       f"適用割引率: {discount_rate_percent:.0f}%（下限額: ¥{discount_rate.threshold_amount:,}以上）")
+        pdf.drawString(20*mm, remarks_y - 14*mm, 
+                       f"・適用割引率: {discount_rate_percent:.0f}%（税抜{discount_rate.threshold_amount:,}円以上）")
+    
+    # ===== フッター =====
+    footer_y = 20*mm
+    pdf.setFont(font_name, 9)
+    pdf.drawCentredString(width / 2, footer_y, "上記の通りご請求申し上げます。")
     
     pdf.save()
     buffer.seek(0)
