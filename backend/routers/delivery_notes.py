@@ -25,7 +25,7 @@ _api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_KEY", "")
 print(f"[DEBUG] GEMINI_API_KEY from settings: {'*****' + _api_key[-8:] if _api_key else 'EMPTY'}")
 print(f"[DEBUG] GEMINI_KEY env var: {'*****' + os.getenv('GEMINI_KEY', '')[-8:] if os.getenv('GEMINI_KEY') else 'EMPTY'}")
 genai_configure(_api_key)
-MODEL_NAME = 'models/gemini-1.5-flash'  # 安定版、1日1500リクエストの無料枠
+MODEL_NAME = 'gemini-2.5-flash-lite'  # 費用対効果と高スループット向けに最適化
 
 def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
     """Gemini APIを使って納品書画像を認識する"""
