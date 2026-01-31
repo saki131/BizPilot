@@ -16,20 +16,21 @@ from models import SalesInvoice, SalesInvoiceDetail, Product, SalesPerson, Disco
 COMPANY_INFO = {
     "name": "株式会社ドクターフェリス",
     "representative": "前鼻 和美",
-    "postal_code": "〒530-0001",
-    "address1": "大阪府大阪市北区梅田1-2-3",
-    "address2": "梅田ビル5F",
-    "tel": "TEL: 06-1234-5678",
+    "postal_code": "〒004-0063",
+    "address1": "北海道札幌市厚別区",
+    "address2": "厚別西3条3丁目4-1",
     "registration_number": "T1234567890123",  # インボイス登録番号
 }
 
 # 振込先情報
 BANK_INFO = {
-    "bank_name": "三菱UFJ銀行",
-    "branch_name": "梅田支店",
+    "bank_name": "ゆうちょ銀行",
+    "branch_name": "908（キュウゼロハチ）",
     "account_type": "普通",
-    "account_number": "1234567",
-    "account_holder": "カ）ドクターフェリス",
+    "account_number": "420025",
+    "account_holder": "マエハナ カズミ",
+    "yucho_symbol": "19060",  # ゆうちょ記号
+    "yucho_number": "42000251",  # ゆうちょ番号
 }
 
 
@@ -148,11 +149,10 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 11)
     pdf.drawString(right_x, y_right, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(right_x, y_right - 6*mm, f"代表取締役 {COMPANY_INFO['representative']}")
+    pdf.drawString(right_x, y_right - 6*mm, COMPANY_INFO['representative'])
     pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["address1"])
     pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address2"])
-    pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["tel"])
     pdf.drawString(right_x, y_right - 38*mm, f"登録番号: {COMPANY_INFO['registration_number']}")
     
     # ハンコ枠（丸）
@@ -324,9 +324,10 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawString(20*mm, bank_y - 7*mm, f"{BANK_INFO['bank_name']}　{BANK_INFO['branch_name']}")
     pdf.drawString(20*mm, bank_y - 14*mm, f"{BANK_INFO['account_type']}　{BANK_INFO['account_number']}")
     pdf.drawString(20*mm, bank_y - 21*mm, f"口座名義: {BANK_INFO['account_holder']}")
+    pdf.drawString(20*mm, bank_y - 28*mm, f"記号: {BANK_INFO['yucho_symbol']}　番号: {BANK_INFO['yucho_number']}")
     
     # ===== 備考欄 =====
-    remarks_y = bank_y - 35*mm
+    remarks_y = bank_y - 42*mm
     pdf.setFont(font_name, 10)
     pdf.drawString(20*mm, remarks_y, "【備考】")
     pdf.setFont(font_name, 9)
