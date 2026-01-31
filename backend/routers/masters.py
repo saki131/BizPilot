@@ -178,24 +178,25 @@ class DiscountRateResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        
-    @classmethod
-    def model_validate(cls, obj, **kwargs):
-        # Explicitly convert Decimal to float to avoid any precision issues
-        if hasattr(obj, 'rate'):
-            rate_value = float(obj.rate) if obj.rate is not None else 0.0
-            return cls(
-                id=obj.id,
-                rate=rate_value,
-                threshold_amount=obj.threshold_amount,
-                customer_flag=obj.customer_flag
-            )
-        return super().model_validate(obj, **kwargs)
 
 @router.get("/discount-rates", response_model=List[DiscountRateResponse])
 async def get_discount_rates(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     rates = db.query(DiscountRate).filter(DiscountRate.deleted_flag == False).all()
     print(f"[DEBUG] Returning {len(rates)} discount rates")
+    
+    # Convert rates: if stored as percentage (>=1), convert to decimal
+    result = []
     for rate in rates:
-        print(f"[DEBUG]   ID={rate.id}, rate={rate.rate} ({type(rate.rate).__name__}), threshold={rate.threshold_amount}")
-    return rates
+        raw_rate = float(rate.rate)
+        # If rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
+        converted_rate = raw_rate / 100 if raw_rate >= 1 else raw_rate
+        print(f"[DEBUG]   ID={rate.id}, raw_rate={raw_rate}, converted_rate={converted_rate}")
+        
+        result.append(DiscountRateResponse(
+            id=rate.id,
+            rate=converted_rate,
+            threshold_amount=rate.threshold_amount,
+            customer_flag=rate.customer_flag
+        ))
+    
+    return result
