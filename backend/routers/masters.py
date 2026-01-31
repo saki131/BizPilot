@@ -178,7 +178,24 @@ class DiscountRateResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        # Explicitly convert Decimal to float to avoid any precision issues
+        if hasattr(obj, 'rate'):
+            rate_value = float(obj.rate) if obj.rate is not None else 0.0
+            return cls(
+                id=obj.id,
+                rate=rate_value,
+                threshold_amount=obj.threshold_amount,
+                customer_flag=obj.customer_flag
+            )
+        return super().model_validate(obj, **kwargs)
 
 @router.get("/discount-rates", response_model=List[DiscountRateResponse])
 async def get_discount_rates(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    return db.query(DiscountRate).filter(DiscountRate.deleted_flag == False).all()
+    rates = db.query(DiscountRate).filter(DiscountRate.deleted_flag == False).all()
+    print(f"[DEBUG] Returning {len(rates)} discount rates")
+    for rate in rates:
+        print(f"[DEBUG]   ID={rate.id}, rate={rate.rate} ({type(rate.rate).__name__}), threshold={rate.threshold_amount}")
+    return rates
