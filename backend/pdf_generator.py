@@ -20,15 +20,17 @@ def setup_japanese_font():
         font_path = "C:\\Windows\\Fonts\\msgothic.ttc"
         pdfmetrics.registerFont(TTFont('Japanese', font_path))
         font_name = 'Japanese'
+        print(f"Japanese font loaded: {font_path}")
     except:
         try:
             import os
-            # Linux環境用フォント（Noto CJK）
+            # Linux環境用フォント（IPAゴシック - TTF形式）
             font_candidates = [
-                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-                "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-                "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
+                "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
+                "/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf",
+                "/usr/share/fonts/truetype/ipafont/ipag.ttf",
+                "/usr/share/fonts/opentype/ipafont-mincho/ipam.ttf",
+                "/usr/share/fonts/truetype/ipafont/ipam.ttf",
             ]
             for fp in font_candidates:
                 if os.path.exists(fp):
@@ -38,6 +40,10 @@ def setup_japanese_font():
                     break
             if font_name == 'Helvetica':
                 print("WARNING: Japanese font not found, using Helvetica (Japanese characters will not display)")
+                # List available fonts for debugging
+                import glob
+                ttf_fonts = glob.glob("/usr/share/fonts/**/*.ttf", recursive=True)
+                print(f"Available TTF fonts: {ttf_fonts[:10]}")  # Show first 10
         except Exception as e:
             print(f"Font loading error: {e}")
     return font_name

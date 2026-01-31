@@ -6,8 +6,8 @@ WORKDIR /app
 # 必要なパッケージをインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    fonts-noto-cjk \
-    fonts-noto-cjk-extra \
+    fonts-ipafont-gothic \
+    fonts-ipafont-mincho \
     && rm -rf /var/lib/apt/lists/*
 
 # Python の依存を追加
