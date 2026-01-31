@@ -545,6 +545,17 @@ async def get_sales_invoices(
             DiscountRate.id == invoice.discount_rate_id
         ).first()
         
+        # Calculate discount rate value
+        if discount_rate:
+            raw_rate = float(discount_rate.rate)
+            # If rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
+            discount_rate_value = raw_rate / 100 if raw_rate >= 1 else raw_rate
+        else:
+            # Fallback: discount_rate not found, default to 0
+            discount_rate_value = 0.0
+        
+        print(f"[DEBUG API] Invoice {invoice.id}: discount_rate_id={invoice.discount_rate_id}, raw_rate={raw_rate if discount_rate else 'N/A'}, discount_rate_value={discount_rate_value}")
+        
         # Get sales person
         sales_person = db.query(SalesPerson).filter(
             SalesPerson.id == invoice.sales_person_id
@@ -561,9 +572,6 @@ async def get_sales_invoices(
                 unit_price=detail.unit_price,
                 amount=detail.amount
             ))
-        
-        discount_rate_value = float(discount_rate.rate) if discount_rate else 0.0
-        print(f"[DEBUG API] Invoice {invoice.id}: discount_rate.rate={discount_rate.rate if discount_rate else None}, discount_rate_value={discount_rate_value}")
         
         result.append(InvoiceResponse(
             id=invoice.id,
