@@ -24,21 +24,48 @@ def seed_data():
             print(f"Data already exists ({existing_sp} sales persons). Skipping seed.")
             return
         
-        # 販売員データ (32名)
-        sales_persons = [
-            "田中太郎", "山田花子", "佐藤一郎", "鈴木美香", "高橋健太",
-            "伊藤裕子", "渡辺大輔", "中村真理", "小林洋平", "加藤恵子",
-            "吉田隆", "山本由美", "松本正", "井上千秋", "木村英二",
-            "林浩一", "斎藤幸子", "清水良夫", "山口春美", "阿部誠",
-            "森下直子", "池田和彦", "橋本明美", "石川勇", "前田久子",
-            "藤田博", "岡田智子", "後藤茂", "長谷川絵里", "村上雄二",
-            "近藤信子", "坂本剛"
+        # 販売員データ (34名)
+        sales_persons_data = [
+            (1, "平田 雄里", False),
+            (2, "水口 千春", False),
+            (3, "石田 美樹", False),
+            (4, "板澤 かすみ", False),
+            (5, "伝法谷 由紀", False),
+            (6, "藤澤 玲子", True),   # 削除フラグ
+            (7, "大島 純子", False),
+            (8, "中本 幸子", False),
+            (9, "山村 由香", False),
+            (10, "渡邉 麻衣子", False),
+            (11, "西邑 ひとみ", False),
+            (12, "藤谷 友佳里", False),
+            (13, "馬渡 知子", False),
+            (14, "田村 喜美代", False),
+            (15, "安井眞由美", False),
+            (16, "千枝 笑子", False),
+            (17, "藤盛 貞子", False),
+            (18, "神田 めぐみ", False),
+            (19, "中島 奈緒美", False),
+            (20, "下山 薫", False),
+            (21, "竹坂 公希", False),
+            (22, "株式会社 正晃", False),
+            (23, "熊田商店", False),
+            (24, "松久 陽子", False),
+            (25, "加賀 文恵", False),
+            (26, "大井  恵子", False),
+            (27, "岩橋智子", False),
+            (28, "工藤ひろみ", False),
+            (29, "東麻衣子", False),
+            (30, "丸美ヶ丘温泉", False),
+            (31, "大島 淳一", False),
+            (32, "後藤 希", False),
+            (33, "樋口 洋子", False),
+            (34, "千田商店", False),
         ]
         
-        for name in sales_persons:
-            db.add(SalesPerson(name=name))
+        for sp_id, name, deleted in sales_persons_data:
+            db.add(SalesPerson(id=sp_id, name=name, deleted_flag=deleted))
         
-        print(f"✓ Added {len(sales_persons)} sales persons")
+        print(f"✓ Added {len(sales_persons_data)} sales persons")
         
         # 商品データ (39品目) - 美容関連商品
         products_data = [
