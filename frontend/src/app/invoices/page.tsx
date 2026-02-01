@@ -657,8 +657,6 @@ export default function InvoicesPage() {
             ))}
           </div>
         )}
-          </>
-        )}
 
       {/* Bulk Generation Dialog */}
       <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
@@ -1104,6 +1102,7 @@ export default function InvoicesPage() {
           </div>
         </DialogContent>
       </Dialog>
+          </>
         )}
 
         {/* 委託先請求書タブ */}
