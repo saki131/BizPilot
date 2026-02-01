@@ -1104,7 +1104,6 @@ export default function InvoicesPage() {
           </div>
         </DialogContent>
       </Dialog>
-          </>
         )}
 
         {/* 委託先請求書タブ */}
