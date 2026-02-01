@@ -138,7 +138,7 @@ export default function MastersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
-              <TableHead>契約者名</TableHead>
+              <TableHead>委託先名</TableHead>
               <TableHead>操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -179,20 +179,23 @@ export default function MastersPage() {
               <Button
                 variant={activeTab === 'sales-persons' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('sales-persons')}
+                className="text-white"
               >
-                営業担当
+                販売員
               </Button>
               <Button
                 variant={activeTab === 'products' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('products')}
+                className="text-white"
               >
                 商品
               </Button>
               <Button
                 variant={activeTab === 'contractors' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('contractors')}
+                className="text-white"
               >
-                契約者
+                委託先
               </Button>
             </div>
           </div>
@@ -202,14 +205,14 @@ export default function MastersPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <CardTitle>
-                    {activeTab === 'sales-persons' && '営業担当一覧'}
+                    {activeTab === 'sales-persons' && '販売員一覧'}
                     {activeTab === 'products' && '商品一覧'}
-                    {activeTab === 'contractors' && '契約者一覧'}
+                    {activeTab === 'contractors' && '委託先一覧'}
                   </CardTitle>
                   <CardDescription>
-                    {activeTab === 'sales-persons' && '営業担当の管理を行います'}
+                    {activeTab === 'sales-persons' && '販売員の管理を行います'}
                     {activeTab === 'products' && '商品の管理を行います'}
-                    {activeTab === 'contractors' && '契約者の管理を行います'}
+                    {activeTab === 'contractors' && '委託先の管理を行います'}
                   </CardDescription>
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -219,9 +222,9 @@ export default function MastersPage() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>
-                        {activeTab === 'sales-persons' && '営業担当新規作成'}
+                        {activeTab === 'sales-persons' && '販売員新規作成'}
                         {activeTab === 'products' && '商品新規作成'}
-                        {activeTab === 'contractors' && '契約者新規作成'}
+                        {activeTab === 'contractors' && '委託先新規作成'}
                       </DialogTitle>
                       <DialogDescription>
                         新しい項目を作成します。

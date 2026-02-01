@@ -1628,7 +1628,7 @@ export default function DeliveryNotesPage() {
                                             }
                                           }}
                                         >
-                                          {isSubmitting ? '登録中...' : 'このデータを使用してDBに登録'}
+                                          {isSubmitting ? '登録中...' : 'このデータを使用して登録'}
                                         </Button>
                                       </div>
                                     ) : (
