@@ -314,6 +314,7 @@ class DeliveryNoteBase(BaseModel):
     billing_date: date
     delivery_note_number: str
     remarks: Optional[str] = None
+    image_filename: Optional[str] = None
 
 class DeliveryNoteCreate(DeliveryNoteBase):
     details: List[DeliveryNoteDetailCreate]
@@ -340,7 +341,8 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
         delivery_date=delivery_note.delivery_date,
         billing_date=delivery_note.billing_date,
         delivery_note_number=delivery_note.delivery_note_number,
-        remarks=delivery_note.remarks
+        remarks=delivery_note.remarks,
+        image_filename=delivery_note.image_filename
     )
     db.add(db_delivery_note)
     db.commit()

@@ -21,6 +21,7 @@ interface DeliveryNote {
   billing_date: string;
   delivery_note_number: string;
   remarks?: string;
+  image_filename?: string;
   details: DeliveryNoteDetail[];
 }
 
@@ -94,6 +95,7 @@ interface UploadedImage {
     recognizedAt: string;
     success: boolean;
   };
+  isRegisteredFilename?: boolean; // ファイル名が既に登録されているか
 }
 
 export default function DeliveryNotesPage() {
@@ -288,6 +290,12 @@ export default function DeliveryNotesPage() {
         console.log('✅ 認識結果:', image.recognitionResult);
         console.log('📊 salesPersonId:', image.recognitionResult?.salesPersonId, 'typeof:', typeof image.recognitionResult?.salesPersonId);
         
+        // ファイル名の重複チェック
+        const isFilenameRegistered = deliveryNotes.some(note => note.image_filename === image.fileName);
+        if (isFilenameRegistered) {
+          image.isRegisteredFilename = true;
+        }
+        
         // DB内の納品書と照合して重複チェック
         if (image.recognitionResult?.success) {
           const isDuplicateInDB = checkDuplicateInDeliveryNotes(image.recognitionResult);
@@ -394,7 +402,7 @@ export default function DeliveryNotesPage() {
     }
   };
 
-  const useRecognitionResult = async (result: RecognitionResult) => {
+  const useRecognitionResult = async (result: RecognitionResult, fileName?: string) => {
     // デバッグ情報
     console.log('Recognition Result:', {
       success: result.success,
@@ -402,7 +410,8 @@ export default function DeliveryNotesPage() {
       deliveryDate: result.deliveryDate,
       taxRateId: result.taxRateId,
       details: result.details,
-      detailsLength: result.details?.length
+      detailsLength: result.details?.length,
+      fileName: fileName
     });
 
     if (!result.success || !result.salesPersonId || !result.deliveryDate || !result.taxRateId || !result.details || result.details.length === 0) {
@@ -458,6 +467,7 @@ export default function DeliveryNotesPage() {
         billing_date: formatDate(billingDate),
         delivery_note_number: deliveryNoteNumber,
         remarks: '画像認識から登録',
+        image_filename: fileName,
         details
       });
 
@@ -1495,7 +1505,7 @@ export default function DeliveryNotesPage() {
                                           {image.recognitionResult.taxRate && (
                                             <div className="flex justify-between py-1 border-b border-green-200">
                                               <span className="font-medium">税率:</span>
-                                              <span>{image.recognitionResult.taxRate.rate}% ({image.recognitionResult.taxRate.display_name})</span>
+                                              <span>{image.recognitionResult.taxRate.rate}%</span>
                                             </div>
                                           )}
                                           
@@ -1549,6 +1559,19 @@ export default function DeliveryNotesPage() {
                                             </div>
                                           </div>
                                         )}
+                                        {image.isRegisteredFilename && (
+                                          <div className="mt-3 p-3 bg-orange-50 border border-orange-300 rounded-lg">
+                                            <div className="flex items-start">
+                                              <span className="text-orange-600 text-lg mr-2">⚠️</span>
+                                              <div className="flex-1">
+                                                <p className="text-sm font-semibold text-orange-800">この納品書はすでに登録済ですが登録しますか？</p>
+                                                <p className="text-xs text-orange-700 mt-1">
+                                                  ファイル名: {image.fileName}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
                                         <Button
                                           className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
                                           size="sm"
@@ -1556,7 +1579,7 @@ export default function DeliveryNotesPage() {
                                             console.log('🔘 DBに登録ボタンクリック');
                                             if (image.recognitionResult) {
                                               console.log('📝 登録する認識結果:', image.recognitionResult);
-                                              useRecognitionResult(image.recognitionResult);
+                                              useRecognitionResult(image.recognitionResult, image.fileName);
                                             } else {
                                               console.error('❌ 認識結果がありません');
                                             }

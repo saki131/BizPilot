@@ -83,6 +83,7 @@ class DeliveryNote(Base):
     delivery_date = Column(TIMESTAMP, nullable=False)
     billing_date = Column(TIMESTAMP, nullable=False)
     image_recognition_data = Column(JSON)
+    image_filename = Column(String(500))  # 画像ファイル名
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
