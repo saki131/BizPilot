@@ -376,9 +376,7 @@ class ApiClient {
   // Contractor Invoices API
   async createContractorInvoice(data: {
     contractor_id: number;
-    start_date: string;
-    end_date: string;
-    invoice_date?: string;
+    invoice_date: string;
     note?: string;
     details: Array<{ product_id: number; quantity: number; unit_price?: number }>;
   }) {
