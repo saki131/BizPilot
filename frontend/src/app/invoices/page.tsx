@@ -1417,6 +1417,7 @@ export default function InvoicesPage() {
             </Dialog>
           </>
         )}
+      </div>
     </div>
   );
 }
