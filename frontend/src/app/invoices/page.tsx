@@ -95,8 +95,6 @@ interface ContractorInvoice {
 
 interface ContractorInvoiceFormData {
   contractor_id: number;
-  start_date: string;
-  end_date: string;
   invoice_date: string;
   note: string;
   details: {
@@ -134,8 +132,6 @@ export default function InvoicesPage() {
   const [selectedContractorInvoice, setSelectedContractorInvoice] = useState<ContractorInvoice | null>(null);
   const [contractorFormData, setContractorFormData] = useState<ContractorInvoiceFormData>({
     contractor_id: 0,
-    start_date: '',
-    end_date: '',
     invoice_date: '',
     note: '',
     details: []
@@ -248,6 +244,20 @@ export default function InvoicesPage() {
   };
 
   const handleCreateContractorInvoice = async () => {
+    // バリデーション
+    if (!contractorFormData.contractor_id) {
+      alert('委託先を選択してください');
+      return;
+    }
+    if (!contractorFormData.invoice_date) {
+      alert('請求日を入力してください');
+      return;
+    }
+    if (contractorFormData.details.length === 0) {
+      alert('商品明細を追加してください');
+      return;
+    }
+    
     setGenerating(true);
     try {
       await apiClient.createContractorInvoice(contractorFormData);
@@ -257,8 +267,6 @@ export default function InvoicesPage() {
       // フォームをリセット
       setContractorFormData({
         contractor_id: 0,
-        start_date: '',
-        end_date: '',
         invoice_date: '',
         note: '',
         details: []
@@ -1186,10 +1194,10 @@ export default function InvoicesPage() {
                       value={contractorFormData.contractor_id.toString()}
                       onValueChange={(value) => setContractorFormData({ ...contractorFormData, contractor_id: parseInt(value) })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white">
                         <SelectValue placeholder="委託先を選択" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white">
                         {contractors.map((c) => (
                           <SelectItem key={c.id} value={c.id.toString()}>
                             {c.name}
@@ -1199,89 +1207,97 @@ export default function InvoicesPage() {
                     </Select>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>請求期間（開始）</Label>
-                      <Input
-                        type="date"
-                        value={contractorFormData.start_date}
-                        onChange={(e) => setContractorFormData({ ...contractorFormData, start_date: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>請求期間（終了）</Label>
-                      <Input
-                        type="date"
-                        value={contractorFormData.end_date}
-                        onChange={(e) => setContractorFormData({ ...contractorFormData, end_date: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  
                   <div>
-                    <Label>請求日（任意）</Label>
+                    <Label className="text-red-600">請求日（必須）</Label>
                     <Input
                       type="date"
                       value={contractorFormData.invoice_date}
                       onChange={(e) => setContractorFormData({ ...contractorFormData, invoice_date: e.target.value })}
+                      className="w-40 mt-1 bg-white"
+                      required
                     />
                   </div>
                   
                   <div>
                     <Label>商品明細</Label>
-                    <div className="space-y-2 mt-2">
-                      {contractorFormData.details.map((detail, index) => (
-                        <div key={index} className="flex gap-2 items-end">
-                          <div className="flex-1">
-                            <Select
-                              value={detail.product_id.toString()}
-                              onValueChange={(value) => updateDetailRow(index, 'product_id', parseInt(value))}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="商品を選択" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {products.map((p) => (
-                                  <SelectItem key={p.id} value={p.id.toString()}>
-                                    {p.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="w-20">
-                            <Input
-                              type="number"
-                              placeholder="数量"
-                              value={detail.quantity}
-                              onChange={(e) => updateDetailRow(index, 'quantity', parseInt(e.target.value) || 0)}
-                            />
-                          </div>
-                          <div className="w-28">
-                            <Input
-                              type="number"
-                              placeholder="単価"
-                              value={detail.unit_price}
-                              onChange={(e) => updateDetailRow(index, 'unit_price', parseInt(e.target.value) || 0)}
-                            />
-                          </div>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeDetailRow(index)}
-                          >
-                            削除
-                          </Button>
-                        </div>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={addDetailRow}
-                        className="w-full"
-                      >
-                        + 商品を追加
-                      </Button>
+                    <div className="bg-white rounded-lg overflow-hidden border border-gray-300 mt-2">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-gray-100 border-b border-gray-300">
+                              <TableHead className="font-semibold text-sm text-gray-700 py-3 px-3 min-w-[150px]">商品名</TableHead>
+                              <TableHead className="text-center font-semibold text-sm text-gray-700 py-3 px-2 w-20">数量</TableHead>
+                              <TableHead className="text-right font-semibold text-sm text-gray-700 py-3 px-2 w-24">単価</TableHead>
+                              <TableHead className="text-right font-semibold text-sm text-gray-700 py-3 px-2 w-24">金額</TableHead>
+                              <TableHead className="w-16"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {contractorFormData.details.map((detail, index) => (
+                              <TableRow key={index} className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                                <TableCell className="py-2 px-2">
+                                  <Select
+                                    value={detail.product_id.toString()}
+                                    onValueChange={(value) => updateDetailRow(index, 'product_id', parseInt(value))}
+                                  >
+                                    <SelectTrigger className="bg-white border-gray-300">
+                                      <SelectValue placeholder="商品を選択" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                      {products.map((p) => (
+                                        <SelectItem key={p.id} value={p.id.toString()}>
+                                          {p.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell className="py-2 px-2">
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    value={detail.quantity}
+                                    onChange={(e) => updateDetailRow(index, 'quantity', parseInt(e.target.value) || 0)}
+                                    className="text-center bg-white border-gray-300"
+                                  />
+                                </TableCell>
+                                <TableCell className="py-2 px-2">
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    value={detail.unit_price}
+                                    onChange={(e) => updateDetailRow(index, 'unit_price', parseInt(e.target.value) || 0)}
+                                    className="text-right bg-white border-gray-300"
+                                  />
+                                </TableCell>
+                                <TableCell className="text-right text-sm text-gray-900 py-2 px-2 font-medium">
+                                  ¥{(detail.quantity * detail.unit_price).toLocaleString()}
+                                </TableCell>
+                                <TableCell className="py-2 px-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeDetailRow(index)}
+                                    className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                                  >
+                                    ✕
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <div className="p-2 bg-gray-50 border-t border-gray-300">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={addDetailRow}
+                          className="w-full bg-white"
+                        >
+                          + 商品を追加
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   
@@ -1297,7 +1313,7 @@ export default function InvoicesPage() {
                 <div className="flex gap-2">
                   <Button
                     onClick={handleCreateContractorInvoice}
-                    disabled={generating || !contractorFormData.contractor_id || contractorFormData.details.length === 0}
+                    disabled={generating || !contractorFormData.contractor_id || !contractorFormData.invoice_date || contractorFormData.details.length === 0}
                     className="flex-1 text-white"
                   >
                     {generating ? '作成中...' : '作成'}
