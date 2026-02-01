@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import auth_router, masters_router, delivery_notes_router
 from routers.sales_invoices import router as sales_invoices_router
+from routers.contractor_invoices import router as contractor_invoices_router
 
 app = FastAPI(title="Invoice Management API", version="1.0.0")
 
@@ -26,7 +27,8 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api")
 app.include_router(masters_router, prefix="/api")
 app.include_router(delivery_notes_router, prefix="/api")
-app.include_router(sales_invoices_router, prefix="/api")
+app.include_router(sales_invoices_router, prefix="/api/sales-invoices", tags=["sales-invoices"])
+app.include_router(contractor_invoices_router, prefix="/api/contractor-invoices", tags=["contractor-invoices"])
 
 @app.get("/")
 async def root():

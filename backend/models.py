@@ -163,5 +163,53 @@ class SalesInvoiceDetail(Base):
 
 class ContractorInvoice(Base):
     __tablename__ = "contractor_invoices"
+    
     id = Column(Integer, primary_key=True, index=True)
-    # 詳細は後で定義
+    contractor_id = Column(Integer, ForeignKey("contractors.id"), nullable=False)
+    invoice_number = Column(String(50), default="[COMPANY_REGISTRATION_NUMBER]", nullable=False)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    discount_rate_id = Column(Integer, ForeignKey("discount_rates.id"), nullable=False)
+    
+    # 追加フィールド
+    invoice_date = Column(Date, nullable=True)  # 請求日
+    receipt_date = Column(Date, nullable=True)  # 領収日
+    non_discountable_amount = Column(Integer, default=0, nullable=False)  # 割引対象外金額
+    note = Column(String(500), nullable=True)  # 但（ただし書き）
+    
+    # ノルマ対象
+    quota_subtotal = Column(Integer, default=0, nullable=False)
+    quota_discount_amount = Column(Integer, default=0, nullable=False)
+    quota_total = Column(Integer, default=0, nullable=False)
+    
+    # ノルマ対象外
+    non_quota_subtotal = Column(Integer, default=0, nullable=False)
+    non_quota_discount_amount = Column(Integer, default=0, nullable=False)
+    non_quota_total = Column(Integer, default=0, nullable=False)
+    
+    # 合計
+    total_amount_ex_tax = Column(Integer, default=0, nullable=False)
+    tax_amount = Column(Integer, default=0, nullable=False)
+    total_amount_inc_tax = Column(Integer, default=0, nullable=False)
+    
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    contractor = relationship("Contractor")
+    discount_rate = relationship("DiscountRate")
+    details = relationship("ContractorInvoiceDetail", back_populates="contractor_invoice", cascade="all, delete-orphan")
+
+class ContractorInvoiceDetail(Base):
+    __tablename__ = "contractor_invoice_details"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    contractor_invoice_id = Column(Integer, ForeignKey("contractor_invoices.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    total_quantity = Column(Integer, default=0, nullable=False)
+    unit_price = Column(Integer, nullable=False)
+    amount = Column(Integer, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    contractor_invoice = relationship("ContractorInvoice", back_populates="details")
+    product = relationship("Product")
