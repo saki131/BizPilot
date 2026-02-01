@@ -179,21 +179,21 @@ export default function MastersPage() {
               <Button
                 variant={activeTab === 'sales-persons' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('sales-persons')}
-                className="text-white"
+                className={activeTab === 'sales-persons' ? 'text-white' : ''}
               >
                 販売員
               </Button>
               <Button
                 variant={activeTab === 'products' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('products')}
-                className="text-white"
+                className={activeTab === 'products' ? 'text-white' : ''}
               >
                 商品
               </Button>
               <Button
                 variant={activeTab === 'contractors' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('contractors')}
-                className="text-white"
+                className={activeTab === 'contractors' ? 'text-white' : ''}
               >
                 委託先
               </Button>
@@ -217,7 +217,7 @@ export default function MastersPage() {
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button>新規作成</Button>
+                    <Button className="text-white">新規作成</Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -258,7 +258,7 @@ export default function MastersPage() {
                       )}
                     </div>
                     <div className="flex justify-end">
-                      <Button onClick={handleCreate}>作成</Button>
+                      <Button onClick={handleCreate} className="text-white">作成</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
