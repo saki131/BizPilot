@@ -287,22 +287,20 @@ export default function DeliveryNotesPage() {
       console.log('🔍 認識API レスポンス:', result);
       
       if (result.data) {
-        image.recognitionResult = (result.data as any).recognition_result;
-        console.log('✅ 認識結果:', image.recognitionResult);
-        console.log('📊 salesPersonId:', image.recognitionResult?.salesPersonId, 'typeof:', typeof image.recognitionResult?.salesPersonId);
+        const recognitionResult = (result.data as any).recognition_result;
+        console.log('✅ 認識結果:', recognitionResult);
+        console.log('📊 salesPersonId:', recognitionResult?.salesPersonId, 'typeof:', typeof recognitionResult?.salesPersonId);
         
         // ファイル名の重複チェック
         const isFilenameRegistered = deliveryNotes.some(note => note.image_filename === image.fileName);
-        if (isFilenameRegistered) {
-          image.isRegisteredFilename = true;
-        }
         
         // DB内の納品書と照合して重複チェック
-        if (image.recognitionResult?.success) {
-          const isDuplicateInDB = checkDuplicateInDeliveryNotes(image.recognitionResult);
+        let isDuplicateInDB = false;
+        let duplicateInfo = undefined;
+        if (recognitionResult?.success) {
+          isDuplicateInDB = checkDuplicateInDeliveryNotes(recognitionResult);
           if (isDuplicateInDB) {
-            image.isDuplicate = true;
-            image.duplicateInfo = {
+            duplicateInfo = {
               recognizedAt: new Date().toISOString(),
               success: true
             };
@@ -314,18 +312,30 @@ export default function DeliveryNotesPage() {
           fileName: image.fileName || 'unknown',
           imageHash: image.base64Data?.substring(0, 100) || '',
           recognizedAt: new Date().toISOString(),
-          success: image.recognitionResult?.success || false
+          success: recognitionResult?.success || false
         });
         
+        // Stateを正しく更新（新しいオブジェクトを作成）
         setUploadedImages(prev => {
-          const updated = [...prev];
+          const updated = prev.map(img => {
+            if (img.fileName === image.fileName && img.base64Data === image.base64Data) {
+              return {
+                ...img,
+                recognitionResult,
+                isRegisteredFilename: isFilenameRegistered,
+                isDuplicate: isDuplicateInDB,
+                duplicateInfo
+              };
+            }
+            return img;
+          });
           saveImagesToLocalStorage(updated);
           return updated;
-        }); // Trigger re-render
+        });
       }
     } catch (error) {
       console.error('Recognition failed:', error);
-      image.recognitionResult = { success: false, failureReason: '認識に失敗しました' };
+      const failedResult = { success: false, failureReason: '認識に失敗しました' };
       
       // 失敗も履歴に追加
       saveRecognitionHistory({
@@ -335,8 +345,17 @@ export default function DeliveryNotesPage() {
         success: false
       });
       
+      // Stateを正しく更新
       setUploadedImages(prev => {
-        const updated = [...prev];
+        const updated = prev.map(img => {
+          if (img.fileName === image.fileName && img.base64Data === image.base64Data) {
+            return {
+              ...img,
+              recognitionResult: failedResult
+            };
+          }
+          return img;
+        });
         saveImagesToLocalStorage(updated);
         return updated;
       });
