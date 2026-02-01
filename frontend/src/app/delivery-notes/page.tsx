@@ -59,6 +59,16 @@ interface RecognitionResult {
     quantity: number;
     unitPrice: number;
   }>;
+  // 税率情報
+  taxRate?: {
+    id: number;
+    rate: number;
+    display_name: string;
+  };
+  // 金額計算情報
+  subtotal?: number;
+  taxAmount?: number;
+  totalIncludingTax?: number;
   // 一部コードで API からの解析結果を `parsedData` として扱うための互換プロパティ
   parsedData?: {
     salesPersonId?: number | string;
@@ -1482,6 +1492,12 @@ export default function DeliveryNotesPage() {
                                             <span className="font-medium">納品日:</span>
                                             <span>{image.recognitionResult.deliveryDate}</span>
                                           </div>
+                                          {image.recognitionResult.taxRate && (
+                                            <div className="flex justify-between py-1 border-b border-green-200">
+                                              <span className="font-medium">税率:</span>
+                                              <span>{image.recognitionResult.taxRate.rate}% ({image.recognitionResult.taxRate.display_name})</span>
+                                            </div>
+                                          )}
                                           
                                           <div className="mt-3 pt-3 border-t border-green-300">
                                             <p className="font-medium mb-2">📋 商品明細:</p>
@@ -1502,9 +1518,21 @@ export default function DeliveryNotesPage() {
                                               })}
                                             </div>
                                             <div className="flex justify-between font-bold mt-3 pt-2 border-t border-green-400 text-base">
-                                              <span>合計金額:</span>
+                                              <span>小計（税抜）:</span>
                                               <span className="text-green-800">¥{image.recognitionResult.details?.reduce((sum, d) => sum + (d.quantity * d.unitPrice), 0).toLocaleString()}</span>
                                             </div>
+                                            {image.recognitionResult.taxAmount !== undefined && (
+                                              <div className="flex justify-between mt-2 text-sm">
+                                                <span>消費税:</span>
+                                                <span className="text-green-800">¥{image.recognitionResult.taxAmount.toLocaleString()}</span>
+                                              </div>
+                                            )}
+                                            {image.recognitionResult.totalIncludingTax !== undefined && (
+                                              <div className="flex justify-between font-bold mt-2 pt-2 border-t border-green-400 text-lg">
+                                                <span>税込合計:</span>
+                                                <span className="text-green-800">¥{image.recognitionResult.totalIncludingTax.toLocaleString()}</span>
+                                              </div>
+                                            )}
                                           </div>
                                         </div>
                                         {image.isDuplicate && image.duplicateInfo && (

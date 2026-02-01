@@ -182,6 +182,36 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
             try:
                 result = json.loads(result_text)
                 print(f"Parsed result (direct JSON): {type(result)}")
+                
+                # 認識成功時に税率情報と税込み金額を追加
+                if result.get("success") and result.get("taxRateId"):
+                    # 税率情報を取得
+                    tax_rate = db.query(TaxRate).filter(TaxRate.id == result["taxRateId"]).first()
+                    if tax_rate:
+                        # 税抜き合計を計算
+                        subtotal = sum(detail["quantity"] * detail["unitPrice"] for detail in result.get("details", []))
+                        
+                        # 税率を適用（DBの税率が10.0のような場合は/100する）
+                        rate_value = tax_rate.rate
+                        if rate_value >= 1:
+                            rate_value = rate_value / 100
+                        
+                        # 消費税額を計算
+                        tax_amount = int(subtotal * rate_value)
+                        
+                        # 税込み合計を計算
+                        total_including_tax = subtotal + tax_amount
+                        
+                        # 結果に追加情報を付与
+                        result["taxRate"] = {
+                            "id": tax_rate.id,
+                            "rate": tax_rate.rate,
+                            "display_name": tax_rate.display_name
+                        }
+                        result["subtotal"] = subtotal
+                        result["taxAmount"] = tax_amount
+                        result["totalIncludingTax"] = total_including_tax
+                
                 return result
             except Exception:
                 # try to extract JSON object using regex (first { ... } block)
@@ -191,6 +221,36 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
                         json_text = m.group(0)
                         result = json.loads(json_text)
                         print("Parsed result (extracted JSON block)")
+                        
+                        # 認識成功時に税率情報と税込み金額を追加
+                        if result.get("success") and result.get("taxRateId"):
+                            # 税率情報を取得
+                            tax_rate = db.query(TaxRate).filter(TaxRate.id == result["taxRateId"]).first()
+                            if tax_rate:
+                                # 税抜き合計を計算
+                                subtotal = sum(detail["quantity"] * detail["unitPrice"] for detail in result.get("details", []))
+                                
+                                # 税率を適用（DBの税率が10.0のような場合は/100する）
+                                rate_value = tax_rate.rate
+                                if rate_value >= 1:
+                                    rate_value = rate_value / 100
+                                
+                                # 消費税額を計算
+                                tax_amount = int(subtotal * rate_value)
+                                
+                                # 税込み合計を計算
+                                total_including_tax = subtotal + tax_amount
+                                
+                                # 結果に追加情報を付与
+                                result["taxRate"] = {
+                                    "id": tax_rate.id,
+                                    "rate": tax_rate.rate,
+                                    "display_name": tax_rate.display_name
+                                }
+                                result["subtotal"] = subtotal
+                                result["taxAmount"] = tax_amount
+                                result["totalIncludingTax"] = total_including_tax
+                        
                         return result
                 except Exception as e_json:
                     print(f"JSON extraction failed: {e_json}")
