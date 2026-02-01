@@ -462,10 +462,13 @@ export default function DeliveryNotesPage() {
       })) || [];
 
       // DBに直接登録
+      // 納品日を正しい形式に変換 (スラッシュをハイフンに: 2025/11/16 -> 2025-11-16)
+      const deliveryDateFormatted = result.deliveryDate.replace(/\//g, '-');
+      
       const deliveryNoteData = {
         sales_person_id: typeof result.salesPersonId === 'number' ? result.salesPersonId : parseInt(result.salesPersonId),
         tax_rate_id: typeof result.taxRateId === 'number' ? result.taxRateId : parseInt(result.taxRateId),
-        delivery_date: result.deliveryDate,
+        delivery_date: deliveryDateFormatted,
         billing_date: formatDate(billingDate),
         delivery_note_number: deliveryNoteNumber,
         remarks: '画像認識から登録',
