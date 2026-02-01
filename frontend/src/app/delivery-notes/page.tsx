@@ -462,7 +462,7 @@ export default function DeliveryNotesPage() {
       })) || [];
 
       // DBに直接登録
-      const response = await apiClient.createDeliveryNote({
+      const deliveryNoteData = {
         sales_person_id: typeof result.salesPersonId === 'number' ? result.salesPersonId : parseInt(result.salesPersonId),
         tax_rate_id: typeof result.taxRateId === 'number' ? result.taxRateId : parseInt(result.taxRateId),
         delivery_date: result.deliveryDate,
@@ -471,7 +471,10 @@ export default function DeliveryNotesPage() {
         remarks: '画像認識から登録',
         image_filename: fileName,
         details
-      });
+      };
+      
+      console.log('📤 Sending delivery note data:', deliveryNoteData);
+      const response = await apiClient.createDeliveryNote(deliveryNoteData);
 
       if (response?.data) {
         alert('納品書を登録しました');
@@ -549,7 +552,7 @@ export default function DeliveryNotesPage() {
         };
       });
 
-      const result = await apiClient.createDeliveryNote({
+      const deliveryNoteData = {
         sales_person_id: parseInt(newDeliveryNote.sales_person_id),
         tax_rate_id: parseInt(newDeliveryNote.tax_rate_id),
         delivery_date: newDeliveryNote.delivery_date,
@@ -557,7 +560,10 @@ export default function DeliveryNotesPage() {
         delivery_note_number: deliveryNoteNumber,
         remarks: newDeliveryNote.remarks,
         details
-      });
+      };
+      
+      console.log('📤 Sending delivery note data (manual):', deliveryNoteData);
+      const result = await apiClient.createDeliveryNote(deliveryNoteData);
 
       if (result?.data) {
         alert('納品書を作成しました');

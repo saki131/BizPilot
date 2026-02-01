@@ -90,6 +90,23 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData
+        });
+        
+        // Handle validation errors (422)
+        if (response.status === 422 && errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            // FastAPI validation errors format
+            const errors = errorData.detail.map((err: any) => 
+              `${err.loc.join('.')}: ${err.msg}`
+            ).join(', ');
+            return { error: `Validation error: ${errors}` };
+          }
+        }
+        
         return { error: errorData.detail || errorData.message || 'Request failed' };
       }
 

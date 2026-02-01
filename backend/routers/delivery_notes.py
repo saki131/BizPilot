@@ -337,37 +337,56 @@ async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depen
 
 @router.post("/", response_model=DeliveryNoteResponse)
 async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    # Create delivery note
-    db_delivery_note = DeliveryNote(
-        sales_person_id=delivery_note.sales_person_id,
-        tax_rate_id=delivery_note.tax_rate_id,
-        delivery_date=delivery_note.delivery_date,
-        billing_date=delivery_note.billing_date,
-        delivery_note_number=delivery_note.delivery_note_number,
-        remarks=delivery_note.remarks,
-        image_filename=delivery_note.image_filename
-    )
-    db.add(db_delivery_note)
-    db.commit()
-    db.refresh(db_delivery_note)
-
-    # Create delivery note details
-    for detail in delivery_note.details:
-        amount = detail.quantity * detail.unit_price
-        db_detail = DeliveryNoteDetail(
-            delivery_note_id=db_delivery_note.id,
-            product_id=detail.product_id,
-            quantity=detail.quantity,
-            unit_price=detail.unit_price,
-            amount=amount,
-            remarks=detail.remarks
+    print(f"📝 Creating delivery note:")
+    print(f"  - sales_person_id: {delivery_note.sales_person_id}")
+    print(f"  - tax_rate_id: {delivery_note.tax_rate_id}")
+    print(f"  - delivery_date: {delivery_note.delivery_date}")
+    print(f"  - billing_date: {delivery_note.billing_date}")
+    print(f"  - delivery_note_number: {delivery_note.delivery_note_number}")
+    print(f"  - image_filename: {delivery_note.image_filename}")
+    print(f"  - details count: {len(delivery_note.details)}")
+    
+    try:
+        # Create delivery note
+        db_delivery_note = DeliveryNote(
+            sales_person_id=delivery_note.sales_person_id,
+            tax_rate_id=delivery_note.tax_rate_id,
+            delivery_date=delivery_note.delivery_date,
+            billing_date=delivery_note.billing_date,
+            delivery_note_number=delivery_note.delivery_note_number,
+            remarks=delivery_note.remarks,
+            image_filename=delivery_note.image_filename
         )
-        db.add(db_detail)
-    db.commit()
+        db.add(db_delivery_note)
+        db.commit()
+        db.refresh(db_delivery_note)
+        print(f"✅ Created delivery note with ID: {db_delivery_note.id}")
 
-    # Refresh to get details
-    db.refresh(db_delivery_note)
-    return db_delivery_note
+        # Create delivery note details
+        for i, detail in enumerate(delivery_note.details):
+            amount = detail.quantity * detail.unit_price
+            print(f"  📦 Detail {i+1}: product_id={detail.product_id}, qty={detail.quantity}, price={detail.unit_price}, amount={amount}")
+            db_detail = DeliveryNoteDetail(
+                delivery_note_id=db_delivery_note.id,
+                product_id=detail.product_id,
+                quantity=detail.quantity,
+                unit_price=detail.unit_price,
+                amount=amount,
+                remarks=detail.remarks
+            )
+            db.add(db_detail)
+        db.commit()
+        print(f"✅ Created {len(delivery_note.details)} details")
+
+        # Refresh to get details
+        db.refresh(db_delivery_note)
+        return db_delivery_note
+    except Exception as e:
+        print(f"❌ Error creating delivery note: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create delivery note: {str(e)}")
 
 @router.get("/{delivery_note_id}", response_model=DeliveryNoteResponse)
 async def get_delivery_note(delivery_note_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
