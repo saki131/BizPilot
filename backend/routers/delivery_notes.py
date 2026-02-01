@@ -330,6 +330,9 @@ class DeliveryNoteResponse(DeliveryNoteBase):
 @router.get("/", response_model=List[DeliveryNoteResponse])
 async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     delivery_notes = db.query(DeliveryNote).all()
+    print(f"📋 Retrieved {len(delivery_notes)} delivery notes")
+    if delivery_notes:
+        print(f"📋 Note IDs: {[note.id for note in delivery_notes]}")
     return delivery_notes
 
 @router.post("/", response_model=DeliveryNoteResponse)
@@ -405,19 +408,35 @@ async def update_delivery_note(delivery_note_id: int, delivery_note: DeliveryNot
 
 @router.delete("/{delivery_note_id}")
 async def delete_delivery_note(delivery_note_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    print(f"🗑️ Attempting to delete delivery note ID: {delivery_note_id}")
+    
     db_delivery_note = db.query(DeliveryNote).filter(DeliveryNote.id == delivery_note_id).first()
+    
     if db_delivery_note is None:
+        print(f"❌ Delivery note not found: ID {delivery_note_id}")
+        # Check if the note exists at all
+        all_notes = db.query(DeliveryNote.id).all()
+        print(f"📋 Available delivery note IDs: {[note.id for note in all_notes]}")
         raise HTTPException(status_code=404, detail="Delivery note not found")
     
-    # Delete all details first with synchronize_session
-    db.query(DeliveryNoteDetail).filter(
-        DeliveryNoteDetail.delivery_note_id == delivery_note_id
-    ).delete(synchronize_session=False)
+    print(f"✅ Found delivery note: {db_delivery_note.id}, Number: {db_delivery_note.delivery_note_number}")
     
-    # Delete the delivery note
-    db.delete(db_delivery_note)
-    db.commit()
-    return {"message": "Delivery note deleted"}
+    try:
+        # Delete all details first with synchronize_session
+        deleted_details = db.query(DeliveryNoteDetail).filter(
+            DeliveryNoteDetail.delivery_note_id == delivery_note_id
+        ).delete(synchronize_session=False)
+        print(f"🗑️ Deleted {deleted_details} detail records")
+        
+        # Delete the delivery note
+        db.delete(db_delivery_note)
+        db.commit()
+        print(f"✅ Successfully deleted delivery note ID: {delivery_note_id}")
+        return {"message": "Delivery note deleted"}
+    except Exception as e:
+        print(f"❌ Error during deletion: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}")
 
 # Image upload and recognition
 @router.post("/recognize-image")
