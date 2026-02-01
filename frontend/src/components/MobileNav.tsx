@@ -19,8 +19,8 @@ export function MobileNav() {
 
   const navItems = [
     { icon: Home, label: 'ホーム', path: '/dashboard' },
-    { icon: FileText, label: '請求書', path: '/invoices' },
     { icon: Package, label: '納品書', path: '/delivery-notes' },
+    { icon: FileText, label: '請求書', path: '/invoices' },
     { icon: Settings, label: 'マスタ', path: '/masters' },
   ];
 
