@@ -1220,85 +1220,65 @@ export default function InvoicesPage() {
                   
                   <div>
                     <Label>商品明細</Label>
-                    <div className="bg-white rounded-lg overflow-hidden border border-gray-300 mt-2">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-gray-100 border-b border-gray-300">
-                              <TableHead className="font-semibold text-sm text-gray-700 py-3 px-3 min-w-[150px]">商品名</TableHead>
-                              <TableHead className="text-center font-semibold text-sm text-gray-700 py-3 px-2 w-20">数量</TableHead>
-                              <TableHead className="text-right font-semibold text-sm text-gray-700 py-3 px-2 w-24">単価</TableHead>
-                              <TableHead className="text-right font-semibold text-sm text-gray-700 py-3 px-2 w-24">金額</TableHead>
-                              <TableHead className="w-16"></TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {contractorFormData.details.map((detail, index) => (
-                              <TableRow key={index} className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                                <TableCell className="py-2 px-2">
-                                  <Select
-                                    value={detail.product_id.toString()}
-                                    onValueChange={(value) => updateDetailRow(index, 'product_id', parseInt(value))}
-                                  >
-                                    <SelectTrigger className="bg-white border-gray-300">
-                                      <SelectValue placeholder="商品を選択" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                      {products.map((p) => (
-                                        <SelectItem key={p.id} value={p.id.toString()}>
-                                          {p.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell className="py-2 px-2">
-                                  <Input
-                                    type="number"
-                                    placeholder="0"
-                                    value={detail.quantity}
-                                    onChange={(e) => updateDetailRow(index, 'quantity', parseInt(e.target.value) || 0)}
-                                    className="text-center bg-white border-gray-300"
-                                  />
-                                </TableCell>
-                                <TableCell className="py-2 px-2">
-                                  <Input
-                                    type="number"
-                                    placeholder="0"
-                                    value={detail.unit_price}
-                                    onChange={(e) => updateDetailRow(index, 'unit_price', parseInt(e.target.value) || 0)}
-                                    className="text-right bg-white border-gray-300"
-                                  />
-                                </TableCell>
-                                <TableCell className="text-right text-sm text-gray-900 py-2 px-2 font-medium">
-                                  ¥{(detail.quantity * detail.unit_price).toLocaleString()}
-                                </TableCell>
-                                <TableCell className="py-2 px-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeDetailRow(index)}
-                                    className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
-                                  >
-                                    ✕
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      <div className="p-2 bg-gray-50 border-t border-gray-300">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={addDetailRow}
-                          className="w-full bg-white"
-                        >
-                          + 商品を追加
-                        </Button>
-                      </div>
+                    <div className="space-y-3 mt-2">
+                      {contractorFormData.details.map((detail, index) => {
+                        const selectedProduct = products.find(p => p.id === detail.product_id);
+                        return (
+                          <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                            <div className="flex gap-3 items-end">
+                              <div className="flex-1 space-y-2">
+                                <Label>商品名 *</Label>
+                                <Select
+                                  value={detail.product_id.toString()}
+                                  onValueChange={(value) => updateDetailRow(index, 'product_id', parseInt(value))}
+                                >
+                                  <SelectTrigger className="bg-white border-gray-300">
+                                    <SelectValue placeholder="商品を選択" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-white">
+                                    {products.map((p) => (
+                                      <SelectItem key={p.id} value={p.id.toString()}>
+                                        {p.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="w-24 space-y-2">
+                                <Label>数量 *</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  placeholder="0"
+                                  value={detail.quantity}
+                                  onChange={(e) => updateDetailRow(index, 'quantity', parseInt(e.target.value) || 0)}
+                                  className="bg-white border-gray-300"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => removeDetailRow(index)}
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                                disabled={contractorFormData.details.length === 1}
+                              >
+                                削除
+                              </Button>
+                            </div>
+                            {selectedProduct && (
+                              <p className="text-xs text-gray-600 mt-2">単価: ¥{selectedProduct.price.toLocaleString()}</p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
+                    <Button
+                      type="button"
+                      onClick={addDetailRow}
+                      className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                    >
+                      + 明細追加
+                    </Button>
                   </div>
                   
                   <div>
