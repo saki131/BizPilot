@@ -657,7 +657,8 @@ export default function InvoicesPage() {
             ))}
           </div>
         )}
-      </div>
+          </>
+        )}
 
       {/* Bulk Generation Dialog */}
       <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
