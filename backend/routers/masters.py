@@ -49,7 +49,8 @@ class ContractorResponse(ContractorBase):
 # SalesPerson endpoints
 @router.get("/sales-persons", response_model=List[SalesPersonResponse])
 async def get_sales_persons(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    sales_persons = db.query(SalesPerson).all()
+    # 削除フラグがFalseの販売員のみ取得
+    sales_persons = db.query(SalesPerson).filter(SalesPerson.deleted_flag == False).all()
     return sales_persons
 
 @router.post("/sales-persons", response_model=SalesPersonResponse)
