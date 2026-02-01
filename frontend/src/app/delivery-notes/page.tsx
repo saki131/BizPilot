@@ -111,6 +111,7 @@ export default function DeliveryNotesPage() {
   const [editingNote, setEditingNote] = useState<any>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isRecognizing, setIsRecognizing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 登録・更新・削除処理中
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -426,6 +427,7 @@ export default function DeliveryNotesPage() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       // 請求日を計算（20日締め）
       const deliveryDate = new Date(result.deliveryDate);
@@ -486,6 +488,8 @@ export default function DeliveryNotesPage() {
     } catch (error: any) {
       console.error('Failed to create delivery note:', error);
       alert(`登録に失敗しました: ${error.message || '不明なエラー'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -498,6 +502,7 @@ export default function DeliveryNotesPage() {
   });
 
   const handleCreate = async () => {
+    setIsSubmitting(true);
     try {
       // バリデーション
       if (!newDeliveryNote.sales_person_id) {
@@ -572,6 +577,8 @@ export default function DeliveryNotesPage() {
     } catch (error: any) {
       console.error('Failed to create delivery note:', error);
       alert(`作成に失敗しました: ${error.message || '不明なエラー'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -591,6 +598,7 @@ export default function DeliveryNotesPage() {
   const handleDeleteNote = async () => {
     if (!selectedNote) return;
     
+    setIsSubmitting(true);
     try {
       console.log('Deleting delivery note:', selectedNote.id);
       const response = await apiClient.deleteDeliveryNote(selectedNote.id);
@@ -609,6 +617,8 @@ export default function DeliveryNotesPage() {
       console.error('Failed to delete delivery note:', error);
       const errorMsg = error.message || '削除に失敗しました';
       alert(`削除に失敗しました: ${errorMsg}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1224,13 +1234,15 @@ export default function DeliveryNotesPage() {
               <div className="flex gap-2 pt-4">
                 <Button 
                   onClick={handleDeleteNote} 
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  削除
+                  {isSubmitting ? '削除中...' : '削除'}
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={() => setShowDeleteDialog(false)} 
+                  disabled={isSubmitting}
                   className="flex-1"
                 >
                   キャンセル
@@ -1397,9 +1409,10 @@ export default function DeliveryNotesPage() {
                       </Button>
                       <Button 
                         onClick={handleCreate} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8"
+                        disabled={isSubmitting}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        作成
+                        {isSubmitting ? '作成中...' : '作成'}
                       </Button>
                     </div>
                   </div>
@@ -1462,6 +1475,7 @@ export default function DeliveryNotesPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                disabled={isSubmitting || isRecognizing}
                                 onClick={() => removeImage(index)}
                               >
                                 <X className="h-4 w-4" />
@@ -1573,8 +1587,9 @@ export default function DeliveryNotesPage() {
                                           </div>
                                         )}
                                         <Button
-                                          className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                                          className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                           size="sm"
+                                          disabled={isSubmitting || isRecognizing}
                                           onClick={() => {
                                             console.log('🔘 DBに登録ボタンクリック');
                                             if (image.recognitionResult) {
@@ -1585,7 +1600,7 @@ export default function DeliveryNotesPage() {
                                             }
                                           }}
                                         >
-                                          このデータを使用してDBに登録
+                                          {isSubmitting ? '登録中...' : 'このデータを使用してDBに登録'}
                                         </Button>
                                       </div>
                                     ) : (
@@ -1615,6 +1630,19 @@ export default function DeliveryNotesPage() {
           )}
         </div>
       </main>
+
+      {/* ローディングオーバーレイ */}
+      {(isSubmitting || isRecognizing) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+            <p className="text-lg font-medium text-gray-900">
+              {isRecognizing ? '画像を認識中...' : '処理中...'}
+            </p>
+            <p className="text-sm text-gray-500">しばらくお待ちください</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
