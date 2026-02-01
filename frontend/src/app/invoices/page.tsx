@@ -51,6 +51,18 @@ interface SalesPerson {
   name: string;
 }
 
+interface Contractor {
+  id: number;
+  name: string;
+}
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  quota_target_flag: boolean;
+}
+
 interface DiscountRate {
   id: number;
   rate: number;
@@ -58,9 +70,47 @@ interface DiscountRate {
   customer_flag: boolean;
 }
 
+interface ContractorInvoice {
+  id: number;
+  contractor_id: number;
+  contractor_name: string;
+  invoice_number: string;
+  start_date: string;
+  end_date: string;
+  discount_rate: number;
+  invoice_date?: string;
+  receipt_date?: string;
+  note?: string;
+  quota_subtotal: number;
+  quota_discount_amount: number;
+  quota_total: number;
+  non_quota_subtotal: number;
+  non_quota_discount_amount: number;
+  non_quota_total: number;
+  total_amount_ex_tax: number;
+  tax_amount: number;
+  total_amount_inc_tax: number;
+  details: InvoiceDetail[];
+}
+
+interface ContractorInvoiceFormData {
+  contractor_id: number;
+  start_date: string;
+  end_date: string;
+  invoice_date: string;
+  note: string;
+  details: {
+    product_id: number;
+    quantity: number;
+    unit_price: number;
+  }[];
+}
+
 export default function InvoicesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'sales' | 'contractor'>('sales');
+  
+  // 販売員請求書用
   const [invoices, setInvoices] = useState<SalesInvoice[]>([]);
   const [salesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
   const [discountRates, setDiscountRates] = useState<DiscountRate[]>([]);
@@ -73,6 +123,23 @@ export default function InvoicesPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Partial<SalesInvoice>>({});
+  
+  // 委託先請求書用
+  const [contractorInvoices, setContractorInvoices] = useState<ContractorInvoice[]>([]);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [showContractorCreateDialog, setShowContractorCreateDialog] = useState(false);
+  const [showContractorDetailDialog, setShowContractorDetailDialog] = useState(false);
+  const [showContractorDeleteDialog, setShowContractorDeleteDialog] = useState(false);
+  const [selectedContractorInvoice, setSelectedContractorInvoice] = useState<ContractorInvoice | null>(null);
+  const [contractorFormData, setContractorFormData] = useState<ContractorInvoiceFormData>({
+    contractor_id: 0,
+    start_date: '',
+    end_date: '',
+    invoice_date: '',
+    note: '',
+    details: []
+  });
   
   // Bulk generation form state
   const [closingYear, setClosingYear] = useState<number>(new Date().getFullYear());
@@ -87,10 +154,16 @@ export default function InvoicesPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
-    fetchInvoices();
-    fetchSalesPersons();
-    fetchDiscountRates();
-  }, []);
+    if (activeTab === 'sales') {
+      fetchInvoices();
+      fetchSalesPersons();
+      fetchDiscountRates();
+    } else {
+      fetchContractorInvoices();
+      fetchContractors();
+      fetchProducts();
+    }
+  }, [activeTab]);
 
   const fetchInvoices = async () => {
     try {
@@ -136,6 +209,108 @@ export default function InvoicesPage() {
       console.error('Failed to fetch discount rates:', error);
     }
   };
+
+  // 委託先請求書用データ取得関数
+  const fetchContractorInvoices = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.getContractorInvoices();
+      if (response.data) {
+        setContractorInvoices(response.data as ContractorInvoice[]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch contractor invoices:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchContractors = async () => {
+    try {
+      const response = await apiClient.getContractors();
+      if (response.data) {
+        setContractors(response.data as Contractor[]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch contractors:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await apiClient.getProducts();
+      if (response.data) {
+        setProducts(response.data as Product[]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+    }
+  };
+
+  const handleCreateContractorInvoice = async () => {
+    setGenerating(true);
+    try {
+      await apiClient.createContractorInvoice(contractorFormData);
+      alert('委託先請求書を作成しました');
+      setShowContractorCreateDialog(false);
+      fetchContractorInvoices();
+      // フォームをリセット
+      setContractorFormData({
+        contractor_id: 0,
+        start_date: '',
+        end_date: '',
+        invoice_date: '',
+        note: '',
+        details: []
+      });
+    } catch (error) {
+      console.error('Failed to create contractor invoice:', error);
+      alert('委託先請求書の作成に失敗しました');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDeleteContractorInvoice = async () => {
+    if (!selectedContractorInvoice) return;
+    try {
+      await apiClient.deleteContractorInvoice(selectedContractorInvoice.id);
+      alert('委託先請求書を削除しました');
+      setShowContractorDeleteDialog(false);
+      fetchContractorInvoices();
+    } catch (error) {
+      console.error('Failed to delete contractor invoice:', error);
+      alert('委託先請求書の削除に失敗しました');
+    }
+  };
+
+  const addDetailRow = () => {
+    setContractorFormData({
+      ...contractorFormData,
+      details: [...contractorFormData.details, { product_id: 0, quantity: 1, unit_price: 0 }]
+    });
+  };
+
+  const removeDetailRow = (index: number) => {
+    const newDetails = contractorFormData.details.filter((_, i) => i !== index);
+    setContractorFormData({ ...contractorFormData, details: newDetails });
+  };
+
+  const updateDetailRow = (index: number, field: string, value: any) => {
+    const newDetails = [...contractorFormData.details];
+    (newDetails[index] as any)[field] = value;
+    
+    // 商品IDが変更された場合、単価を自動設定
+    if (field === 'product_id') {
+      const product = products.find(p => p.id === value);
+      if (product) {
+        newDetails[index].unit_price = product.price;
+      }
+    }
+    
+    setContractorFormData({ ...contractorFormData, details: newDetails });
+  };
+
 
   const handleBulkGenerate = async () => {
     // Construct closing date as YYYY-MM-20
@@ -933,18 +1108,315 @@ export default function InvoicesPage() {
 
         {/* 委託先請求書タブ */}
         {activeTab === 'contractor' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>委託先請求書</CardTitle>
-              <CardDescription>委託先の請求書を手動で作成・管理します</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <p>委託先請求書機能は開発中です</p>
-                <Button className="mt-4 text-white">新規作成</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <>
+            <Button 
+              onClick={() => setShowContractorCreateDialog(true)}
+              className="w-full mb-4 h-12 font-semibold bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white"
+            >
+              新規作成
+            </Button>
+
+            {/* 委託先請求書一覧 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>委託先請求書一覧</CardTitle>
+                <CardDescription>{contractorInvoices.length}件の請求書</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {contractorInvoices.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>委託先請求書がありません</p>
+                    <p className="text-sm text-gray-400 mt-2">「新規作成」から作成してください</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {contractorInvoices.map((invoice) => (
+                      <div
+                        key={invoice.id}
+                        className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => {
+                          setSelectedContractorInvoice(invoice);
+                          setShowContractorDetailDialog(true);
+                        }}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-semibold text-lg">{invoice.contractor_name}</h3>
+                            <p className="text-sm text-gray-600">
+                              {invoice.start_date} 〜 {invoice.end_date}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600">割引率 {invoice.discount_rate}%</p>
+                          </div>
+                        </div>
+                        <div className="border-t pt-2 mt-2">
+                          <div className="flex justify-between text-sm">
+                            <span>税抜合計</span>
+                            <span className="font-semibold">¥{invoice.total_amount_ex_tax.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm text-gray-600">
+                            <span>消費税</span>
+                            <span>¥{invoice.tax_amount.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between font-bold mt-1">
+                            <span>税込合計</span>
+                            <span className="text-blue-600">¥{invoice.total_amount_inc_tax.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 委託先請求書作成ダイアログ */}
+            <Dialog open={showContractorCreateDialog} onOpenChange={setShowContractorCreateDialog}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>委託先請求書作成</DialogTitle>
+                  <DialogDescription>
+                    委託先と商品明細を入力してください
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label>委託先</Label>
+                    <Select
+                      value={contractorFormData.contractor_id.toString()}
+                      onValueChange={(value) => setContractorFormData({ ...contractorFormData, contractor_id: parseInt(value) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="委託先を選択" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contractors.map((c) => (
+                          <SelectItem key={c.id} value={c.id.toString()}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>請求期間（開始）</Label>
+                      <Input
+                        type="date"
+                        value={contractorFormData.start_date}
+                        onChange={(e) => setContractorFormData({ ...contractorFormData, start_date: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>請求期間（終了）</Label>
+                      <Input
+                        type="date"
+                        value={contractorFormData.end_date}
+                        onChange={(e) => setContractorFormData({ ...contractorFormData, end_date: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label>請求日（任意）</Label>
+                    <Input
+                      type="date"
+                      value={contractorFormData.invoice_date}
+                      onChange={(e) => setContractorFormData({ ...contractorFormData, invoice_date: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>商品明細</Label>
+                    <div className="space-y-2 mt-2">
+                      {contractorFormData.details.map((detail, index) => (
+                        <div key={index} className="flex gap-2 items-end">
+                          <div className="flex-1">
+                            <Select
+                              value={detail.product_id.toString()}
+                              onValueChange={(value) => updateDetailRow(index, 'product_id', parseInt(value))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="商品を選択" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {products.map((p) => (
+                                  <SelectItem key={p.id} value={p.id.toString()}>
+                                    {p.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="w-20">
+                            <Input
+                              type="number"
+                              placeholder="数量"
+                              value={detail.quantity}
+                              onChange={(e) => updateDetailRow(index, 'quantity', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="w-28">
+                            <Input
+                              type="number"
+                              placeholder="単価"
+                              value={detail.unit_price}
+                              onChange={(e) => updateDetailRow(index, 'unit_price', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeDetailRow(index)}
+                          >
+                            削除
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={addDetailRow}
+                        className="w-full"
+                      >
+                        + 商品を追加
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label>但（ただし書き）</Label>
+                    <Input
+                      value={contractorFormData.note}
+                      onChange={(e) => setContractorFormData({ ...contractorFormData, note: e.target.value })}
+                      placeholder="商品代として"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleCreateContractorInvoice}
+                    disabled={generating || !contractorFormData.contractor_id || contractorFormData.details.length === 0}
+                    className="flex-1 text-white"
+                  >
+                    {generating ? '作成中...' : '作成'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowContractorCreateDialog(false)}
+                    className="flex-1"
+                  >
+                    キャンセル
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* 委託先請求書詳細ダイアログ */}
+            <Dialog open={showContractorDetailDialog} onOpenChange={setShowContractorDetailDialog}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold">委託先請求書明細</DialogTitle>
+                </DialogHeader>
+                {selectedContractorInvoice && (
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg mb-2">{selectedContractorInvoice.contractor_name}</h3>
+                      <p className="text-sm text-gray-600">請求期間: {selectedContractorInvoice.start_date} 〜 {selectedContractorInvoice.end_date}</p>
+                      <p className="text-sm text-gray-600">割引率: {selectedContractorInvoice.discount_rate}%</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold mb-2">商品明細</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>商品名</TableHead>
+                            <TableHead className="text-right">数量</TableHead>
+                            <TableHead className="text-right">単価</TableHead>
+                            <TableHead className="text-right">金額</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedContractorInvoice.details.map((detail) => (
+                            <TableRow key={detail.id}>
+                              <TableCell>{detail.product_name}</TableCell>
+                              <TableCell className="text-right">{detail.total_quantity}</TableCell>
+                              <TableCell className="text-right">¥{detail.unit_price.toLocaleString()}</TableCell>
+                              <TableCell className="text-right font-semibold">¥{detail.amount.toLocaleString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                      <div className="flex justify-between">
+                        <span>税抜合計</span>
+                        <span className="font-semibold">¥{selectedContractorInvoice.total_amount_ex_tax.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>消費税</span>
+                        <span>¥{selectedContractorInvoice.tax_amount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-lg border-t pt-2">
+                        <span>税込合計</span>
+                        <span className="text-blue-600">¥{selectedContractorInvoice.total_amount_inc_tax.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          setShowContractorDetailDialog(false);
+                          setShowContractorDeleteDialog(true);
+                        }}
+                        className="flex-1 text-white"
+                      >
+                        削除
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowContractorDetailDialog(false)}
+                        className="flex-1"
+                      >
+                        閉じる
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* 削除確認ダイアログ */}
+            <Dialog open={showContractorDeleteDialog} onOpenChange={setShowContractorDeleteDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>委託先請求書の削除</DialogTitle>
+                </DialogHeader>
+                <p>この委託先請求書を削除してもよろしいですか？</p>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteContractorInvoice}
+                    className="flex-1 text-white"
+                  >
+                    削除
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowContractorDeleteDialog(false)}
+                    className="flex-1"
+                  >
+                    キャンセル
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
     </div>
   );
