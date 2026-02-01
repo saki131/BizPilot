@@ -372,6 +372,52 @@ class ApiClient {
       method: 'GET',
     });
   }
+
+  // Contractor Invoices API
+  async createContractorInvoice(data: {
+    contractor_id: number;
+    start_date: string;
+    end_date: string;
+    invoice_date?: string;
+    note?: string;
+    details: Array<{ product_id: number; quantity: number; unit_price?: number }>;
+  }) {
+    return this.request('/contractor-invoices/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getContractorInvoices() {
+    return this.request('/contractor-invoices/', {
+      method: 'GET',
+    });
+  }
+
+  async getContractorInvoice(invoiceId: number) {
+    return this.request(`/contractor-invoices/${invoiceId}`, {
+      method: 'GET',
+    });
+  }
+
+  async updateContractorInvoice(invoiceId: number, data: {
+    discount_rate_id?: number;
+    invoice_date?: string;
+    receipt_date?: string;
+    note?: string;
+    details?: Array<{ product_id: number; quantity: number; unit_price?: number }>;
+  }) {
+    return this.request(`/contractor-invoices/${invoiceId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteContractorInvoice(invoiceId: number) {
+    return this.request(`/contractor-invoices/${invoiceId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

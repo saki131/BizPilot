@@ -60,6 +60,7 @@ interface DiscountRate {
 
 export default function InvoicesPage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'sales' | 'contractor'>('sales');
   const [invoices, setInvoices] = useState<SalesInvoice[]>([]);
   const [salesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
   const [discountRates, setDiscountRates] = useState<DiscountRate[]>([]);
@@ -288,6 +289,27 @@ export default function InvoicesPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-4">
       <div className="px-4 py-4 max-w-2xl mx-auto">
+        {/* タブ切り替え */}
+        <div className="mb-4 flex space-x-2">
+          <Button
+            variant={activeTab === 'sales' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('sales')}
+            className={activeTab === 'sales' ? 'flex-1 text-white' : 'flex-1'}
+          >
+            販売員請求書
+          </Button>
+          <Button
+            variant={activeTab === 'contractor' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('contractor')}
+            className={activeTab === 'contractor' ? 'flex-1 text-white' : 'flex-1'}
+          >
+            委託先請求書
+          </Button>
+        </div>
+
+        {/* 販売員請求書タブ */}
+        {activeTab === 'sales' && (
+          <>
         <Button 
           onClick={() => setShowBulkDialog(true)}
           className="w-full mb-4 h-12 font-semibold bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
@@ -906,6 +928,24 @@ export default function InvoicesPage() {
           </div>
         </DialogContent>
       </Dialog>
+          </>
+        )}
+
+        {/* 委託先請求書タブ */}
+        {activeTab === 'contractor' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>委託先請求書</CardTitle>
+              <CardDescription>委託先の請求書を手動で作成・管理します</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <p>委託先請求書機能は開発中です</p>
+                <Button className="mt-4 text-white">新規作成</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
     </div>
   );
 }
