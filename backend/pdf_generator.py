@@ -507,10 +507,7 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     font_name = setup_japanese_font()
     
     # ===== ヘッダー =====
-    pdf.setFont(font_name, 24)
-    pdf.drawCentredString(width / 2, height - 30*mm, "請求書")
-    
-    # 請求日
+    # 請求日（右上）
     if invoice.invoice_date:
         invoice_date_obj = invoice.invoice_date
         if isinstance(invoice_date_obj, str):
@@ -520,49 +517,86 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         invoice_date_str = datetime.now().strftime("%Y年%m月%d日")
     
     pdf.setFont(font_name, 10)
-    pdf.drawRightString(width - 20*mm, height - 30*mm, invoice_date_str)
+    pdf.drawRightString(width - 15*mm, height - 15*mm, invoice_date_str)
     
-    # ===== 宛先 =====
-    pdf.setFont(font_name, 16)
-    pdf.drawString(20*mm, height - 50*mm, f"{contractor.name if contractor else '委託先名不明'} 様")
+    # タイトル（中央）
+    pdf.setFont(font_name, 24)
+    title = "請 求 書"
+    title_width = pdf.stringWidth(title, font_name, 24)
+    pdf.drawString((width - title_width) / 2, height - 25*mm, title)
     
-    # ===== 会社情報（右寄せ） =====
-    company_x = width - 20*mm
-    company_y = height - 70*mm
-    pdf.setFont(font_name, 10)
-    pdf.drawRightString(company_x, company_y, COMPANY_INFO["name"])
-    company_y -= 5*mm
-    pdf.setFont(font_name, 9)
-    pdf.drawRightString(company_x, company_y, f"代表: {COMPANY_INFO['representative']}")
-    company_y -= 5*mm
-    pdf.drawRightString(company_x, company_y, COMPANY_INFO["postal_code"])
-    company_y -= 5*mm
-    pdf.drawRightString(company_x, company_y, COMPANY_INFO["address1"])
-    company_y -= 5*mm
-    pdf.drawRightString(company_x, company_y, COMPANY_INFO["address2"])
-    
-    # ===== 金額サマリー（上部） =====
-    summary_y = height - 95*mm
-    pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, summary_y, "下記の通りご請求申し上げます")
-    
-    summary_y -= 10*mm
-    pdf.setLineWidth(2)
+    # ===== 左側：宛先 =====
+    y_left = height - 45*mm
     pdf.setFont(font_name, 14)
-    pdf.drawString(20*mm, summary_y, "ご請求金額")
-    pdf.setFont(font_name, 18)
-    pdf.drawRightString(width - 20*mm, summary_y, f"¥{invoice.total_amount_inc_tax:,}")
-    pdf.line(20*mm, summary_y - 2*mm, width - 20*mm, summary_y - 2*mm)
+    pdf.drawString(20*mm, y_left, f"{contractor.name if contractor else '委託先名不明'}　様")
+    
+    # 下線
+    pdf.setLineWidth(1)
+    pdf.line(20*mm, y_left - 2*mm, 80*mm, y_left - 2*mm)
     pdf.setLineWidth(0.5)
     
-    # ===== 但し書き =====
-    note_y = summary_y - 10*mm
+    # 請求日・支払期日
+    pdf.setFont(font_name, 10)
+    pdf.drawString(20*mm, y_left - 12*mm, f"請求日: {invoice_date_str}")
+    
+    # 支払期日の計算（請求日の翌月末）
+    if invoice.invoice_date:
+        billing_date = invoice_date_obj
+        if billing_date.month == 12:
+            payment_due = billing_date.replace(year=billing_date.year + 1, month=1, day=28)
+        else:
+            next_month = billing_date.month + 1
+            if next_month in [1, 3, 5, 7, 8, 10, 12]:
+                payment_due = billing_date.replace(month=next_month, day=31)
+            elif next_month in [4, 6, 9, 11]:
+                payment_due = billing_date.replace(month=next_month, day=30)
+            else:  # 2月
+                payment_due = billing_date.replace(month=next_month, day=28)
+    else:
+        payment_due = datetime.now().date()
+    
+    pdf.drawString(20*mm, y_left - 20*mm, f"支払期日: {payment_due.strftime('%Y年%m月%d日')}")
+    
+    # 下記の通り
+    pdf.drawString(20*mm, y_left - 30*mm, "下記の通りご請求申し上げます")
+    
+    # ===== 右側：会社情報 =====
+    y_right = height - 45*mm
+    right_x = width - 80*mm
+    pdf.setFont(font_name, 11)
+    pdf.drawString(right_x, y_right, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    if invoice.note:
-        pdf.drawString(20*mm, note_y, f"但し: {invoice.note}")
+    pdf.drawString(right_x, y_right - 6*mm, f"代表: {COMPANY_INFO['representative']}")
+    pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO["postal_code"])
+    pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["address1"])
+    pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address2"])
+    pdf.drawString(right_x, y_right - 30*mm, "登録番号: T1430001028870")
+    
+    # ===== 請求金額枠 =====
+    box_y = y_left - 53*mm
+    box_x = 15*mm
+    box_width = 80*mm
+    box_height = 20*mm
+    
+    pdf.setLineWidth(1.5)
+    pdf.rect(box_x, box_y, box_width, box_height)
+    pdf.setLineWidth(0.5)
+    
+    # 「ご請求金額」ラベル
+    pdf.setFont(font_name, 10)
+    pdf.drawString(box_x + 5*mm, box_y + box_height - 7*mm, "ご請求金額")
+    
+    # 金額（大きく表示）
+    pdf.setFont(font_name, 18)
+    total_amount = f"¥{invoice.total_amount_inc_tax:,}-"
+    pdf.drawRightString(box_x + box_width - 10*mm, box_y + 5*mm, total_amount)
+    
+    # 税込表示
+    pdf.setFont(font_name, 9)
+    pdf.drawRightString(box_x + box_width - 10*mm, box_y + 14*mm, "（税込）")
     
     # ===== 明細テーブル =====
-    table_top = note_y - 15*mm
+    table_top = box_y - 10*mm
     table_left = 10*mm
     table_right = width - 10*mm
     table_width = table_right - table_left
@@ -573,12 +607,8 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     for w in col_widths[:-1]:
         col_positions.append(col_positions[-1] + w)
     
-    # ヘッダー背景
     header_height = 8*mm
     row_height = 6*mm
-    
-    pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, table_top + 5*mm, "【明細】")
     
     table_y = table_top
     
@@ -660,126 +690,129 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         
         table_y -= row_height
     
-    # ===== 金額サマリー（テーブル下） =====
-    sum_y = table_y - 8*mm
-    summary_left = width - 100*mm
-    summary_width = 90*mm
-    summary_row_height = 5*mm
+    # ===== 合計セクション =====
+    summary_top = table_y - 8*mm
+    summary_left = table_left
+    summary_width = table_width
+    summary_row_height = 6*mm
     
-    # 4列（項目名、ノルマ対象、ノルマ対象外、割引対象外）
-    sum_col_widths = [22*mm, 22*mm, 22*mm, 24*mm]
+    # 集計テーブルのヘッダー
+    pdf.setFillGray(0.85)
+    pdf.rect(summary_left, summary_top - summary_row_height, summary_width, summary_row_height, stroke=1, fill=1)
+    pdf.setFillGray(0)
+    
+    # 集計ヘッダー列幅（項目、小計、割引率、割引額、割引後金額）
+    sum_col_widths = [50*mm, 35*mm, 18*mm, 35*mm, 42*mm]
     sum_col_positions = [summary_left]
-    for w in sum_col_widths:
+    for w in sum_col_widths[:-1]:
         sum_col_positions.append(sum_col_positions[-1] + w)
     
-    # 小計行
+    pdf.setFont(font_name, 8)
+    sum_header_y = summary_top - summary_row_height + 1.5*mm
+    sum_headers = ["項目", "小計金額", "割引率", "割引額", "割引後金額"]
+    for i, header in enumerate(sum_headers):
+        if i == 0:
+            pdf.drawString(sum_col_positions[i] + 2*mm, sum_header_y, header)
+        else:
+            pdf.drawCentredString(sum_col_positions[i] + sum_col_widths[i] / 2, sum_header_y, header)
+    
+    # 縦線（集計ヘッダー）
+    for pos in sum_col_positions[1:]:
+        pdf.line(pos, summary_top - summary_row_height, pos, summary_top)
+    
+    # 集計行データ
+    product_subtotal = invoice.quota_subtotal + invoice.non_quota_subtotal + invoice.non_discountable_amount
+    total_discount_amount = invoice.quota_discount_amount + invoice.non_quota_discount_amount
+    total_after_discount = invoice.quota_total + invoice.non_quota_total + invoice.non_discountable_amount
+    
+    summary_data = [
+        ("ノルマ対象小計", invoice.quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.quota_discount_amount, invoice.quota_total),
+        ("ノルマ対象外小計", invoice.non_quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.non_quota_discount_amount, invoice.non_quota_total),
+        ("割引対象外小計", invoice.non_discountable_amount, "-", 0, invoice.non_discountable_amount),
+        ("商品小計", product_subtotal, "-", total_discount_amount, total_after_discount),
+    ]
+    
+    pdf.setFont(font_name, 8)
+    sum_y = summary_top - summary_row_height
+    
+    for i, (label, subtotal, rate_str, disc_amt, after_disc) in enumerate(summary_data):
+        sum_y -= summary_row_height
+        
+        # 背景（商品小計は強調）
+        if i == 3:  # 商品小計
+            pdf.setFillGray(0.92)
+            pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=1)
+            pdf.setFillGray(0)
+        else:
+            pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=0)
+        
+        # 縦線
+        for pos in sum_col_positions[1:]:
+            pdf.line(pos, sum_y, pos, sum_y + summary_row_height)
+        
+        row_text_y = sum_y + 1.5*mm
+        
+        # ラベル
+        pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, label)
+        
+        # 小計金額
+        pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"¥{subtotal:,}")
+        
+        # 割引率
+        pdf.drawCentredString(sum_col_positions[2] + sum_col_widths[2] / 2, row_text_y, rate_str)
+        
+        # 割引額
+        if disc_amt > 0:
+            pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"¥{disc_amt:,}")
+        else:
+            pdf.drawCentredString(sum_col_positions[3] + sum_col_widths[3] / 2, row_text_y, "-")
+        
+        # 割引後金額
+        pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{after_disc:,}")
+    
+    # 税抜合計行
+    sum_y -= summary_row_height
     pdf.setFillGray(0.88)
     pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=1)
     pdf.setFillGray(0)
     for pos in sum_col_positions[1:]:
         pdf.line(pos, sum_y, pos, sum_y + summary_row_height)
     
-    pdf.setFont(font_name, 7)
+    pdf.setFont(font_name, 9)
     row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions[0] + 1*mm, row_text_y, "小計")
-    pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 1*mm, row_text_y, f"¥{invoice.quota_subtotal:,}")
-    pdf.drawRightString(sum_col_positions[2] + sum_col_widths[2] - 1*mm, row_text_y, f"¥{invoice.non_quota_subtotal:,}")
-    pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 1*mm, row_text_y, f"¥{invoice.non_discountable_amount:,}")
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "合計金額（税抜）")
+    pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"¥{product_subtotal:,}")
+    pdf.drawCentredString(sum_col_positions[2] + sum_col_widths[2] / 2, row_text_y, "-")
+    pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"¥{total_discount_amount:,}")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.total_amount_ex_tax:,}")
     
-    # 割引額行
+    # 消費税行
     sum_y -= summary_row_height
     pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=0)
     for pos in sum_col_positions[1:]:
         pdf.line(pos, sum_y, pos, sum_y + summary_row_height)
     
-    pdf.setFont(font_name, 7)
-    row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions[0] + 1*mm, row_text_y, "割引額")
-    pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 1*mm, row_text_y, f"-¥{invoice.quota_discount_amount:,}")
-    pdf.drawRightString(sum_col_positions[2] + sum_col_widths[2] - 1*mm, row_text_y, f"-¥{invoice.non_quota_discount_amount:,}")
-    pdf.drawCentredString(sum_col_positions[3] + sum_col_widths[3] / 2, row_text_y, "-")
-    
-    # 割引後合計行
-    sum_y -= summary_row_height
-    pdf.setFillGray(0.88)
-    pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=1)
-    pdf.setFillGray(0)
-    for pos in sum_col_positions[1:]:
-        pdf.line(pos, sum_y, pos, sum_y + summary_row_height)
-    
-    pdf.setFont(font_name, 7)
-    row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions[0] + 1*mm, row_text_y, "割引後合計")
-    pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 1*mm, row_text_y, f"¥{invoice.quota_total:,}")
-    pdf.drawRightString(sum_col_positions[2] + sum_col_widths[2] - 1*mm, row_text_y, f"¥{invoice.non_quota_total:,}")
-    pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 1*mm, row_text_y, f"¥{invoice.non_discountable_amount:,}")
-    
-    # 合計金額（税抜）行
-    sum_y -= summary_row_height + 2*mm
-    product_subtotal = invoice.quota_subtotal + invoice.non_quota_subtotal + invoice.non_discountable_amount
-    total_discount_amount = invoice.quota_discount_amount + invoice.non_quota_discount_amount
-    
-    summary_left_2 = width - 70*mm
-    summary_width_2 = 60*mm
-    sum_col_widths_2 = [30*mm, 30*mm]
-    sum_col_positions_2 = [summary_left_2, summary_left_2 + sum_col_widths_2[0]]
-    
-    pdf.setFillGray(0.88)
-    pdf.rect(summary_left_2, sum_y, summary_width_2, summary_row_height, stroke=1, fill=1)
-    pdf.setFillGray(0)
-    pdf.line(sum_col_positions_2[1], sum_y, sum_col_positions_2[1], sum_y + summary_row_height)
-    
     pdf.setFont(font_name, 8)
     row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions_2[0] + 2*mm, row_text_y, "商品小計")
-    pdf.drawRightString(sum_col_positions_2[1] + sum_col_widths_2[1] - 2*mm, row_text_y, f"¥{product_subtotal:,}")
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "消費税 (10%)")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.tax_amount:,}")
     
-    # 割引額合計行
-    sum_y -= summary_row_height
-    pdf.rect(summary_left_2, sum_y, summary_width_2, summary_row_height, stroke=1, fill=0)
-    pdf.line(sum_col_positions_2[1], sum_y, sum_col_positions_2[1], sum_y + summary_row_height)
-    
-    pdf.setFont(font_name, 8)
-    row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions_2[0] + 2*mm, row_text_y, "割引額合計")
-    pdf.drawRightString(sum_col_positions_2[1] + sum_col_widths_2[1] - 2*mm, row_text_y, f"-¥{total_discount_amount:,}")
-    
-    # 税抜合計行
-    sum_y -= summary_row_height
-    pdf.setFillGray(0.88)
-    pdf.rect(summary_left_2, sum_y, summary_width_2, summary_row_height, stroke=1, fill=1)
-    pdf.setFillGray(0)
-    pdf.line(sum_col_positions_2[1], sum_y, sum_col_positions_2[1], sum_y + summary_row_height)
-    
-    pdf.setFont(font_name, 9)
-    row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions_2[0] + 2*mm, row_text_y, "合計金額（税抜）")
-    pdf.drawRightString(sum_col_positions_2[1] + sum_col_widths_2[1] - 2*mm, row_text_y, f"¥{invoice.total_amount_ex_tax:,}")
-    
-    # 消費税行
-    sum_y -= summary_row_height
-    pdf.rect(summary_left_2, sum_y, summary_width_2, summary_row_height, stroke=1, fill=0)
-    pdf.line(sum_col_positions_2[1], sum_y, sum_col_positions_2[1], sum_y + summary_row_height)
-    
-    pdf.setFont(font_name, 8)
-    row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions_2[0] + 2*mm, row_text_y, "消費税 (10%)")
-    pdf.drawRightString(sum_col_positions_2[1] + sum_col_widths_2[1] - 2*mm, row_text_y, f"¥{invoice.tax_amount:,}")
-    
-    # 税込合計行
+    # 税込合計行（大きく強調）
     sum_y -= summary_row_height + 2*mm
     pdf.setLineWidth(2)
     pdf.setFillGray(0.85)
-    pdf.rect(summary_left_2, sum_y, summary_width_2, summary_row_height + 2*mm, stroke=1, fill=1)
+    pdf.rect(summary_left, sum_y, summary_width, summary_row_height + 2*mm, stroke=1, fill=1)
     pdf.setFillGray(0)
     pdf.setLineWidth(0.5)
-    pdf.line(sum_col_positions_2[1], sum_y, sum_col_positions_2[1], sum_y + summary_row_height + 2*mm)
+    
+    for pos in sum_col_positions[1:]:
+        pdf.line(pos, sum_y, pos, sum_y + summary_row_height + 2*mm)
     
     pdf.setFont(font_name, 11)
     row_text_y = sum_y + 2.5*mm
-    pdf.drawString(sum_col_positions_2[0] + 2*mm, row_text_y, "税込合計")
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "税込合計")
     pdf.setFont(font_name, 14)
-    pdf.drawRightString(sum_col_positions_2[1] + sum_col_widths_2[1] - 2*mm, row_text_y, f"¥{invoice.total_amount_inc_tax:,}")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.total_amount_inc_tax:,}")
     
     # ===== 振込先情報 =====
     bank_y = sum_y - 15*mm
@@ -792,21 +825,17 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.drawString(20*mm, bank_y - 28*mm, f"記号: {BANK_INFO['yucho_symbol']}　番号: {BANK_INFO['yucho_number']}")
     
     # ===== 備考欄 =====
-    remarks_y = bank_y - 42*mm
-    pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, remarks_y, "【備考】")
-    pdf.setFont(font_name, 9)
-    
-    # 但し書きの内容を出力
-    remark_offset = 7*mm
     if invoice.note:
-        pdf.drawString(20*mm, remarks_y - remark_offset, f"・{invoice.note}")
-        remark_offset += 7*mm
-    
+        remarks_y = bank_y - 42*mm
+        pdf.setFont(font_name, 10)
+        pdf.drawString(20*mm, remarks_y, "【備考】")
+        pdf.setFont(font_name, 9)
+        pdf.drawString(20*mm, remarks_y - 7*mm, invoice.note)
+  
     # ===== フッター =====
     footer_y = 20*mm
     pdf.setFont(font_name, 9)
-    pdf.drawCentredString(width / 2, footer_y, "上記の通りご請求申し上げます。")
+    pdf.drawCentredString(width / 2, footer_y, "お支払いいただきますよう、よろしくお願い申し上げます。")
     
     pdf.save()
     buffer.seek(0)
