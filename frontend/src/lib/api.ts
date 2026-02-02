@@ -386,7 +386,7 @@ class ApiClient {
     tax_rate_id: number;
     invoice_date: string;
     note?: string;
-    details: Array<{ product_id: number; quantity: number; unit_price?: number }>;
+    details: Array<{ product_id: number; total_quantity: number; unit_price?: number }>;
   }) {
     return this.request('/contractor-invoices/', {
       method: 'POST',

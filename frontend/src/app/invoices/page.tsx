@@ -100,7 +100,7 @@ interface ContractorInvoiceFormData {
   note: string;
   details: {
     product_id: number;
-    quantity: number;
+    total_quantity: number;
     unit_price: number;
   }[];
 }
@@ -331,7 +331,7 @@ export default function InvoicesPage() {
   const addDetailRow = () => {
     setContractorFormData({
       ...contractorFormData,
-      details: [...contractorFormData.details, { product_id: 0, quantity: 1, unit_price: 0 }]
+      details: [...contractorFormData.details, { product_id: 0, total_quantity: 1, unit_price: 0 }]
     });
   };
 
@@ -1305,8 +1305,8 @@ export default function InvoicesPage() {
                                   type="number"
                                   min="1"
                                   placeholder="0"
-                                  value={detail.quantity}
-                                  onChange={(e) => updateDetailRow(index, 'quantity', parseInt(e.target.value) || 0)}
+                                  value={detail.total_quantity}
+                                  onChange={(e) => updateDetailRow(index, 'total_quantity', parseInt(e.target.value) || 0)}
                                   className="bg-white border-gray-300"
                                 />
                               </div>
