@@ -315,7 +315,7 @@ def generate_invoice_for_sales_person(
     )
 
 
-@router.post("/sales-invoices/bulk-generate")
+@router.post("/bulk-generate")
 async def bulk_generate_sales_invoices(
     request: BulkInvoiceGenerateRequest,
     db: Session = Depends(get_db),
@@ -381,7 +381,7 @@ async def bulk_generate_sales_invoices(
     }
 
 
-@router.patch("/sales-invoices/{invoice_id}")
+@router.patch("/{invoice_id}")
 async def update_invoice_fields(
     invoice_id: int,
     update_data: InvoiceUpdateRequest,
@@ -468,7 +468,7 @@ async def update_invoice_fields(
     }
 
 
-@router.patch("/sales-invoices/{invoice_id}/discount-rate")
+@router.patch("/{invoice_id}/discount-rate")
 async def update_invoice_discount_rate(
     invoice_id: int,
     request: DiscountRateUpdateRequest,
@@ -539,7 +539,7 @@ async def update_invoice_discount_rate(
     }
 
 
-@router.get("/sales-invoices", response_model=List[InvoiceResponse])
+@router.get("", response_model=List[InvoiceResponse])
 async def get_sales_invoices(
     sales_person_id: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -618,7 +618,7 @@ async def get_sales_invoices(
     return result
 
 
-@router.get("/sales-invoices/{invoice_id}", response_model=InvoiceResponse)
+@router.get("/{invoice_id}", response_model=InvoiceResponse)
 async def get_sales_invoice(
     invoice_id: int,
     db: Session = Depends(get_db),
@@ -679,7 +679,7 @@ async def get_sales_invoice(
     )
 
 
-@router.delete("/sales-invoices/{invoice_id}")
+@router.delete("/{invoice_id}")
 async def delete_sales_invoice(
     invoice_id: int,
     db: Session = Depends(get_db),
@@ -706,7 +706,7 @@ async def delete_sales_invoice(
     }
 
 
-@router.get("/sales-invoices/{invoice_id}/pdf")
+@router.get("/{invoice_id}/pdf")
 async def generate_invoice_pdf(
     invoice_id: int,
     db: Session = Depends(get_db),
