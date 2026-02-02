@@ -137,7 +137,9 @@ export default function InvoicesPage() {
   const [showContractorCreateDialog, setShowContractorCreateDialog] = useState(false);
   const [showContractorDetailDialog, setShowContractorDetailDialog] = useState(false);
   const [showContractorDeleteDialog, setShowContractorDeleteDialog] = useState(false);
+  const [showContractorEditDialog, setShowContractorEditDialog] = useState(false);
   const [selectedContractorInvoice, setSelectedContractorInvoice] = useState<ContractorInvoice | null>(null);
+  const [editingContractorInvoice, setEditingContractorInvoice] = useState<Partial<ContractorInvoice>>({});
   const [contractorFormData, setContractorFormData] = useState<ContractorInvoiceFormData>({
     contractor_id: 0,
     tax_rate_id: 0,
@@ -494,6 +496,45 @@ export default function InvoicesPage() {
     } catch (error) {
       console.error('Failed to update discount rate:', error);
       alert('割引率の変更に失敗しました');
+    }
+  };
+
+  const handleEditContractorInvoice = () => {
+    if (!selectedContractorInvoice) return;
+    setEditingContractorInvoice({
+      note: selectedContractorInvoice.note || '',
+    });
+    setShowContractorDetailDialog(false);
+    setShowContractorEditDialog(true);
+  };
+
+  const handleSaveContractorEdit = async () => {
+    if (!selectedContractorInvoice) return;
+
+    try {
+      const response = await apiClient.updateContractorInvoice(
+        selectedContractorInvoice.id,
+        editingContractorInvoice
+      );
+
+      if (response.data) {
+        const updatedInvoice = response.data as ContractorInvoice;
+        
+        // 請求書リストと詳細画面の両方を更新
+        setContractorInvoices(prev => prev.map(inv => 
+          inv.id === updatedInvoice.id ? updatedInvoice : inv
+        ));
+        setSelectedContractorInvoice(updatedInvoice);
+        
+        setShowContractorEditDialog(false);
+        setShowContractorDetailDialog(true);
+        alert('委託先請求書を更新しました');
+      } else {
+        alert(response.error || '更新に失敗しました');
+      }
+    } catch (error) {
+      console.error('Failed to update contractor invoice:', error);
+      alert('更新に失敗しました');
     }
   };
 
@@ -1405,81 +1446,230 @@ export default function InvoicesPage() {
 
             {/* 委託先請求書詳細ダイアログ */}
             <Dialog open={showContractorDetailDialog} onOpenChange={setShowContractorDetailDialog}>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-bold">委託先請求書明細</DialogTitle>
+                  <DialogDescription className="text-sm text-gray-500">請求書ID: {selectedContractorInvoice?.id}</DialogDescription>
                 </DialogHeader>
                 {selectedContractorInvoice && (
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-lg mb-2">{selectedContractorInvoice.contractor_name}</h3>
-                      <p className="text-sm text-gray-600">請求日: {selectedContractorInvoice.invoice_date || '未設定'}</p>
-                      <p className="text-sm text-gray-600">割引率: {selectedContractorInvoice.discount_rate}%</p>
+                  <div className="space-y-6">
+                    {/* 基本情報セクション */}
+                    <div className="bg-gray-50 p-5 rounded-lg">
+                      <h3 className="font-semibold text-lg text-gray-700 mb-4 pb-2 border-b">基本情報</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+                        <div className="flex items-center">
+                          <span className="text-base text-gray-600 w-32">委託先</span>
+                          <span className="text-base font-medium text-gray-900">{selectedContractorInvoice.contractor_name}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-base text-gray-600 w-32">割引率</span>
+                          <span className="text-base font-medium text-gray-900">{((selectedContractorInvoice.discount_rate || 0) * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-base text-gray-600 w-32">請求日</span>
+                          <span className="text-base font-medium text-gray-900">{selectedContractorInvoice.invoice_date || '-'}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-base text-gray-600 w-32">領収日</span>
+                          <span className="text-base font-medium text-gray-900">{selectedContractorInvoice.receipt_date || '-'}</span>
+                        </div>
+                      </div>
                       {selectedContractorInvoice.note && (
-                        <p className="text-sm text-gray-600">但し: {selectedContractorInvoice.note}</p>
+                        <div className="mt-4 pt-4 border-t">
+                          <div className="flex items-start">
+                            <span className="text-base text-gray-600 w-32 flex-shrink-0">但（ただし書き）</span>
+                            <span className="text-base font-medium text-gray-900">{selectedContractorInvoice.note}</span>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    
-                    <div>
-                      <h4 className="font-semibold mb-2">商品明細</h4>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>商品名</TableHead>
-                            <TableHead className="text-right">数量</TableHead>
-                            <TableHead className="text-right">単価</TableHead>
-                            <TableHead className="text-right">金額</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {selectedContractorInvoice.details.map((detail) => (
-                            <TableRow key={detail.id}>
-                              <TableCell>{detail.product_name}</TableCell>
-                              <TableCell className="text-right">{detail.total_quantity}</TableCell>
-                              <TableCell className="text-right">¥{detail.unit_price.toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-semibold">¥{detail.amount.toLocaleString()}</TableCell>
+
+                    {/* 商品明細セクション */}
+                    <div className="bg-white rounded-lg overflow-hidden border border-gray-300">
+                      <div className="bg-gray-600 px-4 py-2">
+                        <h3 className="font-semibold text-sm text-white">商品明細</h3>
+                      </div>
+                      <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                        <Table>
+                          <TableHeader className="sticky top-0 z-10">
+                            <TableRow className="bg-gray-100 border-b border-gray-300">
+                              <TableHead className="font-semibold text-sm text-gray-700 py-3 px-3 min-w-[150px]">商品名</TableHead>
+                              <TableHead className="text-center font-semibold text-sm text-gray-700 py-3 px-2 w-16">数量</TableHead>
+                              <TableHead className="text-right font-semibold text-sm text-gray-700 py-3 px-2 w-20">単価</TableHead>
+                              <TableHead className="text-right font-semibold text-sm text-gray-700 py-3 px-2 w-24">金額</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {(selectedContractorInvoice.details || []).map((detail, index) => (
+                              <TableRow 
+                                key={detail.id} 
+                                className={`border-b border-gray-200 ${
+                                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                }`}
+                              >
+                                <TableCell className="text-sm text-gray-900 py-3 px-3 font-medium">
+                                  {detail.product_name}
+                                </TableCell>
+                                <TableCell className="text-center text-sm text-gray-900 py-3 px-2">
+                                  {detail.total_quantity}
+                                </TableCell>
+                                <TableCell className="text-right text-sm text-gray-700 py-3 px-2">
+                                  ¥{detail.unit_price.toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-right font-medium text-sm text-gray-900 py-3 px-2">
+                                  ¥{detail.amount.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
-                    
-                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <div className="flex justify-between">
-                        <span>税抜合計</span>
-                        <span className="font-semibold">¥{selectedContractorInvoice.total_amount_ex_tax.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>消費税</span>
-                        <span>¥{selectedContractorInvoice.tax_amount.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between font-bold text-lg border-t pt-2">
-                        <span>税込合計</span>
-                        <span className="text-blue-600">¥{selectedContractorInvoice.total_amount_inc_tax.toLocaleString()}</span>
+
+                    {/* 合計セクション */}
+                    <div className="bg-gray-50 p-5 rounded-lg border-2 border-gray-300">
+                      <div className="space-y-3">
+                        {/* ノルマ対象（青系） */}
+                        <div className="bg-blue-100 p-3 rounded-lg border-l-4 border-blue-500">
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-sm text-blue-900 font-medium">ノルマ対象小計</span>
+                            <span className="text-xl font-bold text-blue-900">
+                              ¥{(selectedContractorInvoice.quota_subtotal || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-sm text-blue-900 font-medium">ノルマ対象割引額</span>
+                            <span className="text-xl font-bold text-red-600">
+                              -¥{(selectedContractorInvoice.quota_discount_amount || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-1 border-t border-blue-300 pt-2 mt-1">
+                            <span className="text-sm text-blue-900 font-semibold">ノルマ対象合計</span>
+                            <span className="text-xl font-bold text-blue-900">
+                              ¥{(selectedContractorInvoice.quota_total || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* ノルマ対象外（緑系） */}
+                        <div className="bg-green-100 p-3 rounded-lg border-l-4 border-green-500">
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-sm text-green-900 font-medium">ノルマ対象外小計</span>
+                            <span className="text-xl font-bold text-green-900">
+                              ¥{(selectedContractorInvoice.non_quota_subtotal || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-sm text-green-900 font-medium">ノルマ対象外割引額</span>
+                            <span className="text-xl font-bold text-red-600">
+                              -¥{(selectedContractorInvoice.non_quota_discount_amount || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-1 border-t border-green-300 pt-2 mt-1">
+                            <span className="text-sm text-green-900 font-semibold">ノルマ対象外合計</span>
+                            <span className="text-xl font-bold text-green-900">
+                              ¥{(selectedContractorInvoice.non_quota_total || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* 割引対象外（オレンジ系） */}
+                        <div className="bg-orange-100 p-3 rounded-lg border-l-4 border-orange-500">
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-sm text-orange-900 font-semibold">割引対象外金額</span>
+                            <span className="text-xl font-bold text-orange-900">
+                              ¥{(selectedContractorInvoice.non_discountable_amount || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* 合計（グレー系） */}
+                        <div className="bg-gray-200 p-3 rounded-lg border border-gray-400 mt-4">
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-sm text-gray-700 font-medium">税抜合計</span>
+                            <span className="text-xl font-bold text-gray-900">
+                              ¥{(selectedContractorInvoice.total_amount_ex_tax || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-sm text-gray-700 font-medium">消費税（10%）</span>
+                            <span className="text-xl font-bold text-gray-700">
+                              ¥{(selectedContractorInvoice.tax_amount || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-t-2 border-gray-500 pt-3 mt-2">
+                            <span className="text-base text-gray-800 font-bold">税込合計</span>
+                            <span className="text-2xl font-bold text-blue-600">
+                              ¥{(selectedContractorInvoice.total_amount_inc_tax || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex gap-2">
+
+                    {/* ボタンエリア */}
+                    <div className="flex gap-3 justify-end pt-4 border-t">
                       <Button
-                        variant="destructive"
-                        onClick={() => {
-                          setShowContractorDetailDialog(false);
-                          setShowContractorDeleteDialog(true);
-                        }}
-                        className="flex-1 text-white"
+                        onClick={handleEditContractorInvoice}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6"
                       >
-                        削除
+                        編集
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => setShowContractorDetailDialog(false)}
-                        className="flex-1"
+                        onClick={() => {
+                          setShowContractorDetailDialog(false);
+                          setSelectedContractorInvoice(null);
+                        }}
+                        className="px-6"
                       >
                         閉じる
                       </Button>
                     </div>
                   </div>
                 )}
+              </DialogContent>
+            </Dialog>
+
+            {/* 委託先請求書編集ダイアログ */}
+            <Dialog open={showContractorEditDialog} onOpenChange={setShowContractorEditDialog}>
+              <DialogContent className="w-[95vw] max-w-md">
+                <DialogHeader>
+                  <DialogTitle>委託先請求書編集</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div>
+                    <Label>割引率</Label>
+                    <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                      <p className="text-sm text-gray-700">現在の割引率: <span className="font-bold">{selectedContractorInvoice ? ((selectedContractorInvoice.discount_rate || 0) * 100).toFixed(0) : 0}%</span></p>
+                      <p className="text-xs text-gray-500 mt-1">※割引率は合計金額から自動設定されます</p>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>但（ただし書き）</Label>
+                    <Input
+                      value={editingContractorInvoice.note || ''}
+                      onChange={(e) => setEditingContractorInvoice({...editingContractorInvoice, note: e.target.value})}
+                      placeholder="商品代として"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={handleSaveContractorEdit}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                    >
+                      保存
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowContractorEditDialog(false)}
+                      className="flex-1 text-white bg-gray-600 hover:bg-gray-700 border-0"
+                    >
+                      キャンセル
+                    </Button>
+                  </div>
+                </div>
               </DialogContent>
             </Dialog>
 
