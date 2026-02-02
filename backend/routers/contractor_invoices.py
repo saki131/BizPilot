@@ -219,8 +219,8 @@ def create_contractor_invoice(
     if not discount_rate:
         raise HTTPException(status_code=500, detail="Could not determine discount rate")
     
-    # 割引額の計算
-    discount_rate_value = float(discount_rate.rate) / 100
+    # 割引額の計算（rateは既に小数値：0.20=20%）
+    discount_rate_value = float(discount_rate.rate)
     quota_discount_amount = int(quota_subtotal * discount_rate_value)
     non_quota_discount_amount = int(non_quota_subtotal * discount_rate_value)
     
