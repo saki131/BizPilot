@@ -91,6 +91,13 @@ def calculate_contractor_discount_rate(total_amount: int, db: Session) -> Discou
     return default_rate
 
 
+class ContractorInvoiceDetailRequest(BaseModel):
+    """委託先請求書明細リクエスト"""
+    product_id: int
+    total_quantity: int
+    unit_price: Optional[int] = None
+
+
 class ContractorInvoiceCreateRequest(BaseModel):
     """委託先請求書作成リクエスト"""
     contractor_id: int
@@ -99,7 +106,7 @@ class ContractorInvoiceCreateRequest(BaseModel):
     payment_due_date: Optional[date] = None
     payment_term: Optional[str] = None
     note: Optional[str] = None
-    details: List[dict]  # [{"product_id": 1, "quantity": 10, "unit_price": 1000}, ...]
+    details: List[ContractorInvoiceDetailRequest]
 
 
 class ContractorInvoiceUpdateRequest(BaseModel):
@@ -110,7 +117,7 @@ class ContractorInvoiceUpdateRequest(BaseModel):
     payment_due_date: Optional[date] = None
     payment_term: Optional[str] = None
     note: Optional[str] = None
-    details: Optional[List[dict]] = None
+    details: Optional[List[ContractorInvoiceDetailRequest]] = None
 
 
 class ContractorInvoiceDetailResponse(BaseModel):
@@ -366,12 +373,12 @@ def update_contractor_invoice(
         non_discountable_amount = 0
         
         for detail in request.details:
-            product = db.query(Product).filter(Product.id == detail["product_id"]).first()
+            product = db.query(Product).filter(Product.id == detail.product_id).first()
             if not product:
                 continue
             
-            quantity = detail["quantity"]
-            unit_price = detail.get("unit_price", product.price)
+            quantity = detail.total_quantity
+            unit_price = detail.unit_price if detail.unit_price is not None else product.price
             amount = quantity * unit_price
             
             # 割引対象外の判定
