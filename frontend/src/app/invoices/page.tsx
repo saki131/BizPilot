@@ -140,7 +140,21 @@ export default function InvoicesPage() {
   const [showContractorDeleteDialog, setShowContractorDeleteDialog] = useState(false);
   const [showContractorEditDialog, setShowContractorEditDialog] = useState(false);
   const [selectedContractorInvoice, setSelectedContractorInvoice] = useState<ContractorInvoice | null>(null);
-  const [editingContractorInvoice, setEditingContractorInvoice] = useState<Partial<ContractorInvoice>>({});
+  const [editingContractorInvoice, setEditingContractorInvoice] = useState<{
+    contractor_id: number;
+    invoice_date: string;
+    note: string;
+    details: {
+      product_id: number;
+      total_quantity: number;
+      unit_price: number;
+    }[];
+  }>({
+    contractor_id: 0,
+    invoice_date: '',
+    note: '',
+    details: []
+  });
   const [contractorFormData, setContractorFormData] = useState<ContractorInvoiceFormData>({
     contractor_id: 0,
     tax_rate_id: 0,
