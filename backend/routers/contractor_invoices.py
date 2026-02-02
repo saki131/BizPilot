@@ -180,12 +180,12 @@ def create_contractor_invoice(
     details_data = []
     
     for detail in request.details:
-        product = db.query(Product).filter(Product.id == detail["product_id"]).first()
+        product = db.query(Product).filter(Product.id == detail.product_id).first()
         if not product:
-            raise HTTPException(status_code=404, detail=f"Product {detail['product_id']} not found")
+            raise HTTPException(status_code=404, detail=f"Product {detail.product_id} not found")
         
-        quantity = detail["quantity"]
-        unit_price = detail.get("unit_price", product.price)
+        quantity = detail.total_quantity
+        unit_price = detail.unit_price if detail.unit_price is not None else product.price
         amount = quantity * unit_price
         
         # 割引対象外の判定
