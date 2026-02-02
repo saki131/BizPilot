@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
-from models import SalesPerson, Product, Contractor, DiscountRate
+from models import SalesPerson, Product, Contractor, DiscountRate, TaxRate
 from dependencies import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
@@ -198,6 +198,34 @@ async def get_discount_rates(db: Session = Depends(get_db), current_user = Depen
             rate=converted_rate,
             threshold_amount=rate.threshold_amount,
             customer_flag=rate.customer_flag
+        ))
+    
+    return result
+
+# Tax Rate endpoints
+class TaxRateResponse(BaseModel):
+    id: int
+    rate: float
+    display_name: str
+
+    class Config:
+        from_attributes = True
+
+@router.get("/tax-rates", response_model=List[TaxRateResponse])
+async def get_tax_rates(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    rates = db.query(TaxRate).filter(TaxRate.deleted_flag == False).all()
+    
+    # Convert rates: if stored as percentage (>=1), convert to decimal
+    result = []
+    for rate in rates:
+        raw_rate = float(rate.rate)
+        # If rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
+        converted_rate = raw_rate / 100 if raw_rate >= 1 else raw_rate
+        
+        result.append(TaxRateResponse(
+            id=rate.id,
+            rate=converted_rate,
+            display_name=rate.display_name
         ))
     
     return result
