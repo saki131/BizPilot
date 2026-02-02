@@ -562,12 +562,7 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         pdf.drawString(20*mm, note_y, f"但し: {invoice.note}")
     
     # ===== 明細テーブル =====
-    table_y = note_y - 15*mm
-    pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, table_y, "【明細】")
-    
-    # テーブルヘッダー
-    table_y -= 8*mm
+    table_top = note_y - 15*mm
     table_left = 10*mm
     table_right = width - 10*mm
     table_width = table_right - table_left
@@ -578,17 +573,23 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     for w in col_widths[:-1]:
         col_positions.append(col_positions[-1] + w)
     
-    row_height = 6*mm
+    # ヘッダー背景
     header_height = 8*mm
+    row_height = 6*mm
+    
+    pdf.setFont(font_name, 10)
+    pdf.drawString(20*mm, table_top + 5*mm, "【明細】")
+    
+    table_y = table_top
     
     # ヘッダー背景
     pdf.setFillGray(0.85)
-    pdf.rect(table_left, table_y, table_width, header_height, stroke=1, fill=1)
+    pdf.rect(table_left, table_y - header_height, table_width, header_height, stroke=1, fill=1)
     pdf.setFillGray(0)
     
     # ヘッダーテキスト
     pdf.setFont(font_name, 7)
-    header_y = table_y + 2.5*mm
+    header_y = table_y - 6*mm
     headers = ["商品名", "数量", "単価", "金額", "割引率", "割引額", "割引後", "ノルマ"]
     for i, header in enumerate(headers):
         if i == 0:
@@ -598,7 +599,7 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     # 縦線（ヘッダー）
     for pos in col_positions[1:]:
-        pdf.line(pos, table_y, pos, table_y + header_height)
+        pdf.line(pos, table_y - header_height, pos, table_y)
     
     # 割引率の処理
     raw_rate = float(discount_rate_obj.rate) if discount_rate_obj else 0

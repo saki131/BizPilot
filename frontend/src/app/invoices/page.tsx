@@ -503,25 +503,51 @@ export default function InvoicesPage() {
   const handleEditContractorInvoice = () => {
     if (!selectedContractorInvoice) return;
     setEditingContractorInvoice({
+      contractor_id: selectedContractorInvoice.contractor_id,
+      invoice_date: selectedContractorInvoice.invoice_date || '',
       note: selectedContractorInvoice.note || '',
+      details: selectedContractorInvoice.details.map(d => ({
+        product_id: d.product_id,
+        total_quantity: d.total_quantity,
+        unit_price: d.unit_price
+      }))
     });
     setShowContractorDetailDialog(false);
     setShowContractorEditDialog(true);
   };
 
   const handleSaveContractorEdit = async () => {
-    if (!selectedContractorInvoice) return;
+    if (!selectedContractorInvoice || !editingContractorInvoice) return;
 
+    setGenerating(true);
     try {
+      // 明細のバリデーションと単価の自動設定
+      const details = (editingContractorInvoice.details || selectedContractorInvoice.details).map((d: any) => {
+        const product = products.find(p => p.id === d.product_id);
+        const unitPrice = d.unit_price || (product?.price || 0);
+        
+        return {
+          product_id: d.product_id,
+          total_quantity: d.total_quantity,
+          unit_price: unitPrice
+        };
+      });
+
+      const updateData = {
+        contractor_id: editingContractorInvoice.contractor_id,
+        invoice_date: editingContractorInvoice.invoice_date,
+        note: editingContractorInvoice.note,
+        details
+      };
+
       const response = await apiClient.updateContractorInvoice(
         selectedContractorInvoice.id,
-        editingContractorInvoice
+        updateData
       );
 
       if (response.data) {
         const updatedInvoice = response.data as ContractorInvoice;
         
-        // 請求書リストと詳細画面の両方を更新
         setContractorInvoices(prev => prev.map(inv => 
           inv.id === updatedInvoice.id ? updatedInvoice : inv
         ));
@@ -530,12 +556,15 @@ export default function InvoicesPage() {
         setShowContractorEditDialog(false);
         setShowContractorDetailDialog(true);
         alert('委託先請求書を更新しました');
+        fetchContractorInvoices();
       } else {
         alert(response.error || '更新に失敗しました');
       }
     } catch (error) {
       console.error('Failed to update contractor invoice:', error);
       alert('更新に失敗しました');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -1634,43 +1663,173 @@ export default function InvoicesPage() {
 
             {/* 委託先請求書編集ダイアログ */}
             <Dialog open={showContractorEditDialog} onOpenChange={setShowContractorEditDialog}>
-              <DialogContent className="w-[95vw] max-w-md">
+              <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>委託先請求書編集</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div>
-                    <Label>割引率</Label>
-                    <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                      <p className="text-sm text-gray-700">現在の割引率: <span className="font-bold">{selectedContractorInvoice ? ((selectedContractorInvoice.discount_rate || 0) * 100).toFixed(0) : 0}%</span></p>
-                      <p className="text-xs text-gray-500 mt-1">※割引率は合計金額から自動設定されます</p>
+                {editingContractorInvoice && selectedContractorInvoice && (
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-sm text-gray-700 border-b pb-2">基本情報</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="contractor">委託先</Label>
+                          <Select 
+                            value={editingContractorInvoice.contractor_id?.toString() || selectedContractorInvoice.contractor_id.toString()} 
+                            onValueChange={(v) => setEditingContractorInvoice({...editingContractorInvoice, contractor_id: parseInt(v)})}
+                          >
+                            <SelectTrigger id="contractor" className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white">
+                              {contractors.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="invoice_date">請求日</Label>
+                          <Input 
+                            id="invoice_date"
+                            type="date" 
+                            className="w-40 mt-1"
+                            value={editingContractorInvoice.invoice_date || selectedContractorInvoice.invoice_date || ''} 
+                            onChange={(e) => setEditingContractorInvoice({...editingContractorInvoice, invoice_date: e.target.value})} 
+                          />
+                        </div>
+                        <div>
+                          <Label>割引率</Label>
+                          <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                            <p className="text-sm text-gray-700">現在の割引率: <span className="font-bold">{((selectedContractorInvoice.discount_rate || 0) * 100).toFixed(0)}%</span></p>
+                            <p className="text-xs text-gray-500 mt-1">※割引率は合計金額から自動設定されます</p>
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="note">但（ただし書き）</Label>
+                          <Input 
+                            id="note"
+                            className="mt-1"
+                            value={editingContractorInvoice.note || ''} 
+                            onChange={(e) => setEditingContractorInvoice({...editingContractorInvoice, note: e.target.value})} 
+                            placeholder="商品代として"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-sm text-gray-700 border-b pb-2">商品明細</h3>
+                      <div className="space-y-2">
+                        {(editingContractorInvoice.details || selectedContractorInvoice.details).map((detail: any, index: number) => {
+                          const product = products.find(p => p.id === (detail.product_id || selectedContractorInvoice.details[index]?.product_id));
+                          const isNewItem = editingContractorInvoice.details && !selectedContractorInvoice.details.find((d: any) => d.product_id === detail.product_id);
+                          
+                          return (
+                            <div key={index} className="bg-gray-50 p-3 rounded border border-gray-200">
+                              <div className="space-y-3">
+                                <div>
+                                  {isNewItem || !detail.product_id ? (
+                                    <div>
+                                      <Label htmlFor={`product_${index}`} className="text-xs">商品名</Label>
+                                      <Select 
+                                        value={detail.product_id?.toString() || ''} 
+                                        onValueChange={(v) => {
+                                          const selectedProduct = products.find(p => p.id === parseInt(v));
+                                          const updatedDetails = [...(editingContractorInvoice.details || selectedContractorInvoice.details)];
+                                          updatedDetails[index] = { 
+                                            ...updatedDetails[index], 
+                                            product_id: parseInt(v),
+                                            unit_price: selectedProduct ? selectedProduct.price : updatedDetails[index].unit_price
+                                          };
+                                          setEditingContractorInvoice({ ...editingContractorInvoice, details: updatedDetails });
+                                        }}
+                                      >
+                                        <SelectTrigger id={`product_${index}`} className="mt-1">
+                                          <SelectValue placeholder="商品を選択" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                          {products.map(p => (
+                                            <SelectItem key={p.id} value={p.id.toString()}>
+                                              {p.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-1">商品名</p>
+                                      <p className="font-medium text-sm">{product?.name || '不明な商品'}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-end justify-between gap-3">
+                                  <div className="flex-1 max-w-xs">
+                                    <Label htmlFor={`quantity_${index}`} className="text-xs">数量</Label>
+                                    <Input 
+                                      id={`quantity_${index}`}
+                                      type="number" 
+                                      className="mt-1"
+                                      value={(editingContractorInvoice.details && editingContractorInvoice.details[index]?.total_quantity) || detail.total_quantity || 0} 
+                                      onChange={(e) => {
+                                        const updatedDetails = [...(editingContractorInvoice.details || selectedContractorInvoice.details)];
+                                        updatedDetails[index] = { ...updatedDetails[index], total_quantity: parseInt(e.target.value) || 0 };
+                                        setEditingContractorInvoice({ ...editingContractorInvoice, details: updatedDetails });
+                                      }} 
+                                      min="0"
+                                    />
+                                  </div>
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => {
+                                      const updatedDetails = [...(editingContractorInvoice.details || selectedContractorInvoice.details)];
+                                      updatedDetails.splice(index, 1);
+                                      setEditingContractorInvoice({ ...editingContractorInvoice, details: updatedDetails });
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                    disabled={(editingContractorInvoice.details || selectedContractorInvoice.details).length === 1}
+                                  >
+                                    削除
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      <div className="flex justify-between items-center pt-3">
+                        <Button 
+                          onClick={() => {
+                            const updatedDetails = [...(editingContractorInvoice.details || selectedContractorInvoice.details), { product_id: 0, total_quantity: 1, unit_price: 0 }];
+                            setEditingContractorInvoice({ ...editingContractorInvoice, details: updatedDetails });
+                          }} 
+                          size="sm" 
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          + 明細追加
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 justify-end pt-4 border-t">
+                      <Button 
+                        onClick={handleSaveContractorEdit} 
+                        disabled={generating}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {generating ? '保存中...' : '保存'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowContractorEditDialog(false)}
+                        disabled={generating}
+                        className="px-6"
+                      >
+                        キャンセル
+                      </Button>
                     </div>
                   </div>
-                  <div>
-                    <Label>但（ただし書き）</Label>
-                    <Input
-                      value={editingContractorInvoice.note || ''}
-                      onChange={(e) => setEditingContractorInvoice({...editingContractorInvoice, note: e.target.value})}
-                      placeholder="商品代として"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={handleSaveContractorEdit}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                    >
-                      保存
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowContractorEditDialog(false)}
-                      className="flex-1 text-white bg-gray-600 hover:bg-gray-700 border-0"
-                    >
-                      キャンセル
-                    </Button>
-                  </div>
-                </div>
+                )}
               </DialogContent>
             </Dialog>
 
