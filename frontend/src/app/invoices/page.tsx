@@ -95,6 +95,7 @@ interface ContractorInvoice {
 
 interface ContractorInvoiceFormData {
   contractor_id: number;
+  tax_rate_id: number;
   invoice_date: string;
   note: string;
   details: {
@@ -102,6 +103,12 @@ interface ContractorInvoiceFormData {
     quantity: number;
     unit_price: number;
   }[];
+}
+
+interface TaxRate {
+  id: number;
+  rate: number;
+  display_name: string;
 }
 
 export default function InvoicesPage() {
@@ -132,6 +139,7 @@ export default function InvoicesPage() {
   const [selectedContractorInvoice, setSelectedContractorInvoice] = useState<ContractorInvoice | null>(null);
   const [contractorFormData, setContractorFormData] = useState<ContractorInvoiceFormData>({
     contractor_id: 0,
+    tax_rate_id: 0,
     invoice_date: '',
     note: '',
     details: []
@@ -158,6 +166,7 @@ export default function InvoicesPage() {
       fetchContractorInvoices();
       fetchContractors();
       fetchProducts();
+      fetchTaxRates();
     }
   }, [activeTab]);
 
@@ -243,10 +252,34 @@ export default function InvoicesPage() {
     }
   };
 
+  const fetchTaxRates = async () => {
+    try {
+      const response = await apiClient.getTaxRates();
+      if (response.data) {
+        const rates = response.data as TaxRate[];
+        setTaxRates(rates);
+        // デフォルトの税率(10%)を設定
+        const defaultRate = rates.find(r => r.rate === 0.1);
+        if (defaultRate && contractorFormData.tax_rate_id === 0) {
+          setContractorFormData(prev => ({
+            ...prev,
+            tax_rate_id: defaultRate.id
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch tax rates:', error);
+    }
+  };
+
   const handleCreateContractorInvoice = async () => {
     // バリデーション
     if (!contractorFormData.contractor_id) {
       alert('委託先を選択してください');
+      return;
+    }
+    if (!contractorFormData.tax_rate_id) {
+      alert('税率を選択してください');
       return;
     }
     if (!contractorFormData.invoice_date) {
@@ -265,8 +298,10 @@ export default function InvoicesPage() {
       setShowContractorCreateDialog(false);
       fetchContractorInvoices();
       // フォームをリセット
+      const defaultTaxRate = taxRates.find(r => r.rate === 0.1);
       setContractorFormData({
         contractor_id: 0,
+        tax_rate_id: defaultTaxRate?.id || 0,
         invoice_date: '',
         note: '',
         details: []
@@ -1201,6 +1236,25 @@ export default function InvoicesPage() {
                         {contractors.map((c) => (
                           <SelectItem key={c.id} value={c.id.toString()}>
                             {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-red-600">税率（必須）</Label>
+                    <Select
+                      value={contractorFormData.tax_rate_id.toString()}
+                      onValueChange={(value) => setContractorFormData({ ...contractorFormData, tax_rate_id: parseInt(value) })}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="税率を選択" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        {taxRates.map((rate) => (
+                          <SelectItem key={rate.id} value={rate.id.toString()}>
+                            {rate.display_name} ({(rate.rate * 100).toFixed(0)}%)
                           </SelectItem>
                         ))}
                       </SelectContent>

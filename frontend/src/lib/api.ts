@@ -373,9 +373,17 @@ class ApiClient {
     });
   }
 
+  // Tax Rates API
+  async getTaxRates() {
+    return this.request('/masters/tax-rates', {
+      method: 'GET',
+    });
+  }
+
   // Contractor Invoices API
   async createContractorInvoice(data: {
     contractor_id: number;
+    tax_rate_id: number;
     invoice_date: string;
     note?: string;
     details: Array<{ product_id: number; quantity: number; unit_price?: number }>;
