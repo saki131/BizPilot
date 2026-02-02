@@ -133,6 +133,7 @@ export default function InvoicesPage() {
   const [contractorInvoices, setContractorInvoices] = useState<ContractorInvoice[]>([]);
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [taxRates, setTaxRates] = useState<TaxRate[]>([]);
   const [showContractorCreateDialog, setShowContractorCreateDialog] = useState(false);
   const [showContractorDetailDialog, setShowContractorDetailDialog] = useState(false);
   const [showContractorDeleteDialog, setShowContractorDeleteDialog] = useState(false);
