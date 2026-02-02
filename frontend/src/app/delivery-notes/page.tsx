@@ -673,6 +673,7 @@ export default function DeliveryNotesPage() {
   const handleSaveEdit = async () => {
     if (!selectedNote || !editingNote) return;
 
+    setIsSubmitting(true);
     try {
       // 明細のバリデーションと単価の自動設定
       const details = editingNote.details.map((d: any) => {
@@ -713,6 +714,8 @@ export default function DeliveryNotesPage() {
       console.error('Error details:', error.response?.data);
       const errorMsg = error.response?.data?.detail || error.message || '不明なエラー';
       alert(`更新に失敗しました: ${errorMsg}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1233,13 +1236,15 @@ export default function DeliveryNotesPage() {
                   <div className="flex gap-2 justify-end pt-4 border-t">
                     <Button 
                       onClick={handleSaveEdit} 
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6"
+                      disabled={isSubmitting}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      保存
+                      {isSubmitting ? '保存中...' : '保存'}
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={() => setShowEditDialog(false)}
+                      disabled={isSubmitting}
                       className="px-6"
                     >
                       キャンセル

@@ -75,8 +75,8 @@ interface ContractorInvoice {
   contractor_id: number;
   contractor_name: string;
   invoice_number: string;
-  start_date: string;
-  end_date: string;
+  start_date?: string;
+  end_date?: string;
   discount_rate: number;
   invoice_date?: string;
   receipt_date?: string;
@@ -1150,7 +1150,7 @@ export default function InvoicesPage() {
                           <div>
                             <h3 className="font-semibold text-lg">{invoice.contractor_name}</h3>
                             <p className="text-sm text-gray-600">
-                              {invoice.start_date} 〜 {invoice.end_date}
+                              請求日: {invoice.invoice_date || '未設定'}
                             </p>
                           </div>
                           <div className="text-right">
@@ -1319,8 +1319,11 @@ export default function InvoicesPage() {
                   <div className="space-y-4">
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h3 className="font-semibold text-lg mb-2">{selectedContractorInvoice.contractor_name}</h3>
-                      <p className="text-sm text-gray-600">請求期間: {selectedContractorInvoice.start_date} 〜 {selectedContractorInvoice.end_date}</p>
+                      <p className="text-sm text-gray-600">請求日: {selectedContractorInvoice.invoice_date || '未設定'}</p>
                       <p className="text-sm text-gray-600">割引率: {selectedContractorInvoice.discount_rate}%</p>
+                      {selectedContractorInvoice.note && (
+                        <p className="text-sm text-gray-600">但し: {selectedContractorInvoice.note}</p>
+                      )}
                     </div>
                     
                     <div>

@@ -167,8 +167,8 @@ class ContractorInvoice(Base):
     id = Column(Integer, primary_key=True, index=True)
     contractor_id = Column(Integer, ForeignKey("contractors.id"), nullable=False)
     invoice_number = Column(String(50), default="[COMPANY_REGISTRATION_NUMBER]", nullable=False)
-    start_date = Column(Date, nullable=False)
-    end_date = Column(Date, nullable=False)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
     discount_rate_id = Column(Integer, ForeignKey("discount_rates.id"), nullable=False)
     
     # 追加フィールド

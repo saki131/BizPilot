@@ -55,9 +55,7 @@ def calculate_contractor_discount_rate(total_amount: int, db: Session) -> Discou
 class ContractorInvoiceCreateRequest(BaseModel):
     """委託先請求書作成リクエスト"""
     contractor_id: int
-    start_date: date
-    end_date: date
-    invoice_date: Optional[date] = None
+    invoice_date: date
     note: Optional[str] = None
     details: List[dict]  # [{"product_id": 1, "quantity": 10, "unit_price": 1000}, ...]
 
@@ -87,8 +85,8 @@ class ContractorInvoiceResponse(BaseModel):
     contractor_id: int
     contractor_name: str
     invoice_number: str
-    start_date: date
-    end_date: date
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     discount_rate: float
     invoice_date: Optional[date]
     receipt_date: Optional[date]
@@ -178,8 +176,6 @@ def create_contractor_invoice(
     invoice = ContractorInvoice(
         contractor_id=request.contractor_id,
         invoice_number="[COMPANY_REGISTRATION_NUMBER]",
-        start_date=request.start_date,
-        end_date=request.end_date,
         discount_rate_id=discount_rate.id,
         invoice_date=request.invoice_date,
         note=request.note,
