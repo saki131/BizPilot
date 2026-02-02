@@ -81,6 +81,7 @@ interface ContractorInvoice {
   invoice_date?: string;
   receipt_date?: string;
   note?: string;
+  non_discountable_amount: number;
   quota_subtotal: number;
   quota_discount_amount: number;
   quota_total: number;
