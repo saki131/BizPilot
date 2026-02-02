@@ -166,37 +166,42 @@ class ContractorInvoice(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     contractor_id = Column(Integer, ForeignKey("contractors.id"), nullable=False)
-    invoice_number = Column(String(50), default="[COMPANY_REGISTRATION_NUMBER]", nullable=False)
-    start_date = Column(Date, nullable=True)
-    end_date = Column(Date, nullable=True)
     discount_rate_id = Column(Integer, ForeignKey("discount_rates.id"), nullable=False)
+    tax_rate_id = Column(Integer, ForeignKey("tax_rates.id"), nullable=False)
     
-    # 追加フィールド
-    invoice_date = Column(Date, nullable=True)  # 請求日
-    receipt_date = Column(Date, nullable=True)  # 領収日
+    # 金額フィールド
     non_discountable_amount = Column(Integer, default=0, nullable=False)  # 割引対象外金額
-    note = Column(String(500), nullable=True)  # 但（ただし書き）
     
     # ノルマ対象
-    quota_subtotal = Column(Integer, default=0, nullable=False)
-    quota_discount_amount = Column(Integer, default=0, nullable=False)
-    quota_total = Column(Integer, default=0, nullable=False)
+    quota_subtotal = Column(Integer, default=0, nullable=False)  # ノルマ対象金額
+    quota_discount_amount = Column(Integer, default=0, nullable=False)  # ノルマ対象割引額
+    quota_total = Column(Integer, default=0, nullable=False)  # ノルマ対象割引後金額
     
     # ノルマ対象外
-    non_quota_subtotal = Column(Integer, default=0, nullable=False)
-    non_quota_discount_amount = Column(Integer, default=0, nullable=False)
-    non_quota_total = Column(Integer, default=0, nullable=False)
+    non_quota_subtotal = Column(Integer, default=0, nullable=False)  # ノルマ対象外金額
+    non_quota_discount_amount = Column(Integer, default=0, nullable=False)  # ノルマ対象外割引額
+    non_quota_total = Column(Integer, default=0, nullable=False)  # ノルマ対象外割引後金額
     
     # 合計
-    total_amount_ex_tax = Column(Integer, default=0, nullable=False)
-    tax_amount = Column(Integer, default=0, nullable=False)
-    total_amount_inc_tax = Column(Integer, default=0, nullable=False)
+    total_amount_ex_tax = Column(Integer, default=0, nullable=False)  # 合計金額（税抜）
+    total_discount_amount = Column(Integer, default=0, nullable=False)  # 割引額合計
+    total_after_discount = Column(Integer, default=0, nullable=False)  # 割引後合計金額
+    tax_amount = Column(Integer, default=0, nullable=False)  # 消費税額
+    total_amount_inc_tax = Column(Integer, default=0, nullable=False)  # 合計金額（税込）
+    
+    # その他
+    note = Column(String(500), nullable=True)  # 備考
+    invoice_date = Column(Date, nullable=False)  # 請求日
+    payment_due_date = Column(Date, nullable=True)  # 支払期日
+    payment_term = Column(String(200), nullable=True)  # 但
+    deleted_flag = Column(Boolean, default=False, nullable=False)  # 削除フラグ
     
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     contractor = relationship("Contractor")
     discount_rate = relationship("DiscountRate")
+    tax_rate = relationship("TaxRate")
     details = relationship("ContractorInvoiceDetail", back_populates="contractor_invoice", cascade="all, delete-orphan")
 
 class ContractorInvoiceDetail(Base):
@@ -205,9 +210,10 @@ class ContractorInvoiceDetail(Base):
     id = Column(Integer, primary_key=True, index=True)
     contractor_invoice_id = Column(Integer, ForeignKey("contractor_invoices.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    total_quantity = Column(Integer, default=0, nullable=False)
-    unit_price = Column(Integer, nullable=False)
-    amount = Column(Integer, nullable=False)
+    total_quantity = Column(Integer, default=0, nullable=False)  # 数量
+    unit_price = Column(Integer, nullable=False)  # 単価
+    amount = Column(Integer, nullable=False)  # 金額（税抜）
+    deleted_flag = Column(Boolean, default=False, nullable=False)  # 削除フラグ
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     

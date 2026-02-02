@@ -22,6 +22,45 @@ from dependencies import get_current_user
 router = APIRouter()
 
 
+# Helper function to create ContractorInvoiceResponse
+def create_invoice_response(invoice: ContractorInvoice) -> "ContractorInvoiceResponse":
+    """委託先請求書レスポンスを作成"""
+    return ContractorInvoiceResponse(
+        id=invoice.id,
+        contractor_id=invoice.contractor_id,
+        contractor_name=invoice.contractor.name,
+        discount_rate=float(invoice.discount_rate.rate),
+        tax_rate=float(invoice.tax_rate.rate),
+        invoice_date=invoice.invoice_date,
+        payment_due_date=invoice.payment_due_date,
+        payment_term=invoice.payment_term,
+        note=invoice.note,
+        non_discountable_amount=invoice.non_discountable_amount,
+        quota_subtotal=invoice.quota_subtotal,
+        quota_discount_amount=invoice.quota_discount_amount,
+        quota_total=invoice.quota_total,
+        non_quota_subtotal=invoice.non_quota_subtotal,
+        non_quota_discount_amount=invoice.non_quota_discount_amount,
+        non_quota_total=invoice.non_quota_total,
+        total_amount_ex_tax=invoice.total_amount_ex_tax,
+        total_discount_amount=invoice.total_discount_amount,
+        total_after_discount=invoice.total_after_discount,
+        tax_amount=invoice.tax_amount,
+        total_amount_inc_tax=invoice.total_amount_inc_tax,
+        details=[
+            ContractorInvoiceDetailResponse(
+                id=d.id,
+                product_id=d.product_id,
+                product_name=d.product.name,
+                total_quantity=d.total_quantity,
+                unit_price=d.unit_price,
+                amount=d.amount
+            )
+            for d in invoice.details
+        ]
+    )
+
+
 # Helper function to calculate optimal discount rate for contractors
 def calculate_contractor_discount_rate(total_amount: int, db: Session) -> DiscountRate:
     """Calculate optimal discount rate for contractors based on total amount
@@ -55,7 +94,10 @@ def calculate_contractor_discount_rate(total_amount: int, db: Session) -> Discou
 class ContractorInvoiceCreateRequest(BaseModel):
     """委託先請求書作成リクエスト"""
     contractor_id: int
+    tax_rate_id: int
     invoice_date: date
+    payment_due_date: Optional[date] = None
+    payment_term: Optional[str] = None
     note: Optional[str] = None
     details: List[dict]  # [{"product_id": 1, "quantity": 10, "unit_price": 1000}, ...]
 
@@ -63,8 +105,10 @@ class ContractorInvoiceCreateRequest(BaseModel):
 class ContractorInvoiceUpdateRequest(BaseModel):
     """委託先請求書更新リクエスト"""
     discount_rate_id: Optional[int] = None
+    tax_rate_id: Optional[int] = None
     invoice_date: Optional[date] = None
-    receipt_date: Optional[date] = None
+    payment_due_date: Optional[date] = None
+    payment_term: Optional[str] = None
     note: Optional[str] = None
     details: Optional[List[dict]] = None
 
@@ -84,13 +128,13 @@ class ContractorInvoiceResponse(BaseModel):
     id: int
     contractor_id: int
     contractor_name: str
-    invoice_number: str
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
     discount_rate: float
-    invoice_date: Optional[date]
-    receipt_date: Optional[date]
+    tax_rate: float
+    invoice_date: date
+    payment_due_date: Optional[date]
+    payment_term: Optional[str]
     note: Optional[str]
+    non_discountable_amount: int
     quota_subtotal: int
     quota_discount_amount: int
     quota_total: int
@@ -98,6 +142,8 @@ class ContractorInvoiceResponse(BaseModel):
     non_quota_discount_amount: int
     non_quota_total: int
     total_amount_ex_tax: int
+    total_discount_amount: int
+    total_after_discount: int
     tax_amount: int
     total_amount_inc_tax: int
     details: List[ContractorInvoiceDetailResponse]
@@ -119,14 +165,18 @@ def create_contractor_invoice(
     if not contractor:
         raise HTTPException(status_code=404, detail="Contractor not found")
     
-    # 税率取得（10%固定）
-    tax_rate = db.query(TaxRate).filter(TaxRate.deleted_flag == False).first()
+    # 税率取得
+    tax_rate = db.query(TaxRate).filter(
+        TaxRate.id == request.tax_rate_id,
+        TaxRate.deleted_flag == False
+    ).first()
     if not tax_rate:
         raise HTTPException(status_code=404, detail="Tax rate not found")
     
     # 商品明細の計算
     quota_subtotal = 0
     non_quota_subtotal = 0
+    non_discountable_amount = 0
     details_data = []
     
     for detail in request.details:
@@ -138,8 +188,11 @@ def create_contractor_invoice(
         unit_price = detail.get("unit_price", product.price)
         amount = quantity * unit_price
         
+        # 割引対象外の判定
+        if product.discount_exclusion_flag:
+            non_discountable_amount += amount
         # ノルマ対象/対象外の判定
-        if product.quota_target_flag:
+        elif product.quota_target_flag:
             quota_subtotal += amount
         else:
             non_quota_subtotal += amount
@@ -166,7 +219,11 @@ def create_contractor_invoice(
     # 割引後金額
     quota_total = quota_subtotal - quota_discount_amount
     non_quota_total = non_quota_subtotal - non_quota_discount_amount
-    total_amount_ex_tax = quota_total + non_quota_total
+    total_amount_ex_tax = quota_total + non_quota_total + non_discountable_amount
+    
+    # 割引額合計と割引後合計金額
+    total_discount_amount = quota_discount_amount + non_quota_discount_amount
+    total_after_discount = total_amount_ex_tax
     
     # 消費税額
     tax_amount = int(total_amount_ex_tax * float(tax_rate.rate) / 100)
@@ -175,10 +232,13 @@ def create_contractor_invoice(
     # 請求書作成
     invoice = ContractorInvoice(
         contractor_id=request.contractor_id,
-        invoice_number="[COMPANY_REGISTRATION_NUMBER]",
         discount_rate_id=discount_rate.id,
+        tax_rate_id=request.tax_rate_id,
         invoice_date=request.invoice_date,
+        payment_due_date=request.payment_due_date,
+        payment_term=request.payment_term,
         note=request.note,
+        non_discountable_amount=non_discountable_amount,
         quota_subtotal=quota_subtotal,
         quota_discount_amount=quota_discount_amount,
         quota_total=quota_total,
@@ -186,6 +246,8 @@ def create_contractor_invoice(
         non_quota_discount_amount=non_quota_discount_amount,
         non_quota_total=non_quota_total,
         total_amount_ex_tax=total_amount_ex_tax,
+        total_discount_amount=total_discount_amount,
+        total_after_discount=total_after_discount,
         tax_amount=tax_amount,
         total_amount_inc_tax=total_amount_inc_tax
     )
@@ -205,38 +267,7 @@ def create_contractor_invoice(
     db.refresh(invoice)
     
     # レスポンス作成
-    return ContractorInvoiceResponse(
-        id=invoice.id,
-        contractor_id=invoice.contractor_id,
-        contractor_name=contractor.name,
-        invoice_number=invoice.invoice_number,
-        start_date=invoice.start_date,
-        end_date=invoice.end_date,
-        discount_rate=float(discount_rate.rate),
-        invoice_date=invoice.invoice_date,
-        receipt_date=invoice.receipt_date,
-        note=invoice.note,
-        quota_subtotal=invoice.quota_subtotal,
-        quota_discount_amount=invoice.quota_discount_amount,
-        quota_total=invoice.quota_total,
-        non_quota_subtotal=invoice.non_quota_subtotal,
-        non_quota_discount_amount=invoice.non_quota_discount_amount,
-        non_quota_total=invoice.non_quota_total,
-        total_amount_ex_tax=invoice.total_amount_ex_tax,
-        tax_amount=invoice.tax_amount,
-        total_amount_inc_tax=invoice.total_amount_inc_tax,
-        details=[
-            ContractorInvoiceDetailResponse(
-                id=d.id,
-                product_id=d.product_id,
-                product_name=d.product.name,
-                total_quantity=d.total_quantity,
-                unit_price=d.unit_price,
-                amount=d.amount
-            )
-            for d in invoice.details
-        ]
-    )
+    return create_invoice_response(invoice)
 
 
 @router.get("/", response_model=List[ContractorInvoiceResponse])
@@ -247,45 +278,13 @@ def get_contractor_invoices(
     current_user=Depends(get_current_user)
 ):
     """委託先請求書一覧取得"""
-    invoices = db.query(ContractorInvoice).order_by(
-        ContractorInvoice.end_date.desc()
+    invoices = db.query(ContractorInvoice).filter(
+        ContractorInvoice.deleted_flag == False
+    ).order_by(
+        ContractorInvoice.invoice_date.desc()
     ).offset(skip).limit(limit).all()
     
-    return [
-        ContractorInvoiceResponse(
-            id=inv.id,
-            contractor_id=inv.contractor_id,
-            contractor_name=inv.contractor.name,
-            invoice_number=inv.invoice_number,
-            start_date=inv.start_date,
-            end_date=inv.end_date,
-            discount_rate=float(inv.discount_rate.rate),
-            invoice_date=inv.invoice_date,
-            receipt_date=inv.receipt_date,
-            note=inv.note,
-            quota_subtotal=inv.quota_subtotal,
-            quota_discount_amount=inv.quota_discount_amount,
-            quota_total=inv.quota_total,
-            non_quota_subtotal=inv.non_quota_subtotal,
-            non_quota_discount_amount=inv.non_quota_discount_amount,
-            non_quota_total=inv.non_quota_total,
-            total_amount_ex_tax=inv.total_amount_ex_tax,
-            tax_amount=inv.tax_amount,
-            total_amount_inc_tax=inv.total_amount_inc_tax,
-            details=[
-                ContractorInvoiceDetailResponse(
-                    id=d.id,
-                    product_id=d.product_id,
-                    product_name=d.product.name,
-                    total_quantity=d.total_quantity,
-                    unit_price=d.unit_price,
-                    amount=d.amount
-                )
-                for d in inv.details
-            ]
-        )
-        for inv in invoices
-    ]
+    return [create_invoice_response(inv) for inv in invoices]
 
 
 @router.get("/{invoice_id}", response_model=ContractorInvoiceResponse)
@@ -295,42 +294,14 @@ def get_contractor_invoice(
     current_user=Depends(get_current_user)
 ):
     """委託先請求書詳細取得"""
-    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    invoice = db.query(ContractorInvoice).filter(
+        ContractorInvoice.id == invoice_id,
+        ContractorInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
-    return ContractorInvoiceResponse(
-        id=invoice.id,
-        contractor_id=invoice.contractor_id,
-        contractor_name=invoice.contractor.name,
-        invoice_number=invoice.invoice_number,
-        start_date=invoice.start_date,
-        end_date=invoice.end_date,
-        discount_rate=float(invoice.discount_rate.rate),
-        invoice_date=invoice.invoice_date,
-        receipt_date=invoice.receipt_date,
-        note=invoice.note,
-        quota_subtotal=invoice.quota_subtotal,
-        quota_discount_amount=invoice.quota_discount_amount,
-        quota_total=invoice.quota_total,
-        non_quota_subtotal=invoice.non_quota_subtotal,
-        non_quota_discount_amount=invoice.non_quota_discount_amount,
-        non_quota_total=invoice.non_quota_total,
-        total_amount_ex_tax=invoice.total_amount_ex_tax,
-        tax_amount=invoice.tax_amount,
-        total_amount_inc_tax=invoice.total_amount_inc_tax,
-        details=[
-            ContractorInvoiceDetailResponse(
-                id=d.id,
-                product_id=d.product_id,
-                product_name=d.product.name,
-                total_quantity=d.total_quantity,
-                unit_price=d.unit_price,
-                amount=d.amount
-            )
-            for d in invoice.details
-        ]
-    )
+    return create_invoice_response(invoice)
 
 
 @router.put("/{invoice_id}", response_model=ContractorInvoiceResponse)
@@ -356,19 +327,29 @@ def update_contractor_invoice(
             invoice.non_quota_discount_amount = int(invoice.non_quota_subtotal * discount_rate_value)
             invoice.quota_total = invoice.quota_subtotal - invoice.quota_discount_amount
             invoice.non_quota_total = invoice.non_quota_subtotal - invoice.non_quota_discount_amount
-            invoice.total_amount_ex_tax = invoice.quota_total + invoice.non_quota_total
+            invoice.total_amount_ex_tax = invoice.quota_total + invoice.non_quota_total + invoice.non_discountable_amount
+            
+            # 割引額合計と割引後合計金額
+            invoice.total_discount_amount = invoice.quota_discount_amount + invoice.non_quota_discount_amount
+            invoice.total_after_discount = invoice.total_amount_ex_tax
             
             # 税率取得
-            tax_rate = db.query(TaxRate).filter(TaxRate.deleted_flag == False).first()
+            tax_rate = db.query(TaxRate).filter(TaxRate.id == invoice.tax_rate_id).first()
             if tax_rate:
                 invoice.tax_amount = int(invoice.total_amount_ex_tax * float(tax_rate.rate) / 100)
                 invoice.total_amount_inc_tax = invoice.total_amount_ex_tax + invoice.tax_amount
     
+    if request.tax_rate_id is not None:
+        invoice.tax_rate_id = request.tax_rate_id
+    
     if request.invoice_date is not None:
         invoice.invoice_date = request.invoice_date
     
-    if request.receipt_date is not None:
-        invoice.receipt_date = request.receipt_date
+    if request.payment_due_date is not None:
+        invoice.payment_due_date = request.payment_due_date
+    
+    if request.payment_term is not None:
+        invoice.payment_term = request.payment_term
     
     if request.note is not None:
         invoice.note = request.note
@@ -382,6 +363,7 @@ def update_contractor_invoice(
         # 新しい明細を追加し、金額を再計算
         quota_subtotal = 0
         non_quota_subtotal = 0
+        non_discountable_amount = 0
         
         for detail in request.details:
             product = db.query(Product).filter(Product.id == detail["product_id"]).first()
@@ -392,7 +374,11 @@ def update_contractor_invoice(
             unit_price = detail.get("unit_price", product.price)
             amount = quantity * unit_price
             
-            if product.quota_target_flag:
+            # 割引対象外の判定
+            if product.discount_exclusion_flag:
+                non_discountable_amount += amount
+            # ノルマ対象/対象外の判定
+            elif product.quota_target_flag:
                 quota_subtotal += amount
             else:
                 non_quota_subtotal += amount
@@ -407,6 +393,7 @@ def update_contractor_invoice(
             db.add(new_detail)
         
         # 金額の再計算
+        invoice.non_discountable_amount = non_discountable_amount
         invoice.quota_subtotal = quota_subtotal
         invoice.non_quota_subtotal = non_quota_subtotal
         
@@ -415,9 +402,13 @@ def update_contractor_invoice(
         invoice.non_quota_discount_amount = int(non_quota_subtotal * discount_rate_value)
         invoice.quota_total = quota_subtotal - invoice.quota_discount_amount
         invoice.non_quota_total = non_quota_subtotal - invoice.non_quota_discount_amount
-        invoice.total_amount_ex_tax = invoice.quota_total + invoice.non_quota_total
+        invoice.total_amount_ex_tax = invoice.quota_total + invoice.non_quota_total + non_discountable_amount
         
-        tax_rate = db.query(TaxRate).filter(TaxRate.deleted_flag == False).first()
+        # 割引額合計と割引後合計金額
+        invoice.total_discount_amount = invoice.quota_discount_amount + invoice.non_quota_discount_amount
+        invoice.total_after_discount = invoice.total_amount_ex_tax
+        
+        tax_rate = db.query(TaxRate).filter(TaxRate.id == invoice.tax_rate_id).first()
         if tax_rate:
             invoice.tax_amount = int(invoice.total_amount_ex_tax * float(tax_rate.rate) / 100)
             invoice.total_amount_inc_tax = invoice.total_amount_ex_tax + invoice.tax_amount
@@ -425,38 +416,7 @@ def update_contractor_invoice(
     db.commit()
     db.refresh(invoice)
     
-    return ContractorInvoiceResponse(
-        id=invoice.id,
-        contractor_id=invoice.contractor_id,
-        contractor_name=invoice.contractor.name,
-        invoice_number=invoice.invoice_number,
-        start_date=invoice.start_date,
-        end_date=invoice.end_date,
-        discount_rate=float(invoice.discount_rate.rate),
-        invoice_date=invoice.invoice_date,
-        receipt_date=invoice.receipt_date,
-        note=invoice.note,
-        quota_subtotal=invoice.quota_subtotal,
-        quota_discount_amount=invoice.quota_discount_amount,
-        quota_total=invoice.quota_total,
-        non_quota_subtotal=invoice.non_quota_subtotal,
-        non_quota_discount_amount=invoice.non_quota_discount_amount,
-        non_quota_total=invoice.non_quota_total,
-        total_amount_ex_tax=invoice.total_amount_ex_tax,
-        tax_amount=invoice.tax_amount,
-        total_amount_inc_tax=invoice.total_amount_inc_tax,
-        details=[
-            ContractorInvoiceDetailResponse(
-                id=d.id,
-                product_id=d.product_id,
-                product_name=d.product.name,
-                total_quantity=d.total_quantity,
-                unit_price=d.unit_price,
-                amount=d.amount
-            )
-            for d in invoice.details
-        ]
-    )
+    return create_invoice_response(invoice)
 
 
 @router.delete("/{invoice_id}")
