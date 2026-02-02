@@ -1095,23 +1095,32 @@ export default function DeliveryNotesPage() {
                             className="w-40 mt-1"
                             value={editingNote.delivery_date} 
                             onChange={(e) => {
-                              // 20日締めで請求日を計算
-                              const deliveryDate = new Date(e.target.value);
-                              const day = deliveryDate.getDate();
-                              
-                              let billingDate;
-                              if (day <= 20) {
-                                // 1日〜20日の場合：当月20日
-                                billingDate = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth(), 20);
-                              } else {
-                                // 21日〜末日の場合：翌月20日
-                                billingDate = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth() + 1, 20);
+                              const deliveryDate = e.target.value;
+                              // 請求日を自動計算（20日締め）
+                              let billingDate = '';
+                              if (deliveryDate) {
+                                const date = new Date(deliveryDate);
+                                const day = date.getDate();
+                                let billing: Date;
+                                
+                                if (day <= 20) {
+                                  // 1-20日 → 当月20日
+                                  billing = new Date(date.getFullYear(), date.getMonth(), 20);
+                                } else {
+                                  // 21-31日 → 翌月20日
+                                  billing = new Date(date.getFullYear(), date.getMonth() + 1, 20);
+                                }
+                                
+                                const year = billing.getFullYear();
+                                const month = String(billing.getMonth() + 1).padStart(2, '0');
+                                const day20 = String(billing.getDate()).padStart(2, '0');
+                                billingDate = `${year}-${month}-${day20}`;
                               }
                               
                               setEditingNote({
                                 ...editingNote, 
-                                delivery_date: e.target.value,
-                                billing_date: billingDate.toISOString().split('T')[0]
+                                delivery_date: deliveryDate,
+                                billing_date: billingDate
                               });
                             }} 
                           />

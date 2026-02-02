@@ -13,6 +13,7 @@ export function MobileNav() {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   const handleLogout = async () => {
+    setShowLogoutDialog(false);
     await apiClient.logout();
     router.push('/login');
   };
