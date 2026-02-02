@@ -82,10 +82,10 @@ def calculate_contractor_discount_rate(total_amount: int, db: Session) -> Discou
         if total_amount >= rate.threshold_amount:
             return rate
     
-    # Default to 20% if nothing found
+    # Default to 20% (0.20) if nothing found
     default_rate = db.query(DiscountRate).filter(
         DiscountRate.customer_flag == False,
-        DiscountRate.rate == 20,
+        DiscountRate.rate == 0.20,
         DiscountRate.deleted_flag == False
     ).first()
     
@@ -405,7 +405,7 @@ def update_contractor_invoice(
         invoice.quota_subtotal = quota_subtotal
         invoice.non_quota_subtotal = non_quota_subtotal
         
-        discount_rate_value = float(invoice.discount_rate.rate) / 100
+        discount_rate_value = float(invoice.discount_rate.rate)
         invoice.quota_discount_amount = int(quota_subtotal * discount_rate_value)
         invoice.non_quota_discount_amount = int(non_quota_subtotal * discount_rate_value)
         invoice.quota_total = quota_subtotal - invoice.quota_discount_amount
