@@ -18,6 +18,7 @@ from models import (
     Contractor
 )
 from dependencies import get_current_user
+from pdf_generator import generate_contractor_invoice_pdf
 
 router = APIRouter()
 
@@ -424,6 +425,28 @@ def update_contractor_invoice(
     db.refresh(invoice)
     
     return create_invoice_response(invoice)
+
+
+@router.get("/{invoice_id}/pdf")
+async def generate_contractor_invoice_pdf_endpoint(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """委託先請求書PDF生成"""
+    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    pdf_buffer = generate_contractor_invoice_pdf(invoice, db)
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=contractor_invoice_{invoice.id}.pdf"
+        }
+    )
 
 
 @router.delete("/{invoice_id}")

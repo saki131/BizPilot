@@ -400,6 +400,15 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleDownloadContractorPDF = async (invoiceId: number) => {
+    try {
+      await apiClient.downloadContractorInvoicePDF(invoiceId);
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+      alert('PDFのダウンロードに失敗しました');
+    }
+  };
+
   const handleDeleteInvoice = async () => {
     if (!selectedInvoice) return;
 
@@ -1172,40 +1181,70 @@ export default function InvoicesPage() {
                     <p className="text-sm text-gray-400 mt-2">「新規作成」から作成してください</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {contractorInvoices.map((invoice) => (
-                      <div
+                  <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    {contractorInvoices
+                      .sort((a, b) => {
+                        // 請求日の降順でソート（invoice_dateがない場合は最後に）
+                        if (!a.invoice_date && !b.invoice_date) return 0;
+                        if (!a.invoice_date) return 1;
+                        if (!b.invoice_date) return -1;
+                        return b.invoice_date.localeCompare(a.invoice_date);
+                      })
+                      .map((invoice, index) => (
+                      <div 
                         key={invoice.id}
-                        className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => {
-                          setSelectedContractorInvoice(invoice);
-                          setShowContractorDetailDialog(true);
-                        }}
+                        className={`p-4 ${index !== contractorInvoices.length - 1 ? 'border-b border-gray-100' : ''}`}
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-semibold text-lg">{invoice.contractor_name}</h3>
-                            <p className="text-sm text-gray-600">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 text-lg mb-1">
+                              {invoice.contractor_name}
+                            </div>
+                            <div className="text-sm text-gray-500">
                               請求日: {invoice.invoice_date || '未設定'}
-                            </p>
+                            </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm text-gray-600">割引率 {invoice.discount_rate}%</p>
+                            <div className="text-lg font-bold text-blue-600">
+                              ¥{invoice.total_amount_inc_tax.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-500">税込</div>
                           </div>
                         </div>
-                        <div className="border-t pt-2 mt-2">
-                          <div className="flex justify-between text-sm">
-                            <span>税抜合計</span>
-                            <span className="font-semibold">¥{invoice.total_amount_ex_tax.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between text-sm text-gray-600">
-                            <span>消費税</span>
-                            <span>¥{invoice.tax_amount.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between font-bold mt-1">
-                            <span>税込合計</span>
-                            <span className="text-blue-600">¥{invoice.total_amount_inc_tax.toLocaleString()}</span>
-                          </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedContractorInvoice(invoice);
+                              setShowContractorDetailDialog(true);
+                            }}
+                            className="flex-1 h-10 text-white bg-gray-600 hover:bg-gray-700 border-0"
+                          >
+                            📋 明細
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadContractorPDF(invoice.id);
+                            }}
+                            className="flex-1 h-10 font-medium bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            📄 PDF
+                          </Button>
+                          <Button 
+                            size="sm"
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedContractorInvoice(invoice);
+                              setShowContractorDeleteDialog(true);
+                            }}
+                            className="h-10 px-3 text-white"
+                          >
+                            🗑️
+                          </Button>
                         </div>
                       </div>
                     ))}
