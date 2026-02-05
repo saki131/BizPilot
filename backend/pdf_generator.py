@@ -146,7 +146,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address2"])
     
     # ハンコ画像
-    stamp_x = right_x + 10*mm
+    stamp_x = right_x + 50*mm
     stamp_y = y_right - 6*mm
     stamp_width = 16*mm
     stamp_height = 16*mm
@@ -501,10 +501,13 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.setLineWidth(0.5)
     
     # 請求日・支払期日の計算
+    # 請求日：20日締め（invoice_dateを20日に設定）
     billing_date = invoice.invoice_date if invoice.invoice_date else datetime.now().date()
-    # 支払期日：締め日の月の25日
     if isinstance(billing_date, str):
         billing_date = datetime.strptime(billing_date, "%Y-%m-%d").date()
+    # 締め日を20日に固定
+    billing_date = billing_date.replace(day=20)
+    # 支払期日：締め日の月の25日
     payment_due = billing_date.replace(day=25)
     
     # ===== ヘッダー部分 =====
