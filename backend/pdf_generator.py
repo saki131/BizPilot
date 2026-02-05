@@ -141,9 +141,10 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 9)
     pdf.drawString(right_x, y_right - 6*mm, "新札幌代理店")
     pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO['representative'])
-    pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["postal_code"])
-    pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address1"])
-    pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address2"])
+    pdf.drawString(right_x, y_right - 18*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["postal_code"])
+    pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address1"])
+    pdf.drawString(right_x, y_right - 36*mm, COMPANY_INFO["address2"])
     
     # ハンコ画像
     stamp_x = right_x + 50*mm
@@ -546,9 +547,10 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.setFont(font_name, 9)
     pdf.drawString(right_x, y_right - 6*mm, "新札幌代理店")
     pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO['representative'])
-    pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["postal_code"])
-    pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address1"])
-    pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address2"])
+    pdf.drawString(right_x, y_right - 18*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["postal_code"])
+    pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address1"])
+    pdf.drawString(right_x, y_right - 36*mm, COMPANY_INFO["address2"])
     
     # ハンコ画像
     stamp_x = right_x + 50*mm
