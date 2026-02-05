@@ -147,7 +147,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     # ハンコ画像
     stamp_x = right_x + 45*mm
-    stamp_y = y_right - 10*mm
+    stamp_y = y_right - 1*mm
     stamp_width = 16*mm
     stamp_height = 16*mm
     
@@ -552,7 +552,7 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     # ハンコ画像
     stamp_x = right_x + 45*mm
-    stamp_y = y_right - 10*mm
+    stamp_y = y_right - 1*mm
     stamp_width = 16*mm
     stamp_height = 16*mm
     
