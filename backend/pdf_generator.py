@@ -103,17 +103,8 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     # 請求日・支払期日の計算
     billing_date = invoice.end_date if invoice.end_date else datetime.now().date()
-    # 支払期日：請求日の翌月末
-    if billing_date.month == 12:
-        payment_due = billing_date.replace(year=billing_date.year + 1, month=1, day=28)
-    else:
-        next_month = billing_date.month + 1
-        if next_month in [1, 3, 5, 7, 8, 10, 12]:
-            payment_due = billing_date.replace(month=next_month, day=31)
-        elif next_month in [4, 6, 9, 11]:
-            payment_due = billing_date.replace(month=next_month, day=30)
-        else:  # 2月
-            payment_due = billing_date.replace(month=next_month, day=28)
+    # 支払期日：締め日の月の25日
+    payment_due = billing_date.replace(day=25)
     
     # ===== ヘッダー部分 =====
     # 請求書タイトル（中央上部、大きく）
@@ -148,14 +139,15 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 11)
     pdf.drawString(right_x, y_right, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(right_x, y_right - 6*mm, COMPANY_INFO['representative'])
-    pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO["postal_code"])
-    pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["address1"])
-    pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address2"])
+    pdf.drawString(right_x, y_right - 6*mm, "新札幌代理店")
+    pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO['representative'])
+    pdf.drawString(right_x, y_right - 18*mm, COMPANY_INFO["postal_code"])
+    pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["address1"])
+    pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address2"])
     
     # ハンコ画像
-    stamp_x = width - 25*mm
-    stamp_y = y_right - 15*mm
+    stamp_x = right_x + 35*mm
+    stamp_y = y_right - 18*mm
     stamp_width = 16*mm
     stamp_height = 16*mm
     
