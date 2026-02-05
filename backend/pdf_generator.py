@@ -501,8 +501,10 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.setLineWidth(0.5)
     
     # 請求日・支払期日の計算
-    billing_date = invoice.end_date if invoice.end_date else datetime.now().date()
+    billing_date = invoice.invoice_date if invoice.invoice_date else datetime.now().date()
     # 支払期日：締め日の月の25日
+    if isinstance(billing_date, str):
+        billing_date = datetime.strptime(billing_date, "%Y-%m-%d").date()
     payment_due = billing_date.replace(day=25)
     
     # ===== ヘッダー部分 =====
@@ -514,13 +516,14 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     # 請求書番号（右上）
     pdf.setFont(font_name, 10)
-    pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice.invoice_number}")
+    invoice_number = f"C-{invoice.id:04d}"  # 委託先請求書番号
+    pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice_number}")
     
     # ===== 左側：宛名部分 =====
     y_left = height - 45*mm
     pdf.setFont(font_name, 14)
     contractor_name = contractor.name if contractor else ""
-    pdf.drawString(20*mm, y_left, f"{sales_person_name}　様")
+    pdf.drawString(20*mm, y_left, f"{contractor_name}　様")
     
     # 下線
     pdf.setLineWidth(1)
