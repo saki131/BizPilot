@@ -14,6 +14,7 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+    username: str
 
 class TokenRefresh(BaseModel):
     refresh_token: str
@@ -32,7 +33,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     refresh_token = auth.create_refresh_token(data={"sub": user.username})
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "username": user.username}
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
@@ -55,7 +56,7 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     refresh_token = auth.create_refresh_token(data={"sub": user.username})
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "username": user.username}
 
 @router.post("/logout")
 async def logout():

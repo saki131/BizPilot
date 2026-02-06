@@ -9,6 +9,7 @@ interface LoginResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  username: string;
 }
 
 interface ApiResponse<T> {
@@ -169,6 +170,9 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
+      if (data.username) {
+        localStorage.setItem('username', data.username);
+      }
     }
     return { data };
   }
@@ -178,6 +182,7 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
+      localStorage.removeItem('username');
     }
   }
 

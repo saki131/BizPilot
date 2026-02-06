@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, FileText, Package, Settings, LogOut } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -11,6 +11,13 @@ export function MobileNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setUsername(localStorage.getItem('username'));
+    }
+  }, []);
 
   const handleLogout = async () => {
     setShowLogoutDialog(false);
@@ -18,12 +25,17 @@ export function MobileNav() {
     router.push('/login');
   };
 
-  const navItems = [
+  const allNavItems = [
     { icon: Home, label: 'ホーム', path: '/dashboard' },
     { icon: Package, label: '納品書', path: '/delivery-notes' },
     { icon: FileText, label: '請求書', path: '/invoices' },
     { icon: Settings, label: 'マスタ', path: '/masters' },
   ];
+
+  // admin以外のユーザーは納品書と請求書のみ表示
+  const navItems = username === 'admin' 
+    ? allNavItems
+    : allNavItems.filter(item => item.path === '/delivery-notes' || item.path === '/invoices');
 
   if (pathname === '/login') return null;
 
