@@ -136,10 +136,17 @@ class ApiClient {
     }
 
     const data = await response.json();
+    console.log('[API] Login response:', data);
     this.accessToken = data.access_token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
+      if (data.username) {
+        localStorage.setItem('username', data.username);
+        console.log('[API] Saved username to localStorage:', data.username);
+      } else {
+        console.warn('[API] No username in login response!');
+      }
     }
     return { data };
   }
