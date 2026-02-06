@@ -15,7 +15,9 @@ export function MobileNav() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setUsername(localStorage.getItem('username'));
+      const storedUsername = localStorage.getItem('username');
+      console.log('[MobileNav] Username from localStorage:', storedUsername);
+      setUsername(storedUsername);
     }
   }, [pathname]);
 
@@ -36,6 +38,8 @@ export function MobileNav() {
   const navItems = username === 'admin' 
     ? allNavItems
     : allNavItems.filter(item => item.path === '/delivery-notes' || item.path === '/invoices');
+  
+  console.log('[MobileNav] Current username:', username, 'isAdmin:', username === 'admin', 'navItems count:', navItems.length);
 
   if (pathname === '/login') return null;
 
