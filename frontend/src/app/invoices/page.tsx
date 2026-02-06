@@ -1429,8 +1429,6 @@ export default function InvoicesPage() {
                     ))}
                   </div>
                 )}
-            </>
-          )}
 
             {/* 委託先請求書作成ダイアログ */}
             <Dialog open={showContractorCreateDialog} onOpenChange={setShowContractorCreateDialog}>
