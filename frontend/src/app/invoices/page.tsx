@@ -174,6 +174,12 @@ export default function InvoicesPage() {
     salesPersonIds: [] as number[]
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [contractorFilters, setContractorFilters] = useState({
+    startDate: '',
+    endDate: '',
+    contractorIds: [] as number[]
+  });
+  const [isContractorFilterOpen, setIsContractorFilterOpen] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'sales') {
@@ -1254,21 +1260,109 @@ export default function InvoicesPage() {
             </Button>
 
             {/* 委託先請求書一覧 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>委託先請求書一覧</CardTitle>
-                <CardDescription>{contractorInvoices.length}件の請求書</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {contractorInvoices.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>委託先請求書がありません</p>
-                    <p className="text-sm text-gray-400 mt-2">「新規作成」から作成してください</p>
+            {/* フィルター */}
+            <Card className="mb-4">
+              <CardContent className="p-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-semibold text-gray-700">フィルター</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsContractorFilterOpen(!isContractorFilterOpen)}
+                    className="text-xs"
+                  >
+                    {isContractorFilterOpen ? '閉じる ▲' : '開く ▼'}
+                  </Button>
+                </div>
+                {isContractorFilterOpen && (
+                <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
+                  <div>
+                    <Label htmlFor="contractor_filter_start_date" className="text-sm">請求日（開始）</Label>
+                    <Input
+                      id="contractor_filter_start_date"
+                      type="date"
+                      value={contractorFilters.startDate}
+                      onChange={(e) => setContractorFilters({ ...contractorFilters, startDate: e.target.value })}
+                      className="mt-1 bg-white w-40"
+                    />
                   </div>
-                ) : (
-                  <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    {contractorInvoices
-                      .sort((a, b) => {
+                  <div>
+                    <Label htmlFor="contractor_filter_end_date" className="text-sm">請求日（終了）</Label>
+                    <Input
+                      id="contractor_filter_end_date"
+                      type="date"
+                      value={contractorFilters.endDate}
+                      onChange={(e) => setContractorFilters({ ...contractorFilters, endDate: e.target.value })}
+                      className="mt-1 bg-white w-40"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">委託先（複数選択可）</Label>
+                    <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 bg-white">
+                      {contractors.map((contractor) => (
+                        <div key={contractor.id} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`filter_contractor_${contractor.id}`}
+                            checked={contractorFilters.contractorIds.includes(contractor.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setContractorFilters({ ...contractorFilters, contractorIds: [...contractorFilters.contractorIds, contractor.id] });
+                              } else {
+                                setContractorFilters({ ...contractorFilters, contractorIds: contractorFilters.contractorIds.filter(id => id !== contractor.id) });
+                              }
+                            }}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <label htmlFor={`filter_contractor_${contractor.id}`} className="ml-2 text-sm text-gray-700 cursor-pointer">
+                            {contractor.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {(contractorFilters.startDate || contractorFilters.endDate || contractorFilters.contractorIds.length > 0) && (
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setContractorFilters({ startDate: '', endDate: '', contractorIds: [] })}
+                    >
+                      フィルタークリア
+                    </Button>
+                  </div>
+                )}
+                </>
+                )}
+              </CardContent>
+            </Card>
+
+            {contractorInvoices.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                <p className="text-gray-500">委託先請求書がありません</p>
+                <p className="text-sm text-gray-400 mt-2">「新規作成」から作成してください</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                {contractorInvoices
+                  .filter((invoice) => {
+                    // 委託先フィルター（複数選択）
+                    if (contractorFilters.contractorIds.length > 0 && !contractorFilters.contractorIds.includes(invoice.contractor_id)) {
+                      return false;
+                    }
+                    // 請求日フィルター（開始日）
+                    if (contractorFilters.startDate && invoice.invoice_date && invoice.invoice_date < contractorFilters.startDate) {
+                      return false;
+                    }
+                    // 請求日フィルター（終了日）
+                    if (contractorFilters.endDate && invoice.invoice_date && invoice.invoice_date > contractorFilters.endDate) {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .sort((a, b) => {
                         // 請求日の降順でソート（invoice_dateがない場合は最後に）
                         if (!a.invoice_date && !b.invoice_date) return 0;
                         if (!a.invoice_date) return 1;
@@ -1335,8 +1429,8 @@ export default function InvoicesPage() {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </>
+          )}
 
             {/* 委託先請求書作成ダイアログ */}
             <Dialog open={showContractorCreateDialog} onOpenChange={setShowContractorCreateDialog}>
