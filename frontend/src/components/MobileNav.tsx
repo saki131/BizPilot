@@ -17,7 +17,7 @@ export function MobileNav() {
     if (typeof window !== 'undefined') {
       setUsername(localStorage.getItem('username'));
     }
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     setShowLogoutDialog(false);
