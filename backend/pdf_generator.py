@@ -113,9 +113,9 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     title_width = pdf.stringWidth(title, font_name, 24)
     pdf.drawString((width - title_width) / 2, height - 25*mm, title)
     
-    # 請求書番号（右上）
-    pdf.setFont(font_name, 10)
-    pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice.invoice_number}")
+    # # 請求書番号（右上）
+    # pdf.setFont(font_name, 10)
+    # pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice.invoice_number}")
     
     # ===== 左側：宛名部分 =====
     y_left = height - 45*mm
@@ -174,7 +174,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "フェリス")
     
     # ===== 請求金額ボックス =====
-    box_y = height - 95*mm
+    box_y = height - 105*mm
     box_height = 18*mm
     box_width = 130*mm
     box_x = (width - box_width) / 2
@@ -518,10 +518,10 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     title_width = pdf.stringWidth(title, font_name, 24)
     pdf.drawString((width - title_width) / 2, height - 25*mm, title)
     
-    # 請求書番号（右上）
-    pdf.setFont(font_name, 10)
-    invoice_number = f"C-{invoice.id:04d}"  # 委託先請求書番号
-    pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice_number}")
+    # # 請求書番号（右上）
+    # pdf.setFont(font_name, 10)
+    # invoice_number = f"C-{invoice.id:04d}"  # 委託先請求書番号
+    # pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice_number}")
     
     # ===== 左側：宛名部分 =====
     y_left = height - 45*mm
@@ -580,7 +580,7 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "フェリス")
     
     # ===== 請求金額ボックス =====
-    box_y = height - 95*mm
+    box_y = height - 105*mm
     box_height = 18*mm
     box_width = 130*mm
     box_x = (width - box_width) / 2
