@@ -1,5 +1,32 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Variables
+
+This application requires the following environment variables:
+
+### Required Environment Variables
+
+- `NEXT_PUBLIC_API_URL`: Backend API URL (default: `https://bizpilot-backend.fly.dev/api`)
+
+### Vercel Deployment Setup
+
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Environment Variables**
+3. Add the following variable:
+   - **Name**: `NEXT_PUBLIC_API_URL`
+   - **Value**: `https://bizpilot-backend.fly.dev/api`
+   - **Environments**: Select all (Production, Preview, Development)
+4. Click **Save**
+5. Go to **Deployments** tab and click **Redeploy** on the latest deployment
+
+### Local Development
+
+Create a `.env.local` file in the root directory:
+
+```bash
+NEXT_PUBLIC_API_URL=https://bizpilot-backend.fly.dev/api
+```
+
 ## Getting Started
 
 First, run the development server:
