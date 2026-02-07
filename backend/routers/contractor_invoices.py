@@ -27,7 +27,7 @@ router = APIRouter()
 def create_invoice_response(invoice: ContractorInvoice) -> "ContractorInvoiceResponse":
     """委託先請求書レスポンスを作成"""
     return ContractorInvoiceResponse(
-        id=invoice.id,
+        id=str(invoice.id),
         contractor_id=invoice.contractor_id,
         contractor_name=invoice.contractor.name,
         discount_rate=float(invoice.discount_rate.rate),
@@ -50,7 +50,7 @@ def create_invoice_response(invoice: ContractorInvoice) -> "ContractorInvoiceRes
         total_amount_inc_tax=invoice.total_amount_inc_tax,
         details=[
             ContractorInvoiceDetailResponse(
-                id=d.id,
+                id=str(d.id),
                 product_id=d.product_id,
                 product_name=d.product.name,
                 total_quantity=d.total_quantity,
