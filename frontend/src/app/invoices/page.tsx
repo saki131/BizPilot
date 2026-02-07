@@ -431,15 +431,6 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleDownloadReceiptPDF = async (invoiceId: string) => {
-    try {
-      await apiClient.downloadSalesReceiptPDF(invoiceId);
-    } catch (error) {
-      console.error('Failed to download receipt PDF:', error);
-      alert('領収書PDFのダウンロードに失敗しました');
-    }
-  };
-
 
 
   const handleDownloadContractorPDF = async (invoiceId: string) => {
@@ -448,15 +439,6 @@ export default function InvoicesPage() {
     } catch (error) {
       console.error('Failed to download PDF:', error);
       alert('PDFのダウンロードに失敗しました');
-    }
-  };
-
-  const handleDownloadContractorReceiptPDF = async (invoiceId: string) => {
-    try {
-      await apiClient.downloadContractorReceiptPDF(invoiceId);
-    } catch (error) {
-      console.error('Failed to download contractor receipt PDF:', error);
-      alert('領収書PDFのダウンロードに失敗しました');
     }
   };
 
@@ -805,13 +787,6 @@ export default function InvoicesPage() {
                     className="flex-1 h-10 font-medium bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     📄 請求書PDF
-                  </Button>
-                  <Button 
-                    size="sm"
-                    onClick={() => handleDownloadReceiptPDF(invoice.id)}
-                    className="flex-1 h-10 font-medium bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    🧾 領収書PDF
                   </Button>
 
                   <Button 
@@ -1416,16 +1391,6 @@ export default function InvoicesPage() {
                             className="flex-1 h-10 font-medium bg-blue-600 hover:bg-blue-700 text-white"
                           >
                             📄 請求書PDF
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownloadContractorReceiptPDF(invoice.id);
-                            }}
-                            className="flex-1 h-10 font-medium bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            🧾 領収書PDF
                           </Button>
 
                           <Button 

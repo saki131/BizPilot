@@ -1,4 +1,4 @@
-﻿"""PDF逕滓・繝倥Ν繝代・ - 雋ｩ螢ｲ蜩｡隲区ｱよ嶌髀｡繝・Φ繝励Ξ繝ｼ繝域ｺ匁侠"""
+"""PDF生成ヘルパー - 販売員請求書鏡テンプレート準拠"""
 from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -12,39 +12,39 @@ import os
 
 from models import SalesInvoice, SalesInvoiceDetail, Product, SalesPerson, DiscountRate, ContractorInvoice, ContractorInvoiceDetail, Contractor
 
-# 莨夂､ｾ諠・ｱ・亥崋螳壼､・・
+# 会社情報（固定値）
 COMPANY_INFO = {
-    "name": "譬ｪ蠑丈ｼ夂､ｾ繝峨け繧ｿ繝ｼ繝輔ぉ繝ｪ繧ｹ",
-    "representative": "蜑埼ｼｻ 蜥檎ｾ・,
-    "postal_code": "縲・04-0063",
-    "address1": "蛹玲ｵｷ驕捺惆蟷悟ｸょ字蛻･蛹ｺ",
-    "address2": "蜴壼挨隘ｿ3譚｡3荳∫岼4-1",
+    "name": "[COMPANY_NAME]",
+    "representative": "[COMPANY_REPRESENTATIVE]",
+    "postal_code": "[COMPANY_POSTAL_CODE]",
+    "address1": "[COMPANY_ADDRESS1]",
+    "address2": "[COMPANY_ADDRESS2]",
 }
 
-# 謖ｯ霎ｼ蜈域ュ蝣ｱ
+# 振込先情報
 BANK_INFO = {
-    "bank_name": "繧・≧縺｡繧・橿陦・,
-    "branch_name": "908・医く繝･繧ｦ繧ｼ繝ｭ繝上メ・・,
-    "account_type": "譎ｮ騾・,
+    "bank_name": "[BANK_NAME]",
+    "branch_name": "[BANK_BRANCH_NAME]",
+    "account_type": "普通",
     "account_number": "420025",
-    "account_holder": "繝槭お繝上リ 繧ｫ繧ｺ繝・,
-    "yucho_symbol": "[BANK_YUCHO_SYMBOL]",  # 繧・≧縺｡繧・ｨ伜捷
-    "yucho_number": "[BANK_ACCOUNT_NUMBER]1",  # 繧・≧縺｡繧・分蜿ｷ
+    "account_holder": "[BANK_ACCOUNT_HOLDER]",
+    "yucho_symbol": "[BANK_YUCHO_SYMBOL]",  # ゆうちょ記号
+    "yucho_number": "[BANK_ACCOUNT_NUMBER]1",  # ゆうちょ番号
 }
 
 
 def setup_japanese_font():
-    """譌･譛ｬ隱槭ヵ繧ｩ繝ｳ繝医・險ｭ螳・""
+    """日本語フォントの設定"""
     font_name = 'Helvetica'
     try:
-        # Windows迺ｰ蠅・ MS 繧ｴ繧ｷ繝・け
+        # Windows環境: MS ゴシック
         font_path = "C:\\Windows\\Fonts\\msgothic.ttc"
         pdfmetrics.registerFont(TTFont('Japanese', font_path))
         font_name = 'Japanese'
         print(f"Japanese font loaded: {font_path}")
     except:
         try:
-            # Linux迺ｰ蠅・畑繝輔か繝ｳ繝茨ｼ・PA繧ｴ繧ｷ繝・け - TTF蠖｢蠑擾ｼ・
+            # Linux環境用フォント（IPAゴシック - TTF形式）
             font_candidates = [
                 "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
                 "/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf",
@@ -69,16 +69,16 @@ def setup_japanese_font():
 
 
 def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
-    """雋ｩ螢ｲ蜩｡隲区ｱよ嶌PDF逕滓・・郁ｲｩ螢ｲ蜩｡隲区ｱよ嶌髀｡繝・Φ繝励Ξ繝ｼ繝域ｺ匁侠・・
+    """販売員請求書PDF生成（販売員請求書鏡テンプレート準拠）
     
     Args:
-        invoice: 隲区ｱよ嶌繝・・繧ｿ
-        db: 繝・・繧ｿ繝吶・繧ｹ繧ｻ繝・す繝ｧ繝ｳ
+        invoice: 請求書データ
+        db: データベースセッション
         
     Returns:
-        BytesIO: PDF 繝・・繧ｿ
+        BytesIO: PDF データ
     """
-    # 繝・・繧ｿ蜿門ｾ・
+    # データ取得
     sales_person = db.query(SalesPerson).filter(
         SalesPerson.id == invoice.sales_person_id
     ).first()
@@ -91,72 +91,72 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         SalesInvoiceDetail.sales_invoice_id == invoice.id
     ).all()
     
-    # PDF逕滓・
+    # PDF生成
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # 繝輔か繝ｳ繝郁ｨｭ螳・
+    # フォント設定
     font_name = setup_japanese_font()
     pdf.setFont(font_name, 10)
     pdf.setLineWidth(0.5)
     
-    # 隲区ｱよ律繝ｻ謾ｯ謇墓悄譌･縺ｮ險育ｮ・
+    # 請求日・支払期日の計算
     billing_date = invoice.end_date if invoice.end_date else datetime.now().date()
-    # 謾ｯ謇墓悄譌･・夂ｷ繧∵律縺ｮ譛医・25譌･
+    # 支払期日：締め日の月の25日
     payment_due = billing_date.replace(day=25)
     
-    # ===== 繝倥ャ繝繝ｼ驛ｨ蛻・=====
-    # 隲区ｱよ嶌繧ｿ繧､繝医Ν・井ｸｭ螟ｮ荳企Κ縲∝､ｧ縺阪￥・・
+    # ===== ヘッダー部分 =====
+    # 請求書タイトル（中央上部、大きく）
     pdf.setFont(font_name, 24)
-    title = "隲・豎・譖ｸ"
+    title = "請 求 書"
     title_width = pdf.stringWidth(title, font_name, 24)
     pdf.drawString((width - title_width) / 2, height - 25*mm, title)
     
-    # 隲区ｱよ嶌逡ｪ蜿ｷ・亥承荳奇ｼ・
+    # 請求書番号（右上）
     pdf.setFont(font_name, 10)
     pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice.invoice_number}")
     
-    # ===== 蟾ｦ蛛ｴ・壼ｮ帛錐驛ｨ蛻・=====
+    # ===== 左側：宛名部分 =====
     y_left = height - 45*mm
     pdf.setFont(font_name, 14)
     sales_person_name = sales_person.name if sales_person else ""
-    pdf.drawString(20*mm, y_left, f"{sales_person_name}縲讒・)
+    pdf.drawString(20*mm, y_left, f"{sales_person_name}　様")
     
-    # 荳狗ｷ・
+    # 下線
     pdf.setLineWidth(1)
     pdf.line(20*mm, y_left - 2*mm, 80*mm, y_left - 2*mm)
     pdf.setLineWidth(0.5)
     
-    # 隲区ｱよ律繝ｻ謾ｯ謇墓悄譌･
+    # 請求日・支払期日
     pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, y_left - 12*mm, f"隲区ｱよ律: {billing_date.strftime('%Y蟷ｴ%m譛・d譌･')}")
-    pdf.drawString(20*mm, y_left - 20*mm, f"謾ｯ謇墓悄譌･: {payment_due.strftime('%Y蟷ｴ%m譛・d譌･')}")
+    pdf.drawString(20*mm, y_left - 12*mm, f"請求日: {billing_date.strftime('%Y年%m月%d日')}")
+    pdf.drawString(20*mm, y_left - 20*mm, f"支払期日: {payment_due.strftime('%Y年%m月%d日')}")
     
-    # ===== 蜿ｳ蛛ｴ・壻ｼ夂､ｾ諠・ｱ =====
+    # ===== 右側：会社情報 =====
     y_right = height - 45*mm
     right_x = width - 80*mm
     pdf.setFont(font_name, 11)
     pdf.drawString(right_x, y_right, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(right_x, y_right - 6*mm, "譁ｰ譛ｭ蟷御ｻ｣逅・ｺ・)
+    pdf.drawString(right_x, y_right - 6*mm, "新札幌代理店")
     pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO['representative'])
-    pdf.drawString(right_x, y_right - 18*mm, "逋ｻ骭ｲ逡ｪ蜿ｷ: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(right_x, y_right - 18*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
     pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address1"])
     pdf.drawString(right_x, y_right - 36*mm, COMPANY_INFO["address2"])
     
-    # 繝上Φ繧ｳ逕ｻ蜒・
+    # ハンコ画像
     stamp_x = right_x + 50*mm
     stamp_y = y_right - 1*mm
     stamp_width = 16*mm
     stamp_height = 16*mm
     
-    # 逕ｻ蜒上ヵ繧｡繧､繝ｫ縺ｮ繝代せ
+    # 画像ファイルのパス
     stamp_image_path = os.path.join(os.path.dirname(__file__), "static", "stamp.png")
     
     try:
-        # 逕ｻ蜒上ｒ謠冗判
+        # 画像を描画
         pdf.drawImage(stamp_image_path, 
                      stamp_x - stamp_width/2, 
                      stamp_y - stamp_height/2, 
@@ -165,86 +165,86 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
                      preserveAspectRatio=True,
                      mask='auto')
     except Exception as e:
-        # 逕ｻ蜒上′隕九▽縺九ｉ縺ｪ縺・ｴ蜷医・蠕捺擂縺ｮ蜀・→繝・く繧ｹ繝医〒謠冗判
+        # 画像が見つからない場合は従来の円とテキストで描画
         print(f"Warning: Stamp image not found at {stamp_image_path}, using text fallback: {e}")
         stamp_radius = 8*mm
         pdf.circle(stamp_x, stamp_y, stamp_radius, stroke=1, fill=0)
         pdf.setFont(font_name, 7)
-        pdf.drawCentredString(stamp_x, stamp_y + 2*mm, "繝峨け繧ｿ繝ｼ")
-        pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "繝輔ぉ繝ｪ繧ｹ")
+        pdf.drawCentredString(stamp_x, stamp_y + 2*mm, "ドクター")
+        pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "フェリス")
     
-    # ===== 隲区ｱる≡鬘阪・繝・け繧ｹ =====
+    # ===== 請求金額ボックス =====
     box_y = height - 95*mm
     box_height = 18*mm
     box_width = 130*mm
     box_x = (width - box_width) / 2
     
-    # 螟匁棧
+    # 外枠
     pdf.setLineWidth(2)
     pdf.rect(box_x, box_y, box_width, box_height, stroke=1, fill=0)
     pdf.setLineWidth(0.5)
     
-    # 縲後＃隲区ｱる≡鬘阪阪Λ繝吶Ν
+    # 「ご請求金額」ラベル
     pdf.setFont(font_name, 12)
-    pdf.drawString(box_x + 5*mm, box_y + 11*mm, "縺碑ｫ区ｱる≡鬘・)
+    pdf.drawString(box_x + 5*mm, box_y + 11*mm, "ご請求金額")
     
-    # 驥鷹｡・
+    # 金額
     pdf.setFont(font_name, 22)
-    total_amount = f"ﾂ･{invoice.total_amount_inc_tax:,}-"
+    total_amount = f"¥{invoice.total_amount_inc_tax:,}-"
     pdf.drawRightString(box_x + box_width - 10*mm, box_y + 5*mm, total_amount)
     
-    # 遞手ｾｼ陦ｨ遉ｺ
+    # 税込表示
     pdf.setFont(font_name, 9)
-    pdf.drawRightString(box_x + box_width - 10*mm, box_y + 14*mm, "・育ｨ手ｾｼ・・)
+    pdf.drawRightString(box_x + box_width - 10*mm, box_y + 14*mm, "（税込）")
     
-    # ===== 譏守ｴｰ繝・・繝悶Ν =====
+    # ===== 明細テーブル =====
     table_top = box_y - 10*mm
     table_left = 10*mm
     table_right = width - 10*mm
     table_width = table_right - table_left
     
-    # 蛻怜ｹ・ｮ夂ｾｩ・亥膚蜩∝錐縲∵焚驥上∝腰萓｡縲・≡鬘阪∝牡蠑慕紫縲∝牡蠑暮｡阪∝牡蠑募ｾ碁≡鬘搾ｼ・
-    col_widths = [50*mm, 12*mm, 20*mm, 24*mm, 14*mm, 22*mm, 26*mm, 12*mm]  # 譛蠕後・繝弱Ν繝・
+    # 列幅定義（商品名、数量、単価、金額、割引率、割引額、割引後金額）
+    col_widths = [50*mm, 12*mm, 20*mm, 24*mm, 14*mm, 22*mm, 26*mm, 12*mm]  # 最後はノルマ
     col_positions = [table_left]
     for w in col_widths[:-1]:
         col_positions.append(col_positions[-1] + w)
     
-    # 繝倥ャ繝繝ｼ閭梧勹
+    # ヘッダー背景
     header_height = 8*mm
     pdf.setFillGray(0.85)
     pdf.rect(table_left, table_top - header_height, table_width, header_height, stroke=1, fill=1)
     pdf.setFillGray(0)
     
-    # 繝倥ャ繝繝ｼ繝・く繧ｹ繝・
+    # ヘッダーテキスト
     pdf.setFont(font_name, 7)
     header_y = table_top - 6*mm
-    headers = ["蝠・刀蜷・, "謨ｰ驥・, "蜊倅ｾ｡", "驥鷹｡・, "蜑ｲ蠑慕紫", "蜑ｲ蠑暮｡・, "蜑ｲ蠑募ｾ・, "繝弱Ν繝・]
+    headers = ["商品名", "数量", "単価", "金額", "割引率", "割引額", "割引後", "ノルマ"]
     for i, header in enumerate(headers):
         if i == 0:
             pdf.drawString(col_positions[i] + 1*mm, header_y, header)
         else:
             pdf.drawCentredString(col_positions[i] + col_widths[i] / 2, header_y, header)
     
-    # 邵ｦ邱夲ｼ医・繝・ム繝ｼ・・
+    # 縦線（ヘッダー）
     for pos in col_positions[1:]:
         pdf.line(pos, table_top - header_height, pos, table_top)
     
-    # 蜑ｲ蠑慕紫縺ｮ蜿門ｾ・
-    # rate縺・莉･荳翫↑繧峨ヱ繝ｼ繧ｻ繝ｳ繝亥､・井ｾ具ｼ・0=20%・峨・譛ｪ貅縺ｪ繧牙ｰ乗焚蛟､・井ｾ具ｼ・.20=20%・峨→縺励※謇ｱ縺・
+    # 割引率の取得
+    # rateが1以上ならパーセント値（例：20=20%）、1未満なら小数値（例：0.20=20%）として扱う
     raw_rate = float(discount_rate.rate) if discount_rate else 0
     print(f"[DEBUG PDF] raw_rate from DB: {raw_rate}, type: {type(discount_rate.rate) if discount_rate else None}")
     if raw_rate >= 1:
-        # 繝代・繧ｻ繝ｳ繝亥､縺ｨ縺励※菫晏ｭ倥＆繧後※縺・ｋ蝣ｴ蜷茨ｼ井ｾ具ｼ・0 = 20%・・
+        # パーセント値として保存されている場合（例：20 = 20%）
         discount_rate_percent = raw_rate
         discount_rate_decimal = raw_rate / 100
         print(f"[DEBUG PDF] Using as percent value: percent={discount_rate_percent}, decimal={discount_rate_decimal}")
     else:
-        # 蟆乗焚蛟､縺ｨ縺励※菫晏ｭ倥＆繧後※縺・ｋ蝣ｴ蜷茨ｼ井ｾ具ｼ・.20 = 20%・・
+        # 小数値として保存されている場合（例：0.20 = 20%）
         discount_rate_percent = raw_rate * 100
         discount_rate_decimal = raw_rate
         print(f"[DEBUG PDF] Using as decimal value: percent={discount_rate_percent}, decimal={discount_rate_decimal}")
     
-    # 譏守ｴｰ繝・・繧ｿ
+    # 明細データ
     row_height = 6*mm
     y = table_top - header_height
     
@@ -252,105 +252,105 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         y -= row_height
         product = db.query(Product).filter(Product.id == detail.product_id).first()
         
-        # 陦後・謠冗判
+        # 行の描画
         pdf.rect(table_left, y, table_width, row_height, stroke=1, fill=0)
         
-        # 邵ｦ邱・
+        # 縦線
         for pos in col_positions[1:]:
             pdf.line(pos, y, pos, y + row_height)
         
-        # 繝・・繧ｿ
+        # データ
         row_text_y = y + 1.5*mm
         pdf.setFont(font_name, 7)
         
-        # 蝠・刀蜷・
+        # 商品名
         product_name = product.name if product else ""
         pdf.drawString(col_positions[0] + 1*mm, row_text_y, product_name)
         
-        # 謨ｰ驥・
+        # 数量
         pdf.drawRightString(col_positions[1] + col_widths[1] - 1*mm, row_text_y, f"{detail.total_quantity}")
         
-        # 蜊倅ｾ｡
-        pdf.drawRightString(col_positions[2] + col_widths[2] - 1*mm, row_text_y, f"ﾂ･{detail.unit_price:,}")
+        # 単価
+        pdf.drawRightString(col_positions[2] + col_widths[2] - 1*mm, row_text_y, f"¥{detail.unit_price:,}")
         
-        # 驥鷹｡搾ｼ育ｨ取栢・・
+        # 金額（税抜）
         amount = detail.amount
-        pdf.drawRightString(col_positions[3] + col_widths[3] - 1*mm, row_text_y, f"ﾂ･{amount:,}")
+        pdf.drawRightString(col_positions[3] + col_widths[3] - 1*mm, row_text_y, f"¥{amount:,}")
         
-        # 蜑ｲ蠑戊ｨ育ｮ暦ｼ亥牡蠑募ｯｾ雎｡螟悶ヵ繝ｩ繧ｰ繧偵メ繧ｧ繝・け・・
+        # 割引計算（割引対象外フラグをチェック）
         is_discount_excluded = product.discount_exclusion_flag if product else False
         if is_discount_excluded:
-            # 蜑ｲ蠑募ｯｾ雎｡螟・
+            # 割引対象外
             item_discount_rate = 0
             item_discount_amount = 0
             item_after_discount = amount
             pdf.drawCentredString(col_positions[4] + col_widths[4] / 2, row_text_y, "-")
             pdf.drawCentredString(col_positions[5] + col_widths[5] / 2, row_text_y, "-")
         else:
-            # 蜑ｲ蠑暮←逕ｨ
+            # 割引適用
             item_discount_rate = discount_rate_percent
             item_discount_amount = int(amount * discount_rate_decimal)
             item_after_discount = amount - item_discount_amount
             pdf.drawCentredString(col_positions[4] + col_widths[4] / 2, row_text_y, f"{item_discount_rate:.0f}%")
-            pdf.drawRightString(col_positions[5] + col_widths[5] - 1*mm, row_text_y, f"ﾂ･{item_discount_amount:,}")
+            pdf.drawRightString(col_positions[5] + col_widths[5] - 1*mm, row_text_y, f"¥{item_discount_amount:,}")
         
-        # 蜑ｲ蠑募ｾ碁≡鬘・
-        pdf.drawRightString(col_positions[6] + col_widths[6] - 1*mm, row_text_y, f"ﾂ･{item_after_discount:,}")
+        # 割引後金額
+        pdf.drawRightString(col_positions[6] + col_widths[6] - 1*mm, row_text_y, f"¥{item_after_discount:,}")
         
-        # 繝弱Ν繝槫ｯｾ雎｡
+        # ノルマ対象
         if product and product.quota_target_flag:
-            pdf.drawCentredString(col_positions[7] + col_widths[7] / 2, row_text_y, "笳・)
+            pdf.drawCentredString(col_positions[7] + col_widths[7] / 2, row_text_y, "○")
         
-        # 繝壹・繧ｸ騾√ｊ蛻､螳・
+        # ページ送り判定
         if y < 100*mm:
             pdf.showPage()
             pdf.setFont(font_name, 7)
             y = height - 30*mm
     
-    # ===== 髮・ｨ磯Κ蛻・ｼ郁ｩｳ邏ｰ迚茨ｼ・=====
+    # ===== 集計部分（詳細版） =====
     summary_top = y - 8*mm
     summary_left = table_left
     summary_width = table_width
     summary_row_height = 6*mm
     
-    # 髮・ｨ医ユ繝ｼ繝悶Ν縺ｮ繝倥ャ繝繝ｼ
+    # 集計テーブルのヘッダー
     pdf.setFillGray(0.85)
     pdf.rect(summary_left, summary_top - summary_row_height, summary_width, summary_row_height, stroke=1, fill=1)
     pdf.setFillGray(0)
     
-    # 髮・ｨ医・繝・ム繝ｼ蛻怜ｹ・
-    sum_col_widths = [50*mm, 35*mm, 18*mm, 35*mm, 42*mm]  # 鬆・岼縲・≡鬘阪∝牡蠑慕紫縲∝牡蠑暮｡阪∝牡蠑募ｾ碁≡鬘・
+    # 集計ヘッダー列幅
+    sum_col_widths = [50*mm, 35*mm, 18*mm, 35*mm, 42*mm]  # 項目、金額、割引率、割引額、割引後金額
     sum_col_positions = [summary_left]
     for w in sum_col_widths[:-1]:
         sum_col_positions.append(sum_col_positions[-1] + w)
     
     pdf.setFont(font_name, 8)
     sum_header_y = summary_top - summary_row_height + 1.5*mm
-    sum_headers = ["鬆・岼", "蟆剰ｨ磯≡鬘・, "蜑ｲ蠑慕紫", "蜑ｲ蠑暮｡・, "蜑ｲ蠑募ｾ碁≡鬘・]
+    sum_headers = ["項目", "小計金額", "割引率", "割引額", "割引後金額"]
     for i, header in enumerate(sum_headers):
         if i == 0:
             pdf.drawString(sum_col_positions[i] + 2*mm, sum_header_y, header)
         else:
             pdf.drawCentredString(sum_col_positions[i] + sum_col_widths[i] / 2, sum_header_y, header)
     
-    # 邵ｦ邱夲ｼ磯寔險医・繝・ム繝ｼ・・
+    # 縦線（集計ヘッダー）
     for pos in sum_col_positions[1:]:
         pdf.line(pos, summary_top - summary_row_height, pos, summary_top)
     
-    # 髮・ｨ郁｡後ョ繝ｼ繧ｿ・医ヮ繝ｫ繝槫ｯｾ雎｡縲√ヮ繝ｫ繝槫ｯｾ雎｡螟悶∝牡蠑募ｯｾ雎｡螟悶∝膚蜩∝ｰ剰ｨ医∝粋險磯≡鬘搾ｼ・
-    # 繝弱Ν繝槫ｯｾ雎｡: quota_subtotal, quota_discount_amount, quota_total
-    # 繝弱Ν繝槫ｯｾ雎｡螟・ non_quota_subtotal, non_quota_discount_amount, non_quota_total
-    # 蜑ｲ蠑募ｯｾ雎｡螟・ non_discountable_amount
+    # 集計行データ（ノルマ対象、ノルマ対象外、割引対象外、商品小計、合計金額）
+    # ノルマ対象: quota_subtotal, quota_discount_amount, quota_total
+    # ノルマ対象外: non_quota_subtotal, non_quota_discount_amount, non_quota_total
+    # 割引対象外: non_discountable_amount
     
     product_subtotal = invoice.quota_subtotal + invoice.non_quota_subtotal + invoice.non_discountable_amount
     total_discount_amount = invoice.quota_discount_amount + invoice.non_quota_discount_amount
     total_after_discount = invoice.quota_total + invoice.non_quota_total + invoice.non_discountable_amount
     
     summary_data = [
-        ("繝弱Ν繝槫ｯｾ雎｡蟆剰ｨ・, invoice.quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.quota_discount_amount, invoice.quota_total),
-        ("繝弱Ν繝槫ｯｾ雎｡螟門ｰ剰ｨ・, invoice.non_quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.non_quota_discount_amount, invoice.non_quota_total),
-        ("蜑ｲ蠑募ｯｾ雎｡螟門ｰ剰ｨ・, invoice.non_discountable_amount, "-", 0, invoice.non_discountable_amount),
-        ("蝠・刀蟆剰ｨ・, product_subtotal, "-", total_discount_amount, total_after_discount),
+        ("ノルマ対象小計", invoice.quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.quota_discount_amount, invoice.quota_total),
+        ("ノルマ対象外小計", invoice.non_quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.non_quota_discount_amount, invoice.non_quota_total),
+        ("割引対象外小計", invoice.non_discountable_amount, "-", 0, invoice.non_discountable_amount),
+        ("商品小計", product_subtotal, "-", total_discount_amount, total_after_discount),
     ]
     
     pdf.setFont(font_name, 8)
@@ -359,39 +359,39 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     for i, (label, subtotal, rate_str, disc_amt, after_disc) in enumerate(summary_data):
         sum_y -= summary_row_height
         
-        # 閭梧勹・亥膚蜩∝ｰ剰ｨ医・蠑ｷ隱ｿ・・
-        if i == 3:  # 蝠・刀蟆剰ｨ・
+        # 背景（商品小計は強調）
+        if i == 3:  # 商品小計
             pdf.setFillGray(0.92)
             pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=1)
             pdf.setFillGray(0)
         else:
             pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=0)
         
-        # 邵ｦ邱・
+        # 縦線
         for pos in sum_col_positions[1:]:
             pdf.line(pos, sum_y, pos, sum_y + summary_row_height)
         
         row_text_y = sum_y + 1.5*mm
         
-        # 繝ｩ繝吶Ν
+        # ラベル
         pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, label)
         
-        # 蟆剰ｨ磯≡鬘・
-        pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"ﾂ･{subtotal:,}")
+        # 小計金額
+        pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"¥{subtotal:,}")
         
-        # 蜑ｲ蠑慕紫
+        # 割引率
         pdf.drawCentredString(sum_col_positions[2] + sum_col_widths[2] / 2, row_text_y, rate_str)
         
-        # 蜑ｲ蠑暮｡・
+        # 割引額
         if disc_amt > 0:
-            pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"ﾂ･{disc_amt:,}")
+            pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"¥{disc_amt:,}")
         else:
             pdf.drawCentredString(sum_col_positions[3] + sum_col_widths[3] / 2, row_text_y, "-")
         
-        # 蜑ｲ蠑募ｾ碁≡鬘・
-        pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"ﾂ･{after_disc:,}")
+        # 割引後金額
+        pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{after_disc:,}")
     
-    # 遞取栢蜷郁ｨ郁｡・
+    # 税抜合計行
     sum_y -= summary_row_height
     pdf.setFillGray(0.88)
     pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=1)
@@ -401,13 +401,13 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     pdf.setFont(font_name, 9)
     row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "蜷郁ｨ磯≡鬘搾ｼ育ｨ取栢・・)
-    pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"ﾂ･{product_subtotal:,}")
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "合計金額（税抜）")
+    pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"¥{product_subtotal:,}")
     pdf.drawCentredString(sum_col_positions[2] + sum_col_widths[2] / 2, row_text_y, "-")
-    pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"ﾂ･{total_discount_amount:,}")
-    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"ﾂ･{invoice.total_amount_ex_tax:,}")
+    pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"¥{total_discount_amount:,}")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.total_amount_ex_tax:,}")
     
-    # 豸郁ｲｻ遞手｡・
+    # 消費税行
     sum_y -= summary_row_height
     pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=0)
     for pos in sum_col_positions[1:]:
@@ -415,10 +415,10 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     pdf.setFont(font_name, 8)
     row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "豸郁ｲｻ遞・(10%)")
-    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"ﾂ･{invoice.tax_amount:,}")
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "消費税 (10%)")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.tax_amount:,}")
     
-    # 遞手ｾｼ蜷郁ｨ郁｡鯉ｼ亥､ｧ縺阪￥蠑ｷ隱ｿ・・
+    # 税込合計行（大きく強調）
     sum_y -= summary_row_height + 2*mm
     pdf.setLineWidth(2)
     pdf.setFillGray(0.85)
@@ -431,36 +431,36 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     pdf.setFont(font_name, 11)
     row_text_y = sum_y + 2.5*mm
-    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "遞手ｾｼ蜷郁ｨ・)
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "税込合計")
     pdf.setFont(font_name, 14)
-    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"ﾂ･{invoice.total_amount_inc_tax:,}")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.total_amount_inc_tax:,}")
     
-    # ===== 謖ｯ霎ｼ蜈域ュ蝣ｱ =====
+    # ===== 振込先情報 =====
     bank_y = sum_y - 15*mm
     pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, bank_y, "縲舌♀謖ｯ霎ｼ蜈医・)
+    pdf.drawString(20*mm, bank_y, "【お振込先】")
     pdf.setFont(font_name, 9)
-    pdf.drawString(20*mm, bank_y - 7*mm, f"{BANK_INFO['bank_name']}縲{BANK_INFO['branch_name']}")
-    pdf.drawString(20*mm, bank_y - 14*mm, f"{BANK_INFO['account_type']}縲{BANK_INFO['account_number']}")
-    pdf.drawString(20*mm, bank_y - 21*mm, f"蜿｣蠎ｧ蜷咲ｾｩ: {BANK_INFO['account_holder']}")
-    pdf.drawString(20*mm, bank_y - 28*mm, f"險伜捷: {BANK_INFO['yucho_symbol']}縲逡ｪ蜿ｷ: {BANK_INFO['yucho_number']}")
+    pdf.drawString(20*mm, bank_y - 7*mm, f"{BANK_INFO['bank_name']}　{BANK_INFO['branch_name']}")
+    pdf.drawString(20*mm, bank_y - 14*mm, f"{BANK_INFO['account_type']}　{BANK_INFO['account_number']}")
+    pdf.drawString(20*mm, bank_y - 21*mm, f"口座名義: {BANK_INFO['account_holder']}")
+    pdf.drawString(20*mm, bank_y - 28*mm, f"記号: {BANK_INFO['yucho_symbol']}　番号: {BANK_INFO['yucho_number']}")
     
-    # ===== 蛯呵・ｬ・=====
+    # ===== 備考欄 =====
     remarks_y = bank_y - 42*mm
     pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, remarks_y, "縲仙ｙ閠・・)
+    pdf.drawString(20*mm, remarks_y, "【備考】")
     pdf.setFont(font_name, 9)
     
-    # 菴・＠譖ｸ縺阪・蜀・ｮｹ繧貞・蜉・
+    # 但し書きの内容を出力
     remark_offset = 7*mm
     if invoice.note:
-        pdf.drawString(20*mm, remarks_y - remark_offset, f"繝ｻ{invoice.note}")
+        pdf.drawString(20*mm, remarks_y - remark_offset, f"・{invoice.note}")
         remark_offset += 7*mm
   
-    # ===== 繝輔ャ繧ｿ繝ｼ =====
+    # ===== フッター =====
     footer_y = 20*mm
     pdf.setFont(font_name, 9)
-    pdf.drawCentredString(width / 2, footer_y, "荳願ｨ倥・騾壹ｊ縺碑ｫ区ｱら筏縺嶺ｸ翫￡縺ｾ縺吶・)
+    pdf.drawCentredString(width / 2, footer_y, "上記の通りご請求申し上げます。")
     
     pdf.save()
     buffer.seek(0)
@@ -469,16 +469,16 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
 
 
 def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> BytesIO:
-    """蟋碑ｨ怜・隲区ｱよ嶌PDF逕滓・・郁ｲｩ螢ｲ蜩｡隲区ｱよ嶌繝輔か繝ｼ繝槭ャ繝域ｺ匁侠・・
+    """委託先請求書PDF生成（販売員請求書フォーマット準拠）
     
     Args:
-        invoice: 蟋碑ｨ怜・隲区ｱよ嶌繝・・繧ｿ
-        db: 繝・・繧ｿ繝吶・繧ｹ繧ｻ繝・す繝ｧ繝ｳ
+        invoice: 委託先請求書データ
+        db: データベースセッション
         
     Returns:
-        BytesIO: PDF 繝・・繧ｿ
+        BytesIO: PDF データ
     """
-    # 繝・・繧ｿ蜿門ｾ・
+    # データ取得
     contractor = db.query(Contractor).filter(
         Contractor.id == invoice.contractor_id
     ).first()
@@ -491,78 +491,78 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         ContractorInvoiceDetail.contractor_invoice_id == invoice.id
     ).all()
     
-    # PDF逕滓・
+    # PDF生成
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # 繝輔か繝ｳ繝郁ｨｭ螳・
+    # フォント設定
     font_name = setup_japanese_font()
     pdf.setFont(font_name, 10)
     pdf.setLineWidth(0.5)
     
-    # 隲区ｱよ律繝ｻ謾ｯ謇墓悄譌･縺ｮ險育ｮ・
-    # 隲区ｱよ律・・0譌･邱繧・ｼ・nvoice_date繧・0譌･縺ｫ險ｭ螳夲ｼ・
+    # 請求日・支払期日の計算
+    # 請求日：20日締め（invoice_dateを20日に設定）
     billing_date = invoice.invoice_date if invoice.invoice_date else datetime.now().date()
     if isinstance(billing_date, str):
         billing_date = datetime.strptime(billing_date, "%Y-%m-%d").date()
-    # 邱繧∵律繧・0譌･縺ｫ蝗ｺ螳・
+    # 締め日を20日に固定
     billing_date = billing_date.replace(day=20)
-    # 謾ｯ謇墓悄譌･・夂ｷ繧∵律縺ｮ譛医・25譌･
+    # 支払期日：締め日の月の25日
     payment_due = billing_date.replace(day=25)
     
-    # ===== 繝倥ャ繝繝ｼ驛ｨ蛻・=====
-    # 隲区ｱよ嶌繧ｿ繧､繝医Ν・井ｸｭ螟ｮ荳企Κ縲∝､ｧ縺阪￥・・
+    # ===== ヘッダー部分 =====
+    # 請求書タイトル（中央上部、大きく）
     pdf.setFont(font_name, 24)
-    title = "隲・豎・譖ｸ"
+    title = "請 求 書"
     title_width = pdf.stringWidth(title, font_name, 24)
     pdf.drawString((width - title_width) / 2, height - 25*mm, title)
     
-    # 隲区ｱよ嶌逡ｪ蜿ｷ・亥承荳奇ｼ・
+    # 請求書番号（右上）
     pdf.setFont(font_name, 10)
-    invoice_number = f"C-{invoice.id:04d}"  # 蟋碑ｨ怜・隲区ｱよ嶌逡ｪ蜿ｷ
+    invoice_number = f"C-{invoice.id:04d}"  # 委託先請求書番号
     pdf.drawRightString(width - 15*mm, height - 15*mm, f"No. {invoice_number}")
     
-    # ===== 蟾ｦ蛛ｴ・壼ｮ帛錐驛ｨ蛻・=====
+    # ===== 左側：宛名部分 =====
     y_left = height - 45*mm
     pdf.setFont(font_name, 14)
     contractor_name = contractor.name if contractor else ""
-    pdf.drawString(20*mm, y_left, f"{contractor_name}縲讒・)
+    pdf.drawString(20*mm, y_left, f"{contractor_name}　様")
     
-    # 荳狗ｷ・
+    # 下線
     pdf.setLineWidth(1)
     pdf.line(20*mm, y_left - 2*mm, 80*mm, y_left - 2*mm)
     pdf.setLineWidth(0.5)
     
-    # 隲区ｱよ律繝ｻ謾ｯ謇墓悄譌･
+    # 請求日・支払期日
     pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, y_left - 12*mm, f"隲区ｱよ律: {billing_date.strftime('%Y蟷ｴ%m譛・d譌･')}")
-    pdf.drawString(20*mm, y_left - 20*mm, f"謾ｯ謇墓悄譌･: {payment_due.strftime('%Y蟷ｴ%m譛・d譌･')}")
+    pdf.drawString(20*mm, y_left - 12*mm, f"請求日: {billing_date.strftime('%Y年%m月%d日')}")
+    pdf.drawString(20*mm, y_left - 20*mm, f"支払期日: {payment_due.strftime('%Y年%m月%d日')}")
     
-    # ===== 蜿ｳ蛛ｴ・壻ｼ夂､ｾ諠・ｱ =====
+    # ===== 右側：会社情報 =====
     y_right = height - 45*mm
     right_x = width - 80*mm
     pdf.setFont(font_name, 11)
     pdf.drawString(right_x, y_right, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(right_x, y_right - 6*mm, "譁ｰ譛ｭ蟷御ｻ｣逅・ｺ・)
+    pdf.drawString(right_x, y_right - 6*mm, "新札幌代理店")
     pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO['representative'])
-    pdf.drawString(right_x, y_right - 18*mm, "逋ｻ骭ｲ逡ｪ蜿ｷ: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(right_x, y_right - 18*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
     pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address1"])
     pdf.drawString(right_x, y_right - 36*mm, COMPANY_INFO["address2"])
     
-    # 繝上Φ繧ｳ逕ｻ蜒・
+    # ハンコ画像
     stamp_x = right_x + 50*mm
     stamp_y = y_right - 1*mm
     stamp_width = 16*mm
     stamp_height = 16*mm
     
-    # 逕ｻ蜒上ヵ繧｡繧､繝ｫ縺ｮ繝代せ
+    # 画像ファイルのパス
     stamp_image_path = os.path.join(os.path.dirname(__file__), "static", "stamp.png")
     
     try:
-        # 逕ｻ蜒上ｒ謠冗判
+        # 画像を描画
         pdf.drawImage(stamp_image_path, 
                      stamp_x - stamp_width/2, 
                      stamp_y - stamp_height/2, 
@@ -571,86 +571,86 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
                      preserveAspectRatio=True,
                      mask='auto')
     except Exception as e:
-        # 逕ｻ蜒上′隕九▽縺九ｉ縺ｪ縺・ｴ蜷医・蠕捺擂縺ｮ蜀・→繝・く繧ｹ繝医〒謠冗判
+        # 画像が見つからない場合は従来の円とテキストで描画
         print(f"Warning: Stamp image not found at {stamp_image_path}, using text fallback: {e}")
         stamp_radius = 8*mm
         pdf.circle(stamp_x, stamp_y, stamp_radius, stroke=1, fill=0)
         pdf.setFont(font_name, 7)
-        pdf.drawCentredString(stamp_x, stamp_y + 2*mm, "繝峨け繧ｿ繝ｼ")
-        pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "繝輔ぉ繝ｪ繧ｹ")
+        pdf.drawCentredString(stamp_x, stamp_y + 2*mm, "ドクター")
+        pdf.drawCentredString(stamp_x, stamp_y - 3*mm, "フェリス")
     
-    # ===== 隲区ｱる≡鬘阪・繝・け繧ｹ =====
+    # ===== 請求金額ボックス =====
     box_y = height - 95*mm
     box_height = 18*mm
     box_width = 130*mm
     box_x = (width - box_width) / 2
     
-    # 螟匁棧
+    # 外枠
     pdf.setLineWidth(2)
     pdf.rect(box_x, box_y, box_width, box_height, stroke=1, fill=0)
     pdf.setLineWidth(0.5)
     
-    # 縲後＃隲区ｱる≡鬘阪阪Λ繝吶Ν
+    # 「ご請求金額」ラベル
     pdf.setFont(font_name, 12)
-    pdf.drawString(box_x + 5*mm, box_y + 11*mm, "縺碑ｫ区ｱる≡鬘・)
+    pdf.drawString(box_x + 5*mm, box_y + 11*mm, "ご請求金額")
     
-    # 驥鷹｡・
+    # 金額
     pdf.setFont(font_name, 22)
-    total_amount = f"ﾂ･{invoice.total_amount_inc_tax:,}-"
+    total_amount = f"¥{invoice.total_amount_inc_tax:,}-"
     pdf.drawRightString(box_x + box_width - 10*mm, box_y + 5*mm, total_amount)
     
-    # 遞手ｾｼ陦ｨ遉ｺ
+    # 税込表示
     pdf.setFont(font_name, 9)
-    pdf.drawRightString(box_x + box_width - 10*mm, box_y + 14*mm, "・育ｨ手ｾｼ・・)
+    pdf.drawRightString(box_x + box_width - 10*mm, box_y + 14*mm, "（税込）")
     
-    # ===== 譏守ｴｰ繝・・繝悶Ν =====
+    # ===== 明細テーブル =====
     table_top = box_y - 10*mm
     table_left = 10*mm
     table_right = width - 10*mm
     table_width = table_right - table_left
     
-    # 蛻怜ｹ・ｮ夂ｾｩ・亥膚蜩∝錐縲∵焚驥上∝腰萓｡縲・≡鬘阪∝牡蠑慕紫縲∝牡蠑暮｡阪∝牡蠑募ｾ碁≡鬘搾ｼ・
-    col_widths = [50*mm, 12*mm, 20*mm, 24*mm, 14*mm, 22*mm, 26*mm, 12*mm]  # 譛蠕後・繝弱Ν繝・
+    # 列幅定義（商品名、数量、単価、金額、割引率、割引額、割引後金額）
+    col_widths = [50*mm, 12*mm, 20*mm, 24*mm, 14*mm, 22*mm, 26*mm, 12*mm]  # 最後はノルマ
     col_positions = [table_left]
     for w in col_widths[:-1]:
         col_positions.append(col_positions[-1] + w)
     
-    # 繝倥ャ繝繝ｼ閭梧勹
+    # ヘッダー背景
     header_height = 8*mm
     pdf.setFillGray(0.85)
     pdf.rect(table_left, table_top - header_height, table_width, header_height, stroke=1, fill=1)
     pdf.setFillGray(0)
     
-    # 繝倥ャ繝繝ｼ繝・く繧ｹ繝・
+    # ヘッダーテキスト
     pdf.setFont(font_name, 7)
     header_y = table_top - 6*mm
-    headers = ["蝠・刀蜷・, "謨ｰ驥・, "蜊倅ｾ｡", "驥鷹｡・, "蜑ｲ蠑慕紫", "蜑ｲ蠑暮｡・, "蜑ｲ蠑募ｾ・, "繝弱Ν繝・]
+    headers = ["商品名", "数量", "単価", "金額", "割引率", "割引額", "割引後", "ノルマ"]
     for i, header in enumerate(headers):
         if i == 0:
             pdf.drawString(col_positions[i] + 1*mm, header_y, header)
         else:
             pdf.drawCentredString(col_positions[i] + col_widths[i] / 2, header_y, header)
     
-    # 邵ｦ邱夲ｼ医・繝・ム繝ｼ・・
+    # 縦線（ヘッダー）
     for pos in col_positions[1:]:
         pdf.line(pos, table_top - header_height, pos, table_top)
     
-    # 蜑ｲ蠑慕紫縺ｮ蜿門ｾ・
-    # rate縺・莉･荳翫↑繧峨ヱ繝ｼ繧ｻ繝ｳ繝亥､・井ｾ具ｼ・0=20%・峨・譛ｪ貅縺ｪ繧牙ｰ乗焚蛟､・井ｾ具ｼ・.20=20%・峨→縺励※謇ｱ縺・
+    # 割引率の取得
+    # rateが1以上ならパーセント値（例：20=20%）、1未満なら小数値（例：0.20=20%）として扱う
     raw_rate = float(discount_rate.rate) if discount_rate else 0
     print(f"[DEBUG PDF] raw_rate from DB: {raw_rate}, type: {type(discount_rate.rate) if discount_rate else None}")
     if raw_rate >= 1:
-        # 繝代・繧ｻ繝ｳ繝亥､縺ｨ縺励※菫晏ｭ倥＆繧後※縺・ｋ蝣ｴ蜷茨ｼ井ｾ具ｼ・0 = 20%・・
+        # パーセント値として保存されている場合（例：20 = 20%）
         discount_rate_percent = raw_rate
         discount_rate_decimal = raw_rate / 100
         print(f"[DEBUG PDF] Using as percent value: percent={discount_rate_percent}, decimal={discount_rate_decimal}")
     else:
-        # 蟆乗焚蛟､縺ｨ縺励※菫晏ｭ倥＆繧後※縺・ｋ蝣ｴ蜷茨ｼ井ｾ具ｼ・.20 = 20%・・
+        # 小数値として保存されている場合（例：0.20 = 20%）
         discount_rate_percent = raw_rate * 100
         discount_rate_decimal = raw_rate
         print(f"[DEBUG PDF] Using as decimal value: percent={discount_rate_percent}, decimal={discount_rate_decimal}")
     
-    # 譏守ｴｰ繝・・繧ｿ
+    # 明細データ
     row_height = 6*mm
     y = table_top - header_height
     
@@ -658,105 +658,105 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         y -= row_height
         product = db.query(Product).filter(Product.id == detail.product_id).first()
         
-        # 陦後・謠冗判
+        # 行の描画
         pdf.rect(table_left, y, table_width, row_height, stroke=1, fill=0)
         
-        # 邵ｦ邱・
+        # 縦線
         for pos in col_positions[1:]:
             pdf.line(pos, y, pos, y + row_height)
         
-        # 繝・・繧ｿ
+        # データ
         row_text_y = y + 1.5*mm
         pdf.setFont(font_name, 7)
         
-        # 蝠・刀蜷・
+        # 商品名
         product_name = product.name if product else ""
         pdf.drawString(col_positions[0] + 1*mm, row_text_y, product_name)
         
-        # 謨ｰ驥・
+        # 数量
         pdf.drawRightString(col_positions[1] + col_widths[1] - 1*mm, row_text_y, f"{detail.total_quantity}")
         
-        # 蜊倅ｾ｡
-        pdf.drawRightString(col_positions[2] + col_widths[2] - 1*mm, row_text_y, f"ﾂ･{detail.unit_price:,}")
+        # 単価
+        pdf.drawRightString(col_positions[2] + col_widths[2] - 1*mm, row_text_y, f"¥{detail.unit_price:,}")
         
-        # 驥鷹｡搾ｼ育ｨ取栢・・
+        # 金額（税抜）
         amount = detail.amount
-        pdf.drawRightString(col_positions[3] + col_widths[3] - 1*mm, row_text_y, f"ﾂ･{amount:,}")
+        pdf.drawRightString(col_positions[3] + col_widths[3] - 1*mm, row_text_y, f"¥{amount:,}")
         
-        # 蜑ｲ蠑戊ｨ育ｮ暦ｼ亥牡蠑募ｯｾ雎｡螟悶ヵ繝ｩ繧ｰ繧偵メ繧ｧ繝・け・・
+        # 割引計算（割引対象外フラグをチェック）
         is_discount_excluded = product.discount_exclusion_flag if product else False
         if is_discount_excluded:
-            # 蜑ｲ蠑募ｯｾ雎｡螟・
+            # 割引対象外
             item_discount_rate = 0
             item_discount_amount = 0
             item_after_discount = amount
             pdf.drawCentredString(col_positions[4] + col_widths[4] / 2, row_text_y, "-")
             pdf.drawCentredString(col_positions[5] + col_widths[5] / 2, row_text_y, "-")
         else:
-            # 蜑ｲ蠑暮←逕ｨ
+            # 割引適用
             item_discount_rate = discount_rate_percent
             item_discount_amount = int(amount * discount_rate_decimal)
             item_after_discount = amount - item_discount_amount
             pdf.drawCentredString(col_positions[4] + col_widths[4] / 2, row_text_y, f"{item_discount_rate:.0f}%")
-            pdf.drawRightString(col_positions[5] + col_widths[5] - 1*mm, row_text_y, f"ﾂ･{item_discount_amount:,}")
+            pdf.drawRightString(col_positions[5] + col_widths[5] - 1*mm, row_text_y, f"¥{item_discount_amount:,}")
         
-        # 蜑ｲ蠑募ｾ碁≡鬘・
-        pdf.drawRightString(col_positions[6] + col_widths[6] - 1*mm, row_text_y, f"ﾂ･{item_after_discount:,}")
+        # 割引後金額
+        pdf.drawRightString(col_positions[6] + col_widths[6] - 1*mm, row_text_y, f"¥{item_after_discount:,}")
         
-        # 繝弱Ν繝槫ｯｾ雎｡
+        # ノルマ対象
         if product and product.quota_target_flag:
-            pdf.drawCentredString(col_positions[7] + col_widths[7] / 2, row_text_y, "笳・)
+            pdf.drawCentredString(col_positions[7] + col_widths[7] / 2, row_text_y, "○")
         
-        # 繝壹・繧ｸ騾√ｊ蛻､螳・
+        # ページ送り判定
         if y < 100*mm:
             pdf.showPage()
             pdf.setFont(font_name, 7)
             y = height - 30*mm
     
-    # ===== 髮・ｨ磯Κ蛻・ｼ郁ｩｳ邏ｰ迚茨ｼ・=====
+    # ===== 集計部分（詳細版） =====
     summary_top = y - 8*mm
     summary_left = table_left
     summary_width = table_width
     summary_row_height = 6*mm
     
-    # 髮・ｨ医ユ繝ｼ繝悶Ν縺ｮ繝倥ャ繝繝ｼ
+    # 集計テーブルのヘッダー
     pdf.setFillGray(0.85)
     pdf.rect(summary_left, summary_top - summary_row_height, summary_width, summary_row_height, stroke=1, fill=1)
     pdf.setFillGray(0)
     
-    # 髮・ｨ医・繝・ム繝ｼ蛻怜ｹ・
-    sum_col_widths = [50*mm, 35*mm, 18*mm, 35*mm, 42*mm]  # 鬆・岼縲・≡鬘阪∝牡蠑慕紫縲∝牡蠑暮｡阪∝牡蠑募ｾ碁≡鬘・
+    # 集計ヘッダー列幅
+    sum_col_widths = [50*mm, 35*mm, 18*mm, 35*mm, 42*mm]  # 項目、金額、割引率、割引額、割引後金額
     sum_col_positions = [summary_left]
     for w in sum_col_widths[:-1]:
         sum_col_positions.append(sum_col_positions[-1] + w)
     
     pdf.setFont(font_name, 8)
     sum_header_y = summary_top - summary_row_height + 1.5*mm
-    sum_headers = ["鬆・岼", "蟆剰ｨ磯≡鬘・, "蜑ｲ蠑慕紫", "蜑ｲ蠑暮｡・, "蜑ｲ蠑募ｾ碁≡鬘・]
+    sum_headers = ["項目", "小計金額", "割引率", "割引額", "割引後金額"]
     for i, header in enumerate(sum_headers):
         if i == 0:
             pdf.drawString(sum_col_positions[i] + 2*mm, sum_header_y, header)
         else:
             pdf.drawCentredString(sum_col_positions[i] + sum_col_widths[i] / 2, sum_header_y, header)
     
-    # 邵ｦ邱夲ｼ磯寔險医・繝・ム繝ｼ・・
+    # 縦線（集計ヘッダー）
     for pos in sum_col_positions[1:]:
         pdf.line(pos, summary_top - summary_row_height, pos, summary_top)
     
-    # 髮・ｨ郁｡後ョ繝ｼ繧ｿ・医ヮ繝ｫ繝槫ｯｾ雎｡縲√ヮ繝ｫ繝槫ｯｾ雎｡螟悶∝牡蠑募ｯｾ雎｡螟悶∝膚蜩∝ｰ剰ｨ医∝粋險磯≡鬘搾ｼ・
-    # 繝弱Ν繝槫ｯｾ雎｡: quota_subtotal, quota_discount_amount, quota_total
-    # 繝弱Ν繝槫ｯｾ雎｡螟・ non_quota_subtotal, non_quota_discount_amount, non_quota_total
-    # 蜑ｲ蠑募ｯｾ雎｡螟・ non_discountable_amount
+    # 集計行データ（ノルマ対象、ノルマ対象外、割引対象外、商品小計、合計金額）
+    # ノルマ対象: quota_subtotal, quota_discount_amount, quota_total
+    # ノルマ対象外: non_quota_subtotal, non_quota_discount_amount, non_quota_total
+    # 割引対象外: non_discountable_amount
     
     product_subtotal = invoice.quota_subtotal + invoice.non_quota_subtotal + invoice.non_discountable_amount
     total_discount_amount = invoice.quota_discount_amount + invoice.non_quota_discount_amount
     total_after_discount = invoice.quota_total + invoice.non_quota_total + invoice.non_discountable_amount
     
     summary_data = [
-        ("繝弱Ν繝槫ｯｾ雎｡蟆剰ｨ・, invoice.quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.quota_discount_amount, invoice.quota_total),
-        ("繝弱Ν繝槫ｯｾ雎｡螟門ｰ剰ｨ・, invoice.non_quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.non_quota_discount_amount, invoice.non_quota_total),
-        ("蜑ｲ蠑募ｯｾ雎｡螟門ｰ剰ｨ・, invoice.non_discountable_amount, "-", 0, invoice.non_discountable_amount),
-        ("蝠・刀蟆剰ｨ・, product_subtotal, "-", total_discount_amount, total_after_discount),
+        ("ノルマ対象小計", invoice.quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.quota_discount_amount, invoice.quota_total),
+        ("ノルマ対象外小計", invoice.non_quota_subtotal, f"{discount_rate_percent:.0f}%", invoice.non_quota_discount_amount, invoice.non_quota_total),
+        ("割引対象外小計", invoice.non_discountable_amount, "-", 0, invoice.non_discountable_amount),
+        ("商品小計", product_subtotal, "-", total_discount_amount, total_after_discount),
     ]
     
     pdf.setFont(font_name, 8)
@@ -765,39 +765,39 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     for i, (label, subtotal, rate_str, disc_amt, after_disc) in enumerate(summary_data):
         sum_y -= summary_row_height
         
-        # 閭梧勹・亥膚蜩∝ｰ剰ｨ医・蠑ｷ隱ｿ・・
-        if i == 3:  # 蝠・刀蟆剰ｨ・
+        # 背景（商品小計は強調）
+        if i == 3:  # 商品小計
             pdf.setFillGray(0.92)
             pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=1)
             pdf.setFillGray(0)
         else:
             pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=0)
         
-        # 邵ｦ邱・
+        # 縦線
         for pos in sum_col_positions[1:]:
             pdf.line(pos, sum_y, pos, sum_y + summary_row_height)
         
         row_text_y = sum_y + 1.5*mm
         
-        # 繝ｩ繝吶Ν
+        # ラベル
         pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, label)
         
-        # 蟆剰ｨ磯≡鬘・
-        pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"ﾂ･{subtotal:,}")
+        # 小計金額
+        pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"¥{subtotal:,}")
         
-        # 蜑ｲ蠑慕紫
+        # 割引率
         pdf.drawCentredString(sum_col_positions[2] + sum_col_widths[2] / 2, row_text_y, rate_str)
         
-        # 蜑ｲ蠑暮｡・
+        # 割引額
         if disc_amt > 0:
-            pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"ﾂ･{disc_amt:,}")
+            pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"¥{disc_amt:,}")
         else:
             pdf.drawCentredString(sum_col_positions[3] + sum_col_widths[3] / 2, row_text_y, "-")
         
-        # 蜑ｲ蠑募ｾ碁≡鬘・
-        pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"ﾂ･{after_disc:,}")
+        # 割引後金額
+        pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{after_disc:,}")
     
-    # 遞取栢蜷郁ｨ郁｡・
+    # 税抜合計行
     sum_y -= summary_row_height
     pdf.setFillGray(0.88)
     pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=1)
@@ -807,13 +807,13 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     pdf.setFont(font_name, 9)
     row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "蜷郁ｨ磯≡鬘搾ｼ育ｨ取栢・・)
-    pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"ﾂ･{product_subtotal:,}")
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "合計金額（税抜）")
+    pdf.drawRightString(sum_col_positions[1] + sum_col_widths[1] - 2*mm, row_text_y, f"¥{product_subtotal:,}")
     pdf.drawCentredString(sum_col_positions[2] + sum_col_widths[2] / 2, row_text_y, "-")
-    pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"ﾂ･{total_discount_amount:,}")
-    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"ﾂ･{invoice.total_amount_ex_tax:,}")
+    pdf.drawRightString(sum_col_positions[3] + sum_col_widths[3] - 2*mm, row_text_y, f"¥{total_discount_amount:,}")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.total_amount_ex_tax:,}")
     
-    # 豸郁ｲｻ遞手｡・
+    # 消費税行
     sum_y -= summary_row_height
     pdf.rect(summary_left, sum_y, summary_width, summary_row_height, stroke=1, fill=0)
     for pos in sum_col_positions[1:]:
@@ -821,10 +821,10 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     pdf.setFont(font_name, 8)
     row_text_y = sum_y + 1.5*mm
-    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "豸郁ｲｻ遞・(10%)")
-    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"ﾂ･{invoice.tax_amount:,}")
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "消費税 (10%)")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.tax_amount:,}")
     
-    # 遞手ｾｼ蜷郁ｨ郁｡鯉ｼ亥､ｧ縺阪￥蠑ｷ隱ｿ・・
+    # 税込合計行（大きく強調）
     sum_y -= summary_row_height + 2*mm
     pdf.setLineWidth(2)
     pdf.setFillGray(0.85)
@@ -837,360 +837,36 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     pdf.setFont(font_name, 11)
     row_text_y = sum_y + 2.5*mm
-    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "遞手ｾｼ蜷郁ｨ・)
+    pdf.drawString(sum_col_positions[0] + 2*mm, row_text_y, "税込合計")
     pdf.setFont(font_name, 14)
-    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"ﾂ･{invoice.total_amount_inc_tax:,}")
+    pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.total_amount_inc_tax:,}")
     
-    # ===== 謖ｯ霎ｼ蜈域ュ蝣ｱ =====
+    # ===== 振込先情報 =====
     bank_y = sum_y - 15*mm
     pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, bank_y, "縲舌♀謖ｯ霎ｼ蜈医・)
+    pdf.drawString(20*mm, bank_y, "【お振込先】")
     pdf.setFont(font_name, 9)
-    pdf.drawString(20*mm, bank_y - 7*mm, f"{BANK_INFO['bank_name']}縲{BANK_INFO['branch_name']}")
-    pdf.drawString(20*mm, bank_y - 14*mm, f"{BANK_INFO['account_type']}縲{BANK_INFO['account_number']}")
-    pdf.drawString(20*mm, bank_y - 21*mm, f"蜿｣蠎ｧ蜷咲ｾｩ: {BANK_INFO['account_holder']}")
-    pdf.drawString(20*mm, bank_y - 28*mm, f"險伜捷: {BANK_INFO['yucho_symbol']}縲逡ｪ蜿ｷ: {BANK_INFO['yucho_number']}")
+    pdf.drawString(20*mm, bank_y - 7*mm, f"{BANK_INFO['bank_name']}　{BANK_INFO['branch_name']}")
+    pdf.drawString(20*mm, bank_y - 14*mm, f"{BANK_INFO['account_type']}　{BANK_INFO['account_number']}")
+    pdf.drawString(20*mm, bank_y - 21*mm, f"口座名義: {BANK_INFO['account_holder']}")
+    pdf.drawString(20*mm, bank_y - 28*mm, f"記号: {BANK_INFO['yucho_symbol']}　番号: {BANK_INFO['yucho_number']}")
     
-    # ===== 蛯呵・ｬ・=====
+    # ===== 備考欄 =====
     remarks_y = bank_y - 42*mm
     pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, remarks_y, "縲仙ｙ閠・・)
+    pdf.drawString(20*mm, remarks_y, "【備考】")
     pdf.setFont(font_name, 9)
     
-    # 菴・＠譖ｸ縺阪・蜀・ｮｹ繧貞・蜉・
+    # 但し書きの内容を出力
     remark_offset = 7*mm
     if invoice.note:
-        pdf.drawString(20*mm, remarks_y - remark_offset, f"繝ｻ{invoice.note}")
+        pdf.drawString(20*mm, remarks_y - remark_offset, f"・{invoice.note}")
         remark_offset += 7*mm
   
-    # ===== 繝輔ャ繧ｿ繝ｼ =====
+    # ===== フッター =====
     footer_y = 20*mm
     pdf.setFont(font_name, 9)
-    pdf.drawCentredString(width / 2, footer_y, "荳願ｨ倥・騾壹ｊ縺碑ｫ区ｱら筏縺嶺ｸ翫￡縺ｾ縺吶・)
-    
-    pdf.save()
-    buffer.seek(0)
-    
-    return buffer
-
-
-def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
-    "`販売員請求書の領収書PDF生成"`"
-    buffer = BytesIO()
-    width, height = A4
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    
-    # フォント設定
-    font_name = setup_japanese_font()
-    
-    # ===== タイトル =====
-    pdf.setFont(font_name, 24)
-    pdf.drawCentredString(width / 2, height - 40*mm, "領 収 書")
-    
-    # ===== 宛先 =====
-    sales_person = db.query(SalesPerson).filter(SalesPerson.id == invoice.sales_person_id).first()
-    pdf.setFont(font_name, 14)
-    pdf.drawString(30*mm, height - 60*mm, f"{sales_person.name if sales_person else ''} 様")
-    
-    # ===== 金額 =====
-    pdf.setFont(font_name, 16)
-    amount_text = f"{invoice.total_amount_inc_tax:,}"
-    pdf.drawString(30*mm, height - 80*mm, f"金額: {amount_text}")
-    
-    # ===== 但し書き =====
-    pdf.setFont(font_name, 11)
-    note_text = invoice.note if invoice.note else "御品代として"
-    pdf.drawString(30*mm, height - 95*mm, f"但し、{note_text}")
-    
-    # ===== 領収日 =====
-    receipt_date = invoice.receipt_date if invoice.receipt_date else invoice.invoice_date
-    if receipt_date:
-        pdf.setFont(font_name, 11)
-        pdf.drawString(30*mm, height - 110*mm, f"領収日: {receipt_date.strftime('%Y年%m月%d日')}")
-    
-    # ===== 発行者情報 =====
-    issuer_y = height - 140*mm
-    pdf.setFont(font_name, 11)
-    pdf.drawString(30*mm, issuer_y, COMPANY_INFO['name'])
-    pdf.drawString(30*mm, issuer_y - 7*mm, f"代表: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 14*mm, COMPANY_INFO['postal_code'])
-    pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO['address1'])
-    pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO['address2'])
-    
-    # ===== 備考 =====
-    pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, height - 200*mm, "この領収書は再発行できません。大切に保管してください。")
-    
-    pdf.save()
-    buffer.seek(0)
-    
-    return buffer
-
-
-def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> BytesIO:
-    "`委託先請求書の領収書PDF生成"`"
-    buffer = BytesIO()
-    width, height = A4
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    
-    # フォント設定
-    font_name = setup_japanese_font()
-    
-    # ===== タイトル =====
-    pdf.setFont(font_name, 24)
-    pdf.drawCentredString(width / 2, height - 40*mm, "領 収 書")
-    
-    # ===== 宛先 =====
-    contractor = db.query(Contractor).filter(Contractor.id == invoice.contractor_id).first()
-    pdf.setFont(font_name, 14)
-    pdf.drawString(30*mm, height - 60*mm, f"{contractor.name if contractor else ''} 様")
-    
-    # ===== 金額 =====
-    pdf.setFont(font_name, 16)
-    amount_text = f"{invoice.total_amount_inc_tax:,}"
-    pdf.drawString(30*mm, height - 80*mm, f"金額: {amount_text}")
-    
-    # ===== 但し書き =====
-    pdf.setFont(font_name, 11)
-    note_text = invoice.note if invoice.note else "御品代として"
-    pdf.drawString(30*mm, height - 95*mm, f"但し、{note_text}")
-    
-    # ===== 領収日 =====
-    receipt_date = invoice.receipt_date if invoice.receipt_date else invoice.invoice_date
-    if receipt_date:
-        pdf.setFont(font_name, 11)
-        pdf.drawString(30*mm, height - 110*mm, f"領収日: {receipt_date.strftime('%Y年%m月%d日')}")
-    
-    # ===== 発行者情報 =====
-    issuer_y = height - 140*mm
-    pdf.setFont(font_name, 11)
-    pdf.drawString(30*mm, issuer_y, COMPANY_INFO['name'])
-    pdf.drawString(30*mm, issuer_y - 7*mm, f"代表: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 14*mm, COMPANY_INFO['postal_code'])
-    pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO['address1'])
-    pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO['address2'])
-    
-    # ===== 備考 =====
-    pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, height - 200*mm, "この領収書は再発行できません。大切に保管してください。")
-    
-    pdf.save()
-    buffer.seek(0)
-    
-    return buffer
-
-from models import SalesInvoice, SalesPerson, ContractorInvoice, Contractor
-from pdf_generator import setup_japanese_font, COMPANY_INFO
-
-
-def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
-    """雋ｩ螢ｲ蜩｡隲区ｱよ嶌縺ｮ鬆伜庶譖ｸPDF逕滓・"""
-    buffer = BytesIO()
-    width, height = A4
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    
-    # 繝輔か繝ｳ繝郁ｨｭ螳・
-    font_name = setup_japanese_font()
-    
-    # ===== 繧ｿ繧､繝医Ν =====
-    pdf.setFont(font_name, 24)
-    pdf.drawCentredString(width / 2, height - 40*mm, "鬆・蜿・譖ｸ")
-    
-    # ===== 螳帛・ =====
-    sales_person = db.query(SalesPerson).filter(SalesPerson.id == invoice.sales_person_id).first()
-    pdf.setFont(font_name, 14)
-    pdf.drawString(30*mm, height - 60*mm, f"{sales_person.name if sales_person else ''} 讒・)
-    
-    # ===== 驥鷹｡・=====
-    pdf.setFont(font_name, 16)
-    amount_text = f"ﾂ･{invoice.total_amount_inc_tax:,}"
-    pdf.drawString(30*mm, height - 80*mm, f"驥鷹｡・ {amount_text}")
-    
-    # ===== 菴・＠譖ｸ縺・=====
-    pdf.setFont(font_name, 11)
-    note_text = invoice.note if invoice.note else "蠕｡蜩∽ｻ｣縺ｨ縺励※"
-    pdf.drawString(30*mm, height - 95*mm, f"菴・＠縲＋note_text}")
-    
-    # ===== 鬆伜庶譌･ =====
-    receipt_date = invoice.receipt_date if invoice.receipt_date else invoice.invoice_date
-    if receipt_date:
-        pdf.setFont(font_name, 11)
-        pdf.drawString(30*mm, height - 110*mm, f"鬆伜庶譌･: {receipt_date.strftime('%Y蟷ｴ%m譛・d譌･')}")
-    
-    # ===== 逋ｺ陦瑚・ュ蝣ｱ =====
-    issuer_y = height - 140*mm
-    pdf.setFont(font_name, 11)
-    pdf.drawString(30*mm, issuer_y, COMPANY_INFO['name'])
-    pdf.drawString(30*mm, issuer_y - 7*mm, f"莉｣陦ｨ: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 14*mm, COMPANY_INFO['postal_code'])
-    pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO['address1'])
-    pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO['address2'])
-    
-    # ===== 蛯呵・=====
-    pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, height - 200*mm, "窶ｻ縺薙・鬆伜庶譖ｸ縺ｯ蜀咲匱陦後〒縺阪∪縺帙ｓ縲ょ､ｧ蛻・↓菫晉ｮ｡縺励※縺上□縺輔＞縲・)
-    
-    pdf.save()
-    buffer.seek(0)
-    
-    return buffer
-
-
-def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> BytesIO:
-    """蟋碑ｨ怜・隲区ｱよ嶌縺ｮ鬆伜庶譖ｸPDF逕滓・"""
-    buffer = BytesIO()
-    width, height = A4
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    
-    # 繝輔か繝ｳ繝郁ｨｭ螳・
-    font_name = setup_japanese_font()
-    
-    # ===== 繧ｿ繧､繝医Ν =====
-    pdf.setFont(font_name, 24)
-    pdf.drawCentredString(width / 2, height - 40*mm, "鬆・蜿・譖ｸ")
-    
-    # ===== 螳帛・ =====
-    contractor = db.query(Contractor).filter(Contractor.id == invoice.contractor_id).first()
-    pdf.setFont(font_name, 14)
-    pdf.drawString(30*mm, height - 60*mm, f"{contractor.name if contractor else ''} 讒・)
-    
-    # ===== 驥鷹｡・=====
-    pdf.setFont(font_name, 16)
-    amount_text = f"ﾂ･{invoice.total_amount_inc_tax:,}"
-    pdf.drawString(30*mm, height - 80*mm, f"驥鷹｡・ {amount_text}")
-    
-    # ===== 菴・＠譖ｸ縺・=====
-    pdf.setFont(font_name, 11)
-    note_text = invoice.note if invoice.note else "蠕｡蜩∽ｻ｣縺ｨ縺励※"
-    pdf.drawString(30*mm, height - 95*mm, f"菴・＠縲＋note_text}")
-    
-    # ===== 鬆伜庶譌･ =====
-    receipt_date = invoice.receipt_date if invoice.receipt_date else invoice.invoice_date
-    if receipt_date:
-        pdf.setFont(font_name, 11)
-        pdf.drawString(30*mm, height - 110*mm, f"鬆伜庶譌･: {receipt_date.strftime('%Y蟷ｴ%m譛・d譌･')}")
-    
-    # ===== 逋ｺ陦瑚・ュ蝣ｱ =====
-    issuer_y = height - 140*mm
-    pdf.setFont(font_name, 11)
-    pdf.drawString(30*mm, issuer_y, COMPANY_INFO['name'])
-    pdf.drawString(30*mm, issuer_y - 7*mm, f"莉｣陦ｨ: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 14*mm, COMPANY_INFO['postal_code'])
-    pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO['address1'])
-    pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO['address2'])
-    
-    # ===== 蛯呵・=====
-    pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, height - 200*mm, "窶ｻ縺薙・鬆伜庶譖ｸ縺ｯ蜀咲匱陦後〒縺阪∪縺帙ｓ縲ょ､ｧ蛻・↓菫晉ｮ｡縺励※縺上□縺輔＞縲・)
-    
-    pdf.save()
-    buffer.seek(0)
-    
-    return buffer
-
-from models import SalesInvoice, SalesPerson, ContractorInvoice, Contractor
-from pdf_generator import setup_japanese_font, COMPANY_INFO
-
-
-def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
-    """雋ｩ螢ｲ蜩｡隲区ｱよ嶌縺ｮ鬆伜庶譖ｸPDF逕滓・"""
-    buffer = BytesIO()
-    width, height = A4
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    
-    # 繝輔か繝ｳ繝郁ｨｭ螳・
-    font_name = setup_japanese_font()
-    
-    # ===== 繧ｿ繧､繝医Ν =====
-    pdf.setFont(font_name, 24)
-    pdf.drawCentredString(width / 2, height - 40*mm, "鬆・蜿・譖ｸ")
-    
-    # ===== 螳帛・ =====
-    sales_person = db.query(SalesPerson).filter(SalesPerson.id == invoice.sales_person_id).first()
-    pdf.setFont(font_name, 14)
-    pdf.drawString(30*mm, height - 60*mm, f"{sales_person.name if sales_person else ''} 讒・)
-    
-    # ===== 驥鷹｡・=====
-    pdf.setFont(font_name, 16)
-    amount_text = f"ﾂ･{invoice.total_amount_inc_tax:,}"
-    pdf.drawString(30*mm, height - 80*mm, f"驥鷹｡・ {amount_text}")
-    
-    # ===== 菴・＠譖ｸ縺・=====
-    pdf.setFont(font_name, 11)
-    note_text = invoice.note if invoice.note else "蠕｡蜩∽ｻ｣縺ｨ縺励※"
-    pdf.drawString(30*mm, height - 95*mm, f"菴・＠縲＋note_text}")
-    
-    # ===== 鬆伜庶譌･ =====
-    receipt_date = invoice.receipt_date if invoice.receipt_date else invoice.invoice_date
-    if receipt_date:
-        pdf.setFont(font_name, 11)
-        pdf.drawString(30*mm, height - 110*mm, f"鬆伜庶譌･: {receipt_date.strftime('%Y蟷ｴ%m譛・d譌･')}")
-    
-    # ===== 逋ｺ陦瑚・ュ蝣ｱ =====
-    issuer_y = height - 140*mm
-    pdf.setFont(font_name, 11)
-    pdf.drawString(30*mm, issuer_y, COMPANY_INFO['name'])
-    pdf.drawString(30*mm, issuer_y - 7*mm, f"莉｣陦ｨ: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 14*mm, COMPANY_INFO['postal_code'])
-    pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO['address1'])
-    pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO['address2'])
-    
-    # ===== 蛯呵・=====
-    pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, height - 200*mm, "窶ｻ縺薙・鬆伜庶譖ｸ縺ｯ蜀咲匱陦後〒縺阪∪縺帙ｓ縲ょ､ｧ蛻・↓菫晉ｮ｡縺励※縺上□縺輔＞縲・)
-    
-    pdf.save()
-    buffer.seek(0)
-    
-    return buffer
-
-
-def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> BytesIO:
-    """蟋碑ｨ怜・隲区ｱよ嶌縺ｮ鬆伜庶譖ｸPDF逕滓・"""
-    buffer = BytesIO()
-    width, height = A4
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    
-    # 繝輔か繝ｳ繝郁ｨｭ螳・
-    font_name = setup_japanese_font()
-    
-    # ===== 繧ｿ繧､繝医Ν =====
-    pdf.setFont(font_name, 24)
-    pdf.drawCentredString(width / 2, height - 40*mm, "鬆・蜿・譖ｸ")
-    
-    # ===== 螳帛・ =====
-    contractor = db.query(Contractor).filter(Contractor.id == invoice.contractor_id).first()
-    pdf.setFont(font_name, 14)
-    pdf.drawString(30*mm, height - 60*mm, f"{contractor.name if contractor else ''} 讒・)
-    
-    # ===== 驥鷹｡・=====
-    pdf.setFont(font_name, 16)
-    amount_text = f"ﾂ･{invoice.total_amount_inc_tax:,}"
-    pdf.drawString(30*mm, height - 80*mm, f"驥鷹｡・ {amount_text}")
-    
-    # ===== 菴・＠譖ｸ縺・=====
-    pdf.setFont(font_name, 11)
-    note_text = invoice.note if invoice.note else "蠕｡蜩∽ｻ｣縺ｨ縺励※"
-    pdf.drawString(30*mm, height - 95*mm, f"菴・＠縲＋note_text}")
-    
-    # ===== 鬆伜庶譌･ =====
-    receipt_date = invoice.receipt_date if invoice.receipt_date else invoice.invoice_date
-    if receipt_date:
-        pdf.setFont(font_name, 11)
-        pdf.drawString(30*mm, height - 110*mm, f"鬆伜庶譌･: {receipt_date.strftime('%Y蟷ｴ%m譛・d譌･')}")
-    
-    # ===== 逋ｺ陦瑚・ュ蝣ｱ =====
-    issuer_y = height - 140*mm
-    pdf.setFont(font_name, 11)
-    pdf.drawString(30*mm, issuer_y, COMPANY_INFO['name'])
-    pdf.drawString(30*mm, issuer_y - 7*mm, f"莉｣陦ｨ: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 14*mm, COMPANY_INFO['postal_code'])
-    pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO['address1'])
-    pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO['address2'])
-    
-    # ===== 蛯呵・=====
-    pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, height - 200*mm, "窶ｻ縺薙・鬆伜庶譖ｸ縺ｯ蜀咲匱陦後〒縺阪∪縺帙ｓ縲ょ､ｧ蛻・↓菫晉ｮ｡縺励※縺上□縺輔＞縲・)
+    pdf.drawCentredString(width / 2, footer_y, "上記の通りご請求申し上げます。")
     
     pdf.save()
     buffer.seek(0)
