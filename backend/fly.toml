@@ -1,6 +1,9 @@
 app = "bizpilot-backend"
 primary_region = "sjc"
 
+[build]
+  dockerfile = "Dockerfile"
+
 [[services]]
 internal_port = 8000
 protocol = "tcp"
