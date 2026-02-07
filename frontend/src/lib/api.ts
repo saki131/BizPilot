@@ -47,6 +47,9 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
+    
+    // Debug: Log the full URL being requested
+    console.log('Making request to:', url, 'Method:', options.method || 'GET');
 
     // If body is FormData, let the browser set the Content-Type (with boundary).
     const isFormData = (typeof FormData !== 'undefined') && options.body instanceof FormData;
