@@ -888,16 +888,6 @@ export default function InvoicesPage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-3 rounded">
-                  <p className="text-sm text-blue-800">
-                    <strong>割引率自動適用ルール：</strong><br />
-                    • ¥400,000以上: 40%<br />
-                    • ¥200,000以上: 30%<br />
-                    • ¥42,000以上: 20%<br />
-                    • ¥42,000未満: 0%（後で10%に変更可能）
-                  </p>
-                </div>
-
                 <Button 
                   onClick={handleBulkGenerate} 
                   disabled={generating}
@@ -1186,42 +1176,33 @@ export default function InvoicesPage() {
             <DialogTitle>請求書編集</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            {selectedInvoice && (() => {
-              const currentRate = discountRates.find(dr => dr.id === selectedInvoice.discount_rate_id);
-              const zeroPercentRate = discountRates.find(dr => dr.rate === 0);
-              const tenPercentRate = discountRates.find(dr => dr.rate === 0.10);
-              const canChangeRate = currentRate && (currentRate.rate === 0 || currentRate.rate === 0.10);
-              
-              return (
-                <>
-                  {canChangeRate && zeroPercentRate && tenPercentRate ? (
-                    <div>
-                      <Label>割引率</Label>
-                      <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p className="text-sm text-gray-700 mb-2">現在の割引率: <span className="font-bold">{Math.round((currentRate?.rate || 0) * 100)}%</span></p>
-                        <p className="text-sm text-gray-600 mb-3">0%と10%を切り替えできます</p>
-                        <select
-                          value={editingInvoice.discount_rate_id || selectedInvoice.discount_rate_id}
-                          onChange={(e) => setEditingInvoice({...editingInvoice, discount_rate_id: Number(e.target.value)})}
-                          className="w-full px-3 py-2 border rounded-md"
-                        >
-                          <option value={zeroPercentRate.id}>0%</option>
-                          <option value={tenPercentRate.id}>10%</option>
-                        </select>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label>割引率</Label>
-                      <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                        <p className="text-sm text-gray-700">現在の割引率: <span className="font-bold">{Math.round((currentRate?.rate || 0) * 100)}%</span></p>
-                        <p className="text-xs text-gray-500 mt-1">※割引率は合計金額から自動設定されます</p>
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
+            {selectedInvoice && (
+              <>
+                <div>
+                  <Label>販売員</Label>
+                  <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                    <p className="text-sm font-medium text-gray-900">{selectedInvoice.sales_person_name}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label>割引率</Label>
+                  <select
+                    value={editingInvoice.discount_rate_id || selectedInvoice.discount_rate_id}
+                    onChange={(e) => setEditingInvoice({...editingInvoice, discount_rate_id: Number(e.target.value)})}
+                    className="w-full px-3 py-2 mt-2 border rounded-md bg-white"
+                  >
+                    {discountRates
+                      .filter(dr => dr.customer_flag)
+                      .sort((a, b) => a.rate - b.rate)
+                      .map((rate) => (
+                        <option key={rate.id} value={rate.id}>
+                          {Math.round(rate.rate * 100)}%
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </>
+            )}
             <div>
               <Label>但（ただし書き）</Label>
               <Input
