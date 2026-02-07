@@ -1187,7 +1187,7 @@ export default function InvoicesPage() {
                       .sort((a, b) => a.rate - b.rate)
                       .map((rate) => (
                         <option key={rate.id} value={rate.id}>
-                          {Math.round(rate.rate * 100)}%
+                          {rate.rate >= 1 ? Math.round(rate.rate) : Math.round(rate.rate * 100)}%
                         </option>
                       ))}
                   </select>
