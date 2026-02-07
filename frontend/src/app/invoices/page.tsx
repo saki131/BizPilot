@@ -431,14 +431,7 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleDownloadReceiptPDF = async (invoiceId: string) => {
-    try {
-      await apiClient.downloadSalesReceiptPDF(invoiceId);
-    } catch (error) {
-      console.error('Failed to download receipt PDF:', error);
-      alert('領収書PDFのダウンロードに失敗しました');
-    }
-  };
+
 
   const handleDownloadContractorPDF = async (invoiceId: string) => {
     try {
@@ -449,14 +442,7 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleDownloadContractorReceiptPDF = async (invoiceId: string) => {
-    try {
-      await apiClient.downloadContractorReceiptPDF(invoiceId);
-    } catch (error) {
-      console.error('Failed to download receipt PDF:', error);
-      alert('領収書PDFのダウンロードに失敗しました');
-    }
-  };
+
 
   const handleDeleteInvoice = async () => {
     if (!selectedInvoice) return;
@@ -802,14 +788,7 @@ export default function InvoicesPage() {
                   >
                     📄 請求書PDF
                   </Button>
-                  <Button 
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadReceiptPDF(invoice.id)}
-                    className="flex-1 h-10 font-medium bg-green-600 hover:bg-green-700 text-white border-0"
-                  >
-                    🧾 領収書PDF
-                  </Button>
+
                   <Button 
                     size="sm"
                     variant="destructive"
@@ -1413,17 +1392,7 @@ export default function InvoicesPage() {
                           >
                             📄 請求書PDF
                           </Button>
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownloadContractorReceiptPDF(invoice.id);
-                            }}
-                            className="flex-1 h-10 font-medium bg-green-600 hover:bg-green-700 text-white border-0"
-                          >
-                            🧾 領収書PDF
-                          </Button>
+
                           <Button 
                             size="sm"
                             variant="destructive"
