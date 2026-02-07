@@ -278,14 +278,14 @@ class ApiClient {
     });
   }
 
-  async updateDeliveryNote(id: number, deliveryNote: any) {
+  async updateDeliveryNote(id: string, deliveryNote: any) {
     return this.request(`/delivery-notes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(deliveryNote),
     });
   }
 
-  async deleteDeliveryNote(id: number) {
+  async deleteDeliveryNote(id: string) {
     return this.request(`/delivery-notes/${id}`, {
       method: 'DELETE',
     });
@@ -311,7 +311,7 @@ class ApiClient {
     });
   }
 
-  async updateInvoiceDiscountRate(invoiceId: number, discountRateId: number) {
+  async updateInvoiceDiscountRate(invoiceId: string, discountRateId: number) {
     return this.request(`/sales-invoices/${invoiceId}/discount-rate`, {
       method: 'PATCH',
       body: JSON.stringify({ discount_rate_id: discountRateId }),
@@ -337,13 +337,13 @@ class ApiClient {
     });
   }
 
-  async getSalesInvoice(invoiceId: number) {
+  async getSalesInvoice(invoiceId: string) {
     return this.request(`/sales-invoices/${invoiceId}`, {
       method: 'GET',
     });
   }
 
-  async downloadInvoicePDF(invoiceId: number) {
+  async downloadInvoicePDF(invoiceId: string) {
     const url = `${this.baseURL}/sales-invoices/${invoiceId}/pdf`;
     const headers: Record<string, string> = {};
     
@@ -371,7 +371,7 @@ class ApiClient {
     window.URL.revokeObjectURL(downloadUrl);
   }
 
-  async downloadContractorInvoicePDF(invoiceId: number) {
+  async downloadContractorInvoicePDF(invoiceId: string) {
     const url = `${this.baseURL}/contractor-invoices/${invoiceId}/pdf`;
     const headers: Record<string, string> = {};
     
@@ -400,7 +400,7 @@ class ApiClient {
   }
 
   // Delete Sales Invoice
-  async deleteSalesInvoice(invoiceId: number) {
+  async deleteSalesInvoice(invoiceId: string) {
     return this.request(`/sales-invoices/${invoiceId}`, {
       method: 'DELETE',
     });
@@ -440,13 +440,13 @@ class ApiClient {
     });
   }
 
-  async getContractorInvoice(invoiceId: number) {
+  async getContractorInvoice(invoiceId: string) {
     return this.request(`/contractor-invoices/${invoiceId}`, {
       method: 'GET',
     });
   }
 
-  async updateContractorInvoice(invoiceId: number, data: {
+  async updateContractorInvoice(invoiceId: string, data: {
     discount_rate_id?: number;
     invoice_date?: string;
     receipt_date?: string;
@@ -459,7 +459,7 @@ class ApiClient {
     });
   }
 
-  async deleteContractorInvoice(invoiceId: number) {
+  async deleteContractorInvoice(invoiceId: string) {
     return this.request(`/contractor-invoices/${invoiceId}`, {
       method: 'DELETE',
     });
