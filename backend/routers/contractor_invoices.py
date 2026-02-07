@@ -18,7 +18,7 @@ from models import (
     Contractor
 )
 from dependencies import get_current_user
-from pdf_generator import generate_contractor_invoice_pdf
+from pdf_generator import generate_contractor_invoice_pdf, generate_contractor_receipt_pdf
 
 router = APIRouter()
 
@@ -464,3 +464,47 @@ def delete_contractor_invoice(
     db.commit()
     
     return {"message": "Invoice deleted successfully"}
+
+
+@router.get("/{invoice_id}/pdf")
+def get_contractor_invoice_pdf(
+    invoice_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate contractor invoice PDF"""
+    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    pdf_buffer = generate_contractor_invoice_pdf(invoice, db)
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=contractor_invoice_{invoice.id}.pdf"
+        }
+    )
+
+
+@router.get("/{invoice_id}/receipt-pdf")
+def get_contractor_receipt_pdf(
+    invoice_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate contractor receipt PDF"""
+    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    pdf_buffer = generate_contractor_receipt_pdf(invoice, db)
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=contractor_receipt_{invoice.id}.pdf"
+        }
+    )
