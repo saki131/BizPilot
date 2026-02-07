@@ -431,12 +431,30 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleDownloadReceiptPDF = async (invoiceId: string) => {
+    try {
+      await apiClient.downloadSalesReceiptPDF(invoiceId);
+    } catch (error) {
+      console.error('Failed to download receipt PDF:', error);
+      alert('領収書PDFのダウンロードに失敗しました');
+    }
+  };
+
   const handleDownloadContractorPDF = async (invoiceId: string) => {
     try {
       await apiClient.downloadContractorInvoicePDF(invoiceId);
     } catch (error) {
       console.error('Failed to download PDF:', error);
       alert('PDFのダウンロードに失敗しました');
+    }
+  };
+
+  const handleDownloadContractorReceiptPDF = async (invoiceId: string) => {
+    try {
+      await apiClient.downloadContractorReceiptPDF(invoiceId);
+    } catch (error) {
+      console.error('Failed to download receipt PDF:', error);
+      alert('領収書PDFのダウンロードに失敗しました');
     }
   };
 
@@ -783,6 +801,14 @@ export default function InvoicesPage() {
                     className="flex-1 h-10 font-medium bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     📄 PDF
+                  </Button>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadReceiptPDF(invoice.id)}
+                    className="flex-1 h-10 font-medium bg-green-600 hover:bg-green-700 text-white border-0"
+                  >
+                    🧾 領収書
                   </Button>
                   <Button 
                     size="sm"
@@ -1386,6 +1412,17 @@ export default function InvoicesPage() {
                             className="flex-1 h-10 font-medium bg-blue-600 hover:bg-blue-700 text-white"
                           >
                             📄 PDF
+                          </Button>
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadContractorReceiptPDF(invoice.id);
+                            }}
+                            className="flex-1 h-10 font-medium bg-green-600 hover:bg-green-700 text-white border-0"
+                          >
+                            🧾 領収書
                           </Button>
                           <Button 
                             size="sm"

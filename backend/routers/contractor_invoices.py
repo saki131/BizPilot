@@ -18,7 +18,7 @@ from models import (
     Contractor
 )
 from dependencies import get_current_user
-from pdf_generator import generate_contractor_invoice_pdf
+from pdf_generator import generate_contractor_invoice_pdf, generate_contractor_receipt_pdf
 
 router = APIRouter()
 
@@ -445,6 +445,28 @@ async def generate_contractor_invoice_pdf_endpoint(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f"attachment; filename=contractor_invoice_{invoice.id}.pdf"
+        }
+    )
+
+
+@router.get("/{invoice_id}/receipt-pdf")
+async def generate_contractor_receipt_pdf_endpoint(
+    invoice_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """委託先領収書PDF生成"""
+    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    pdf_buffer = generate_contractor_receipt_pdf(invoice, db)
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=contractor_receipt_{invoice.id}.pdf"
         }
     )
 

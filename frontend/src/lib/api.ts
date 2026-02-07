@@ -414,6 +414,62 @@ class ApiClient {
     window.URL.revokeObjectURL(downloadUrl);
   }
 
+  async downloadSalesReceiptPDF(invoiceId: string) {
+    const url = `${this.baseURL}/sales-invoices/${invoiceId}/receipt-pdf`;
+    const headers: Record<string, string> = {};
+    
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download receipt PDF');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `sales_receipt_${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
+  async downloadContractorReceiptPDF(invoiceId: string) {
+    const url = `${this.baseURL}/contractor-invoices/${invoiceId}/receipt-pdf`;
+    const headers: Record<string, string> = {};
+    
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download receipt PDF');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `contractor_receipt_${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
   // Delete Sales Invoice
   async deleteSalesInvoice(invoiceId: string) {
     return this.request(`/sales-invoices/${invoiceId}`, {
