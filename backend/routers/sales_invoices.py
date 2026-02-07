@@ -181,8 +181,15 @@ def generate_invoice_for_sales_person(
     # Calculate total for discount determination
     total_subtotal = quota_subtotal + non_quota_subtotal
     
-    # Auto-calculate optimal discount rate
-    discount_rate = calculate_optimal_discount_rate(total_subtotal, db)
+    # Always use 0% discount rate (no automatic calculation)
+    discount_rate = db.query(DiscountRate).filter(
+        DiscountRate.customer_flag == True,
+        DiscountRate.rate == 0,
+        DiscountRate.deleted_flag == False
+    ).first()
+    
+    if not discount_rate:
+        raise HTTPException(status_code=404, detail="0% discount rate not found")
     
     # Calculate discount
     discount_rate_value = float(discount_rate.rate)
