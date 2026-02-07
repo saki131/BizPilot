@@ -474,7 +474,7 @@ export default function InvoicesPage() {
       const response = await apiClient.updateInvoice(selectedInvoice.id, editingInvoice);
 
       if (response.data) {
-        const updatedInvoice = response.data;
+        const updatedInvoice = response.data as SalesInvoice;
         console.log('更新後のデータ:', updatedInvoice);
         
         // 請求書リストと詳細画面の両方を更新
