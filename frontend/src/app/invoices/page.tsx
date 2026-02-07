@@ -471,18 +471,10 @@ export default function InvoicesPage() {
     console.log('送信データ:', editingInvoice);
 
     try {
-      // APIクライアントに編集メソッドを追加する必要があります
-      const response = await fetch(`http://172.16.0.71:8002/api/sales-invoices/${selectedInvoice.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify(editingInvoice),
-      });
+      const response = await apiClient.updateInvoice(selectedInvoice.id, editingInvoice);
 
-      if (response.ok) {
-        const updatedInvoice = await response.json();
+      if (response.data) {
+        const updatedInvoice = response.data;
         console.log('更新後のデータ:', updatedInvoice);
         
         // 請求書リストと詳細画面の両方を更新
@@ -495,9 +487,8 @@ export default function InvoicesPage() {
         setShowDetailDialog(true); // 詳細画面を再表示
         alert('請求書を更新しました');
       } else {
-        const errorData = await response.json();
-        console.error('更新エラー:', errorData);
-        alert(`更新に失敗しました: ${errorData.detail || '不明なエラー'}`);
+        console.error('更新エラー:', response.error);
+        alert(`更新に失敗しました: ${response.error || '不明なエラー'}`);
       }
     } catch (error) {
       console.error('Failed to update invoice:', error);

@@ -326,6 +326,13 @@ class ApiClient {
     });
   }
 
+  async updateInvoice(invoiceId: string, data: { discount_rate_id?: number; note?: string }) {
+    return this.request(`/sales-invoices/${invoiceId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   async generateSalesInvoice(data: {
     sales_person_id: number;
     start_date: string;
