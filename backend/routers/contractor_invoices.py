@@ -18,7 +18,7 @@ from models import (
     Contractor
 )
 from dependencies import get_current_user
-from pdf_generator import generate_contractor_invoice_pdf, generate_contractor_receipt_pdf
+from pdf_generator import generate_contractor_invoice_pdf
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ router = APIRouter()
 def create_invoice_response(invoice: ContractorInvoice) -> "ContractorInvoiceResponse":
     """委託先請求書レスポンスを作成"""
     return ContractorInvoiceResponse(
-        id=str(invoice.id),
+        id=invoice.id,
         contractor_id=invoice.contractor_id,
         contractor_name=invoice.contractor.name,
         discount_rate=float(invoice.discount_rate.rate),
@@ -50,7 +50,7 @@ def create_invoice_response(invoice: ContractorInvoice) -> "ContractorInvoiceRes
         total_amount_inc_tax=invoice.total_amount_inc_tax,
         details=[
             ContractorInvoiceDetailResponse(
-                id=str(d.id),
+                id=d.id,
                 product_id=d.product_id,
                 product_name=d.product.name,
                 total_quantity=d.total_quantity,
@@ -123,7 +123,7 @@ class ContractorInvoiceUpdateRequest(BaseModel):
 
 class ContractorInvoiceDetailResponse(BaseModel):
     """委託先請求書明細レスポンス"""
-    id: str
+    id: int
     product_id: int
     product_name: str
     total_quantity: int
@@ -133,7 +133,7 @@ class ContractorInvoiceDetailResponse(BaseModel):
 
 class ContractorInvoiceResponse(BaseModel):
     """委託先請求書レスポンス"""
-    id: str
+    id: int
     contractor_id: int
     contractor_name: str
     discount_rate: float
@@ -297,7 +297,7 @@ def get_contractor_invoices(
 
 @router.get("/{invoice_id}", response_model=ContractorInvoiceResponse)
 def get_contractor_invoice(
-    invoice_id: str,
+    invoice_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -314,7 +314,7 @@ def get_contractor_invoice(
 
 @router.put("/{invoice_id}", response_model=ContractorInvoiceResponse)
 def update_contractor_invoice(
-    invoice_id: str,
+    invoice_id: int,
     request: ContractorInvoiceUpdateRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
@@ -429,7 +429,7 @@ def update_contractor_invoice(
 
 @router.get("/{invoice_id}/pdf")
 async def generate_contractor_invoice_pdf_endpoint(
-    invoice_id: str,
+    invoice_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -449,31 +449,9 @@ async def generate_contractor_invoice_pdf_endpoint(
     )
 
 
-@router.get("/{invoice_id}/receipt-pdf")
-async def generate_contractor_receipt_pdf_endpoint(
-    invoice_id: str,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
-    """委託先領収書PDF生成"""
-    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    
-    pdf_buffer = generate_contractor_receipt_pdf(invoice, db)
-    
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename=contractor_receipt_{invoice.id}.pdf"
-        }
-    )
-
-
 @router.delete("/{invoice_id}")
 def delete_contractor_invoice(
-    invoice_id: str,
+    invoice_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):

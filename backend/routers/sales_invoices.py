@@ -20,7 +20,7 @@ from models import (
     SalesPerson
 )
 from dependencies import get_current_user
-from pdf_generator import generate_sales_invoice_pdf, generate_sales_receipt_pdf
+from pdf_generator import generate_sales_invoice_pdf
 
 router = APIRouter()
 
@@ -82,7 +82,7 @@ class DiscountRateUpdateRequest(BaseModel):
 
 class InvoiceDetailResponse(BaseModel):
     """請求書明細レスポンス"""
-    id: str
+    id: int
     product_id: int
     product_name: str
     total_quantity: int
@@ -92,7 +92,7 @@ class InvoiceDetailResponse(BaseModel):
 
 class InvoiceResponse(BaseModel):
     """請求書レスポンス"""
-    id: str
+    id: int
     sales_person_id: int
     sales_person_name: str
     invoice_number: str
@@ -102,8 +102,6 @@ class InvoiceResponse(BaseModel):
     receipt_date: Optional[date] = None
     discount_rate_id: int
     discount_rate: float
-    non_discountable_amount: int
-    note: Optional[str] = None
     quota_subtotal: int
     quota_discount_amount: int
     quota_total: int
@@ -181,15 +179,8 @@ def generate_invoice_for_sales_person(
     # Calculate total for discount determination
     total_subtotal = quota_subtotal + non_quota_subtotal
     
-    # Always use 0% discount rate (no automatic calculation)
-    discount_rate = db.query(DiscountRate).filter(
-        DiscountRate.customer_flag == True,
-        DiscountRate.rate == 0,
-        DiscountRate.deleted_flag == False
-    ).first()
-    
-    if not discount_rate:
-        raise HTTPException(status_code=404, detail="0% discount rate not found")
+    # Auto-calculate optimal discount rate
+    discount_rate = calculate_optimal_discount_rate(total_subtotal, db)
     
     # Calculate discount
     discount_rate_value = float(discount_rate.rate)
@@ -241,9 +232,6 @@ def generate_invoice_for_sales_person(
         existing_invoice.total_amount_ex_tax = total_amount_ex_tax
         existing_invoice.tax_amount = tax_amount
         existing_invoice.total_amount_inc_tax = total_amount_inc_tax
-        # Set default note if not already set
-        if not existing_invoice.note:
-            existing_invoice.note = "御品代として"
         
         # Delete old details
         db.query(SalesInvoiceDetail).filter(
@@ -269,8 +257,7 @@ def generate_invoice_for_sales_person(
             non_quota_total=non_quota_total,
             total_amount_ex_tax=total_amount_ex_tax,
             tax_amount=tax_amount,
-            total_amount_inc_tax=total_amount_inc_tax,
-            note="御品代として"
+            total_amount_inc_tax=total_amount_inc_tax
         )
         db.add(invoice)
     
@@ -289,7 +276,7 @@ def generate_invoice_for_sales_person(
         
         product = db.query(Product).filter(Product.id == detail.product_id).first()
         detail_responses.append(InvoiceDetailResponse(
-            id=str(detail.id),
+            id=detail.id,
             product_id=detail.product_id,
             product_name=product.name if product else "",
             total_quantity=detail.total_quantity,
@@ -305,7 +292,7 @@ def generate_invoice_for_sales_person(
     ).first()
     
     return InvoiceResponse(
-        id=str(invoice.id),
+        id=invoice.id,
         sales_person_id=invoice.sales_person_id,
         sales_person_name=sales_person.name if sales_person else "",
         invoice_number=invoice.invoice_number,
@@ -315,8 +302,6 @@ def generate_invoice_for_sales_person(
         receipt_date=invoice.receipt_date,
         discount_rate_id=invoice.discount_rate_id,
         discount_rate=discount_rate_value,
-        non_discountable_amount=invoice.non_discountable_amount,
-        note=invoice.note,
         quota_subtotal=invoice.quota_subtotal,
         quota_discount_amount=invoice.quota_discount_amount,
         quota_total=invoice.quota_total,
@@ -398,7 +383,7 @@ async def bulk_generate_sales_invoices(
 
 @router.patch("/{invoice_id}")
 async def update_invoice_fields(
-    invoice_id: str,
+    invoice_id: int,
     update_data: InvoiceUpdateRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
@@ -485,7 +470,7 @@ async def update_invoice_fields(
 
 @router.patch("/{invoice_id}/discount-rate")
 async def update_invoice_discount_rate(
-    invoice_id: str,
+    invoice_id: int,
     request: DiscountRateUpdateRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
@@ -599,7 +584,7 @@ async def get_sales_invoices(
         for detail in details:
             product = db.query(Product).filter(Product.id == detail.product_id).first()
             detail_responses.append(InvoiceDetailResponse(
-                id=str(detail.id),
+                id=detail.id,
                 product_id=detail.product_id,
                 product_name=product.name if product else "",
                 total_quantity=detail.total_quantity,
@@ -608,7 +593,7 @@ async def get_sales_invoices(
             ))
         
         result.append(InvoiceResponse(
-            id=str(invoice.id),
+            id=invoice.id,
             sales_person_id=invoice.sales_person_id,
             sales_person_name=sales_person.name if sales_person else "",
             invoice_number=invoice.invoice_number,
@@ -618,8 +603,6 @@ async def get_sales_invoices(
             receipt_date=invoice.receipt_date,
             discount_rate_id=invoice.discount_rate_id,
             discount_rate=discount_rate_value,
-            non_discountable_amount=invoice.non_discountable_amount,
-            note=invoice.note,
             quota_subtotal=invoice.quota_subtotal,
             quota_discount_amount=invoice.quota_discount_amount,
             quota_total=invoice.quota_total,
@@ -637,7 +620,7 @@ async def get_sales_invoices(
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
 async def get_sales_invoice(
-    invoice_id: str,
+    invoice_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -664,7 +647,7 @@ async def get_sales_invoice(
     for detail in details:
         product = db.query(Product).filter(Product.id == detail.product_id).first()
         detail_responses.append(InvoiceDetailResponse(
-            id=str(detail.id),
+            id=detail.id,
             product_id=detail.product_id,
             product_name=product.name if product else "",
             total_quantity=detail.total_quantity,
@@ -673,7 +656,7 @@ async def get_sales_invoice(
         ))
     
     return InvoiceResponse(
-        id=str(invoice.id),
+        id=invoice.id,
         sales_person_id=invoice.sales_person_id,
         sales_person_name=sales_person.name if sales_person else "",
         invoice_number=invoice.invoice_number,
@@ -683,8 +666,6 @@ async def get_sales_invoice(
         receipt_date=invoice.receipt_date,
         discount_rate_id=invoice.discount_rate_id,
         discount_rate=float(discount_rate.rate) if discount_rate else 0.0,
-        non_discountable_amount=invoice.non_discountable_amount,
-        note=invoice.note,
         quota_subtotal=invoice.quota_subtotal,
         quota_discount_amount=invoice.quota_discount_amount,
         quota_total=invoice.quota_total,
@@ -700,7 +681,7 @@ async def get_sales_invoice(
 
 @router.delete("/{invoice_id}")
 async def delete_sales_invoice(
-    invoice_id: str,
+    invoice_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -727,7 +708,7 @@ async def delete_sales_invoice(
 
 @router.get("/{invoice_id}/pdf")
 async def generate_invoice_pdf(
-    invoice_id: str,
+    invoice_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -745,26 +726,3 @@ async def generate_invoice_pdf(
             "Content-Disposition": f"attachment; filename=invoice_{invoice.id}.pdf"
         }
     )
-
-
-@router.get("/{invoice_id}/receipt-pdf")
-async def generate_receipt_pdf(
-    invoice_id: str,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """Generate sales receipt PDF"""
-    invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    
-    pdf_buffer = generate_sales_receipt_pdf(invoice, db)
-    
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename=receipt_{invoice.id}.pdf"
-        }
-    )
-
