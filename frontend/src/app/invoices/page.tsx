@@ -158,8 +158,13 @@ export default function InvoicesPage() {
   const [contractorFormData, setContractorFormData] = useState<ContractorInvoiceFormData>({
     contractor_id: 0,
     tax_rate_id: 0,
-    invoice_date: '',
-    note: '',
+    invoice_date: (() => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      return `${year}-${month}-20`;
+    })(),
+    note: '御品代として',
     details: []
   });
   
@@ -323,11 +328,14 @@ export default function InvoicesPage() {
       fetchContractorInvoices();
       // フォームをリセット
       const defaultTaxRate = taxRates.find(r => r.rate === 0.1);
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
       setContractorFormData({
         contractor_id: 0,
         tax_rate_id: defaultTaxRate?.id || 0,
-        invoice_date: '',
-        note: '',
+        invoice_date: `${year}-${month}-20`,
+        note: '御品代として',
         details: []
       });
     } catch (error) {
@@ -1458,7 +1466,7 @@ export default function InvoicesPage() {
                   </div>
 
                   <div>
-                    <Label className="text-red-600">税率（必須）</Label>
+                    <Label>税率</Label>
                     <Select
                       value={contractorFormData.tax_rate_id.toString()}
                       onValueChange={(value) => setContractorFormData({ ...contractorFormData, tax_rate_id: parseInt(value) })}
@@ -1469,7 +1477,7 @@ export default function InvoicesPage() {
                       <SelectContent className="bg-white">
                         {taxRates.map((rate) => (
                           <SelectItem key={rate.id} value={rate.id.toString()}>
-                            {rate.display_name} ({(rate.rate * 100).toFixed(0)}%)
+                            {rate.display_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1477,7 +1485,7 @@ export default function InvoicesPage() {
                   </div>
                   
                   <div>
-                    <Label className="text-red-600">請求日（必須）</Label>
+                    <Label>請求日</Label>
                     <Input
                       type="date"
                       value={contractorFormData.invoice_date}
