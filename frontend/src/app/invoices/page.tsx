@@ -800,7 +800,7 @@ export default function InvoicesPage() {
                     onClick={() => handleDownloadPDF(invoice.id)}
                     className="flex-1 h-10 font-medium bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    📄 PDF
+                    📄 請求書PDF
                   </Button>
                   <Button 
                     size="sm"
@@ -808,7 +808,7 @@ export default function InvoicesPage() {
                     onClick={() => handleDownloadReceiptPDF(invoice.id)}
                     className="flex-1 h-10 font-medium bg-green-600 hover:bg-green-700 text-white border-0"
                   >
-                    🧾 領収書
+                    🧾 領収書PDF
                   </Button>
                   <Button 
                     size="sm"
@@ -1411,7 +1411,7 @@ export default function InvoicesPage() {
                             }}
                             className="flex-1 h-10 font-medium bg-blue-600 hover:bg-blue-700 text-white"
                           >
-                            📄 PDF
+                            📄 請求書PDF
                           </Button>
                           <Button 
                             size="sm"
@@ -1422,7 +1422,7 @@ export default function InvoicesPage() {
                             }}
                             className="flex-1 h-10 font-medium bg-green-600 hover:bg-green-700 text-white border-0"
                           >
-                            🧾 領収書
+                            🧾 領収書PDF
                           </Button>
                           <Button 
                             size="sm"
