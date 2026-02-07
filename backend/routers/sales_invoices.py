@@ -276,7 +276,7 @@ def generate_invoice_for_sales_person(
         
         product = db.query(Product).filter(Product.id == detail.product_id).first()
         detail_responses.append(InvoiceDetailResponse(
-            id=detail.id,
+            id=str(detail.id),
             product_id=detail.product_id,
             product_name=product.name if product else "",
             total_quantity=detail.total_quantity,
@@ -292,7 +292,7 @@ def generate_invoice_for_sales_person(
     ).first()
     
     return InvoiceResponse(
-        id=invoice.id,
+        id=str(invoice.id),
         sales_person_id=invoice.sales_person_id,
         sales_person_name=sales_person.name if sales_person else "",
         invoice_number=invoice.invoice_number,
@@ -584,7 +584,7 @@ async def get_sales_invoices(
         for detail in details:
             product = db.query(Product).filter(Product.id == detail.product_id).first()
             detail_responses.append(InvoiceDetailResponse(
-                id=detail.id,
+                id=str(detail.id),
                 product_id=detail.product_id,
                 product_name=product.name if product else "",
                 total_quantity=detail.total_quantity,
@@ -593,7 +593,7 @@ async def get_sales_invoices(
             ))
         
         result.append(InvoiceResponse(
-            id=invoice.id,
+            id=str(invoice.id),
             sales_person_id=invoice.sales_person_id,
             sales_person_name=sales_person.name if sales_person else "",
             invoice_number=invoice.invoice_number,
@@ -647,7 +647,7 @@ async def get_sales_invoice(
     for detail in details:
         product = db.query(Product).filter(Product.id == detail.product_id).first()
         detail_responses.append(InvoiceDetailResponse(
-            id=detail.id,
+            id=str(detail.id),
             product_id=detail.product_id,
             product_name=product.name if product else "",
             total_quantity=detail.total_quantity,
@@ -656,7 +656,7 @@ async def get_sales_invoice(
         ))
     
     return InvoiceResponse(
-        id=invoice.id,
+        id=str(invoice.id),
         sales_person_id=invoice.sales_person_id,
         sales_person_name=sales_person.name if sales_person else "",
         invoice_number=invoice.invoice_number,
