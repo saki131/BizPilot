@@ -1,6 +1,6 @@
 """PDF生成ヘルパー - 販売員請求書鏡テンプレート準拠"""
 from io import BytesIO
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -79,10 +79,10 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         SalesPerson.id == invoice.sales_person_id
     ).first()
     
-    # PDF生成
+    # PDF生成（横向き）
     buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
+    pdf = canvas.Canvas(buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
     
     # フォント設定
     font_name = setup_japanese_font()
@@ -133,6 +133,15 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO["address1"])
     pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO["address2"])
     
+    # ハンコ画像を追加（会社名の一部に重ねる）
+    stamp_path = os.path.join(os.path.dirname(__file__), "static", "stamp.png")
+    if os.path.exists(stamp_path):
+        # 代表者名の横にハンコを配置（文字に少しかかるように）
+        stamp_size = 25*mm
+        stamp_x = 55*mm  # 会社名の右側
+        stamp_y = issuer_y - 15*mm
+        pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
+    
     # フッター
     footer_y = 30*mm
     pdf.setFont(font_name, 8)
@@ -160,10 +169,10 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
         Contractor.id == invoice.contractor_id
     ).first()
     
-    # PDF生成
+    # PDF生成（横向き）
     buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
+    pdf = canvas.Canvas(buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
     
     # フォント設定
     font_name = setup_japanese_font()
@@ -213,6 +222,15 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.drawString(30*mm, issuer_y - 14*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO["address1"])
     pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO["address2"])
+    
+    # ハンコ画像を追加（会社名の一部に重ねる）
+    stamp_path = os.path.join(os.path.dirname(__file__), "static", "stamp.png")
+    if os.path.exists(stamp_path):
+        # 代表者名の横にハンコを配置（文字に少しかかるように）
+        stamp_size = 25*mm
+        stamp_x = 55*mm  # 会社名の右側
+        stamp_y = issuer_y - 15*mm
+        pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
     # フッター
     footer_y = 30*mm
