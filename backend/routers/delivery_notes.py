@@ -305,8 +305,7 @@ class DeliveryNoteDetailResponse(DeliveryNoteDetailBase):
     id: str
     delivery_note_id: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class DeliveryNoteBase(BaseModel):
     sales_person_id: int
@@ -324,8 +323,7 @@ class DeliveryNoteResponse(DeliveryNoteBase):
     id: str
     details: List[DeliveryNoteDetailResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # Delivery Note endpoints
 @router.get("/", response_model=List[DeliveryNoteResponse])
@@ -334,7 +332,31 @@ async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depen
     print(f"📋 Retrieved {len(delivery_notes)} delivery notes")
     if delivery_notes:
         print(f"📋 Note IDs: {[note.id for note in delivery_notes]}")
-    return delivery_notes
+    
+    return [
+        DeliveryNoteResponse(
+            id=str(note.id),
+            sales_person_id=note.sales_person_id,
+            tax_rate_id=note.tax_rate_id,
+            delivery_date=note.delivery_date,
+            billing_date=note.billing_date,
+            delivery_note_number=note.delivery_note_number,
+            remarks=note.remarks,
+            image_filename=note.image_filename,
+            details=[
+                DeliveryNoteDetailResponse(
+                    id=str(d.id),
+                    delivery_note_id=str(d.delivery_note_id),
+                    product_id=d.product_id,
+                    quantity=d.quantity,
+                    unit_price=d.unit_price,
+                    remarks=d.remarks
+                )
+                for d in note.details
+            ]
+        )
+        for note in delivery_notes
+    ]
 
 @router.post("/", response_model=DeliveryNoteResponse)
 async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
@@ -381,7 +403,29 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
 
         # Refresh to get details
         db.refresh(db_delivery_note)
-        return db_delivery_note
+        
+        # Convert to response format with string IDs
+        return DeliveryNoteResponse(
+            id=str(db_delivery_note.id),
+            sales_person_id=db_delivery_note.sales_person_id,
+            tax_rate_id=db_delivery_note.tax_rate_id,
+            delivery_date=db_delivery_note.delivery_date,
+            billing_date=db_delivery_note.billing_date,
+            delivery_note_number=db_delivery_note.delivery_note_number,
+            remarks=db_delivery_note.remarks,
+            image_filename=db_delivery_note.image_filename,
+            details=[
+                DeliveryNoteDetailResponse(
+                    id=str(d.id),
+                    delivery_note_id=str(d.delivery_note_id),
+                    product_id=d.product_id,
+                    quantity=d.quantity,
+                    unit_price=d.unit_price,
+                    remarks=d.remarks
+                )
+                for d in db_delivery_note.details
+            ]
+        )
     except Exception as e:
         print(f"❌ Error creating delivery note: {str(e)}")
         import traceback
@@ -394,7 +438,28 @@ async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db)
     delivery_note = db.query(DeliveryNote).filter(DeliveryNote.id == delivery_note_id).first()
     if delivery_note is None:
         raise HTTPException(status_code=404, detail="Delivery note not found")
-    return delivery_note
+    
+    return DeliveryNoteResponse(
+        id=str(delivery_note.id),
+        sales_person_id=delivery_note.sales_person_id,
+        tax_rate_id=delivery_note.tax_rate_id,
+        delivery_date=delivery_note.delivery_date,
+        billing_date=delivery_note.billing_date,
+        delivery_note_number=delivery_note.delivery_note_number,
+        remarks=delivery_note.remarks,
+        image_filename=delivery_note.image_filename,
+        details=[
+            DeliveryNoteDetailResponse(
+                id=str(d.id),
+                delivery_note_id=str(d.delivery_note_id),
+                product_id=d.product_id,
+                quantity=d.quantity,
+                unit_price=d.unit_price,
+                remarks=d.remarks
+            )
+            for d in delivery_note.details
+        ]
+    )
 
 @router.put("/{delivery_note_id}", response_model=DeliveryNoteResponse)
 async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNoteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
@@ -424,7 +489,28 @@ async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNot
 
     db.commit()
     db.refresh(db_delivery_note)
-    return db_delivery_note
+    
+    return DeliveryNoteResponse(
+        id=str(db_delivery_note.id),
+        sales_person_id=db_delivery_note.sales_person_id,
+        tax_rate_id=db_delivery_note.tax_rate_id,
+        delivery_date=db_delivery_note.delivery_date,
+        billing_date=db_delivery_note.billing_date,
+        delivery_note_number=db_delivery_note.delivery_note_number,
+        remarks=db_delivery_note.remarks,
+        image_filename=db_delivery_note.image_filename,
+        details=[
+            DeliveryNoteDetailResponse(
+                id=str(d.id),
+                delivery_note_id=str(d.delivery_note_id),
+                product_id=d.product_id,
+                quantity=d.quantity,
+                unit_price=d.unit_price,
+                remarks=d.remarks
+            )
+            for d in db_delivery_note.details
+        ]
+    )
 
 @router.delete("/{delivery_note_id}")
 async def delete_delivery_note(delivery_note_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
