@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, DECIMAL, TIMESTAMP, Text, func, ForeignKey, JSON, Date
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+import uuid
 
 Base = declarative_base()
 
@@ -69,7 +71,7 @@ class DiscountRate(Base):
 class DeliveryNote(Base):
     __tablename__ = "delivery_notes"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     sales_person_id = Column(Integer, ForeignKey("sales_persons.id"))
     tax_rate_id = Column(Integer, ForeignKey("tax_rates.id"))
     quota_amount = Column(Integer, default=0)
@@ -94,8 +96,8 @@ class DeliveryNote(Base):
 class DeliveryNoteDetail(Base):
     __tablename__ = "delivery_note_details"
 
-    id = Column(Integer, primary_key=True, index=True)
-    delivery_note_id = Column(Integer, ForeignKey("delivery_notes.id", ondelete="CASCADE"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    delivery_note_id = Column(UUID(as_uuid=True), ForeignKey("delivery_notes.id", ondelete="CASCADE"))
     product_id = Column(Integer, ForeignKey("products.id"))
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Integer, nullable=False)
@@ -111,7 +113,7 @@ class DeliveryNoteDetail(Base):
 class SalesInvoice(Base):
     __tablename__ = "sales_invoices"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     sales_person_id = Column(Integer, ForeignKey("sales_persons.id"), nullable=False)
     invoice_number = Column(String(50), default="[COMPANY_REGISTRATION_NUMBER]", nullable=False)
     start_date = Column(Date, nullable=False)
@@ -149,8 +151,8 @@ class SalesInvoice(Base):
 class SalesInvoiceDetail(Base):
     __tablename__ = "sales_invoice_details"
     
-    id = Column(Integer, primary_key=True, index=True)
-    sales_invoice_id = Column(Integer, ForeignKey("sales_invoices.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    sales_invoice_id = Column(UUID(as_uuid=True), ForeignKey("sales_invoices.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     total_quantity = Column(Integer, default=0, nullable=False)
     unit_price = Column(Integer, nullable=False)
@@ -164,7 +166,7 @@ class SalesInvoiceDetail(Base):
 class ContractorInvoice(Base):
     __tablename__ = "contractor_invoices"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     contractor_id = Column(Integer, ForeignKey("contractors.id"), nullable=False)
     discount_rate_id = Column(Integer, ForeignKey("discount_rates.id"), nullable=False)
     tax_rate_id = Column(Integer, ForeignKey("tax_rates.id"), nullable=False)
@@ -207,8 +209,8 @@ class ContractorInvoice(Base):
 class ContractorInvoiceDetail(Base):
     __tablename__ = "contractor_invoice_details"
     
-    id = Column(Integer, primary_key=True, index=True)
-    contractor_invoice_id = Column(Integer, ForeignKey("contractor_invoices.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    contractor_invoice_id = Column(UUID(as_uuid=True), ForeignKey("contractor_invoices.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     total_quantity = Column(Integer, default=0, nullable=False)  # 数量
     unit_price = Column(Integer, nullable=False)  # 単価

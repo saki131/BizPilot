@@ -14,7 +14,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, FileImage, X } from 'lucide-react';
 
 interface DeliveryNote {
-  id: number;
+  id: string;
   sales_person_id: number;
   tax_rate_id: number;
   delivery_date: string;
@@ -26,7 +26,7 @@ interface DeliveryNote {
 }
 
 interface DeliveryNoteDetail {
-  id: number;
+  id: string;
   product_id: number;
   quantity: number;
   unit_price: number;

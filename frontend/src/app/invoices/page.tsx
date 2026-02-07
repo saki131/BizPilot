@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Checkbox } from '@/components/ui/checkbox';
 
 interface SalesInvoice {
-  id: number;
+  id: string;
   sales_person_id: number;
   sales_person_name: string;
   invoice_number: string;
@@ -38,7 +38,7 @@ interface SalesInvoice {
 }
 
 interface InvoiceDetail {
-  id: number;
+  id: string;
   product_id: number;
   product_name: string;
   total_quantity: number;
@@ -71,7 +71,7 @@ interface DiscountRate {
 }
 
 interface ContractorInvoice {
-  id: number;
+  id: string;
   contractor_id: number;
   contractor_name: string;
   invoice_number: string;
