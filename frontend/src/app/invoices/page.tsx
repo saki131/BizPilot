@@ -994,6 +994,7 @@ export default function InvoicesPage() {
                 <h3 className="font-semibold text-lg text-gray-700 mb-4 pb-2 border-b">基本情報</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
                   <div className="flex items-center">
+                    <span className="text-base text-gray-600 w-32">請求書番号</span>
                     <span className="text-base font-medium text-gray-900">{selectedInvoice.invoice_number}</span>
                   </div>
                   <div className="flex items-center">
