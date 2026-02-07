@@ -123,7 +123,7 @@ class ContractorInvoiceUpdateRequest(BaseModel):
 
 class ContractorInvoiceDetailResponse(BaseModel):
     """委託先請求書明細レスポンス"""
-    id: int
+    id: str
     product_id: int
     product_name: str
     total_quantity: int
@@ -133,7 +133,7 @@ class ContractorInvoiceDetailResponse(BaseModel):
 
 class ContractorInvoiceResponse(BaseModel):
     """委託先請求書レスポンス"""
-    id: int
+    id: str
     contractor_id: int
     contractor_name: str
     discount_rate: float

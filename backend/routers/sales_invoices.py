@@ -82,7 +82,7 @@ class DiscountRateUpdateRequest(BaseModel):
 
 class InvoiceDetailResponse(BaseModel):
     """請求書明細レスポンス"""
-    id: int
+    id: str
     product_id: int
     product_name: str
     total_quantity: int
@@ -92,7 +92,7 @@ class InvoiceDetailResponse(BaseModel):
 
 class InvoiceResponse(BaseModel):
     """請求書レスポンス"""
-    id: int
+    id: str
     sales_person_id: int
     sales_person_name: str
     invoice_number: str
