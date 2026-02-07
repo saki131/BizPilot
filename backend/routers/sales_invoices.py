@@ -20,7 +20,7 @@ from models import (
     SalesPerson
 )
 from dependencies import get_current_user
-from pdf_generator import generate_sales_invoice_pdf
+from pdf_generator import generate_sales_invoice_pdf, generate_sales_receipt_pdf
 
 router = APIRouter()
 
@@ -732,5 +732,27 @@ async def generate_invoice_pdf(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f"attachment; filename=invoice_{invoice.id}.pdf"
+        }
+    )
+
+
+@router.get("/{invoice_id}/receipt-pdf")
+async def generate_receipt_pdf(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate sales invoice receipt PDF"""
+    invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    pdf_buffer = generate_sales_receipt_pdf(invoice, db)
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=receipt_{invoice.id}.pdf"
         }
     )
