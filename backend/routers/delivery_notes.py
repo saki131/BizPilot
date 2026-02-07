@@ -6,6 +6,7 @@ from dependencies import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
+from uuid import UUID
 import shutil
 import os
 import base64
@@ -301,8 +302,8 @@ class DeliveryNoteDetailCreate(DeliveryNoteDetailBase):
     pass
 
 class DeliveryNoteDetailResponse(DeliveryNoteDetailBase):
-    id: int
-    delivery_note_id: int
+    id: str
+    delivery_note_id: str
 
     class Config:
         from_attributes = True
@@ -320,7 +321,7 @@ class DeliveryNoteCreate(DeliveryNoteBase):
     details: List[DeliveryNoteDetailCreate]
 
 class DeliveryNoteResponse(DeliveryNoteBase):
-    id: int
+    id: str
     details: List[DeliveryNoteDetailResponse]
 
     class Config:
@@ -389,14 +390,14 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
         raise HTTPException(status_code=500, detail=f"Failed to create delivery note: {str(e)}")
 
 @router.get("/{delivery_note_id}", response_model=DeliveryNoteResponse)
-async def get_delivery_note(delivery_note_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     delivery_note = db.query(DeliveryNote).filter(DeliveryNote.id == delivery_note_id).first()
     if delivery_note is None:
         raise HTTPException(status_code=404, detail="Delivery note not found")
     return delivery_note
 
 @router.put("/{delivery_note_id}", response_model=DeliveryNoteResponse)
-async def update_delivery_note(delivery_note_id: int, delivery_note: DeliveryNoteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNoteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_delivery_note = db.query(DeliveryNote).filter(DeliveryNote.id == delivery_note_id).first()
     if db_delivery_note is None:
         raise HTTPException(status_code=404, detail="Delivery note not found")
@@ -426,7 +427,7 @@ async def update_delivery_note(delivery_note_id: int, delivery_note: DeliveryNot
     return db_delivery_note
 
 @router.delete("/{delivery_note_id}")
-async def delete_delivery_note(delivery_note_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def delete_delivery_note(delivery_note_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     print(f"🗑️ Attempting to delete delivery note ID: {delivery_note_id}")
     
     db_delivery_note = db.query(DeliveryNote).filter(DeliveryNote.id == delivery_note_id).first()

@@ -123,7 +123,7 @@ class ContractorInvoiceUpdateRequest(BaseModel):
 
 class ContractorInvoiceDetailResponse(BaseModel):
     """委託先請求書明細レスポンス"""
-    id: int
+    id: str
     product_id: int
     product_name: str
     total_quantity: int
@@ -133,7 +133,7 @@ class ContractorInvoiceDetailResponse(BaseModel):
 
 class ContractorInvoiceResponse(BaseModel):
     """委託先請求書レスポンス"""
-    id: int
+    id: str
     contractor_id: int
     contractor_name: str
     discount_rate: float
@@ -297,7 +297,7 @@ def get_contractor_invoices(
 
 @router.get("/{invoice_id}", response_model=ContractorInvoiceResponse)
 def get_contractor_invoice(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -314,7 +314,7 @@ def get_contractor_invoice(
 
 @router.put("/{invoice_id}", response_model=ContractorInvoiceResponse)
 def update_contractor_invoice(
-    invoice_id: int,
+    invoice_id: str,
     request: ContractorInvoiceUpdateRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
@@ -429,7 +429,7 @@ def update_contractor_invoice(
 
 @router.get("/{invoice_id}/pdf")
 async def generate_contractor_invoice_pdf_endpoint(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -451,7 +451,7 @@ async def generate_contractor_invoice_pdf_endpoint(
 
 @router.delete("/{invoice_id}")
 def delete_contractor_invoice(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):

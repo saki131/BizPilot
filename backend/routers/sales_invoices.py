@@ -82,7 +82,7 @@ class DiscountRateUpdateRequest(BaseModel):
 
 class InvoiceDetailResponse(BaseModel):
     """請求書明細レスポンス"""
-    id: int
+    id: str
     product_id: int
     product_name: str
     total_quantity: int
@@ -92,7 +92,7 @@ class InvoiceDetailResponse(BaseModel):
 
 class InvoiceResponse(BaseModel):
     """請求書レスポンス"""
-    id: int
+    id: str
     sales_person_id: int
     sales_person_name: str
     invoice_number: str
@@ -383,7 +383,7 @@ async def bulk_generate_sales_invoices(
 
 @router.patch("/{invoice_id}")
 async def update_invoice_fields(
-    invoice_id: int,
+    invoice_id: str,
     update_data: InvoiceUpdateRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
@@ -470,7 +470,7 @@ async def update_invoice_fields(
 
 @router.patch("/{invoice_id}/discount-rate")
 async def update_invoice_discount_rate(
-    invoice_id: int,
+    invoice_id: str,
     request: DiscountRateUpdateRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
@@ -620,7 +620,7 @@ async def get_sales_invoices(
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
 async def get_sales_invoice(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -681,7 +681,7 @@ async def get_sales_invoice(
 
 @router.delete("/{invoice_id}")
 async def delete_sales_invoice(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -708,7 +708,7 @@ async def delete_sales_invoice(
 
 @router.get("/{invoice_id}/pdf")
 async def generate_invoice_pdf(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
