@@ -414,7 +414,7 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleDownloadPDF = async (invoiceId: number) => {
+  const handleDownloadPDF = async (invoiceId: string) => {
     try {
       await apiClient.downloadInvoicePDF(invoiceId);
     } catch (error) {
@@ -423,7 +423,7 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleDownloadContractorPDF = async (invoiceId: number) => {
+  const handleDownloadContractorPDF = async (invoiceId: string) => {
     try {
       await apiClient.downloadContractorInvoicePDF(invoiceId);
     } catch (error) {
