@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://bizpilot-backend.fly.dev/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://bizpilot-backend.fly.dev/api';
 
 interface LoginRequest {
   username: string;
