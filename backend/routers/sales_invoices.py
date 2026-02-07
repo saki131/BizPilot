@@ -232,6 +232,9 @@ def generate_invoice_for_sales_person(
         existing_invoice.total_amount_ex_tax = total_amount_ex_tax
         existing_invoice.tax_amount = tax_amount
         existing_invoice.total_amount_inc_tax = total_amount_inc_tax
+        # Set default note if not already set
+        if not existing_invoice.note:
+            existing_invoice.note = "御品代として"
         
         # Delete old details
         db.query(SalesInvoiceDetail).filter(

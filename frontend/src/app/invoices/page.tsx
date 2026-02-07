@@ -986,7 +986,6 @@ export default function InvoicesPage() {
         <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">請求書明細</DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">{selectedInvoice?.invoice_number}</DialogDescription>
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-6">
@@ -995,7 +994,6 @@ export default function InvoicesPage() {
                 <h3 className="font-semibold text-lg text-gray-700 mb-4 pb-2 border-b">基本情報</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
                   <div className="flex items-center">
-                    <span className="text-base text-gray-600 w-32">請求書番号</span>
                     <span className="text-base font-medium text-gray-900">{selectedInvoice.invoice_number}</span>
                   </div>
                   <div className="flex items-center">
