@@ -257,7 +257,8 @@ def generate_invoice_for_sales_person(
             non_quota_total=non_quota_total,
             total_amount_ex_tax=total_amount_ex_tax,
             tax_amount=tax_amount,
-            total_amount_inc_tax=total_amount_inc_tax
+            total_amount_inc_tax=total_amount_inc_tax,
+            note="御品代として"
         )
         db.add(invoice)
     

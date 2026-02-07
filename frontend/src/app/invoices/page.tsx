@@ -640,7 +640,7 @@ export default function InvoicesPage() {
         <Card className="mb-4">
           <CardContent className="p-2">
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-semibold text-gray-700">フィルター</h3>
+              <h3 className="text-sm font-semibold text-gray-700">検索</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -706,7 +706,7 @@ export default function InvoicesPage() {
                   size="sm"
                   onClick={() => setFilters({ startDate: '', endDate: '', salesPersonIds: [] })}
                 >
-                  フィルタークリア
+                  検索条件クリア
                 </Button>
               </div>
             )}
@@ -1264,7 +1264,7 @@ export default function InvoicesPage() {
             <Card className="mb-4">
               <CardContent className="p-2">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-semibold text-gray-700">フィルター</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">検索</h3>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1330,7 +1330,7 @@ export default function InvoicesPage() {
                       size="sm"
                       onClick={() => setContractorFilters({ startDate: '', endDate: '', contractorIds: [] })}
                     >
-                      フィルタークリア
+                      検索条件クリア
                     </Button>
                   </div>
                 )}

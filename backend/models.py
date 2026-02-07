@@ -190,12 +190,11 @@ class SalesInvoice(Base):
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     discount_rate_id = Column(Integer, ForeignKey("discount_rates.id"), nullable=False)
-    
-    # 追加フィールド
+
     # invoice_date: 請求日
     # receipt_date: 領収日
     # non_discountable_amount: 割引対象外金額
-    # note: 備考／但し書き
+    # note: 但し書き
     invoice_date = Column(Date, nullable=True)  # 請求日
     receipt_date = Column(Date, nullable=True)  # 領収日
     non_discountable_amount = Column(Integer, default=0, nullable=False)  # 割引対象外金額
@@ -292,7 +291,7 @@ class ContractorInvoice(Base):
     # note: 備考
     # invoice_date: 請求日
     # payment_due_date: 支払期日
-    # payment_term: 支払条件（但し書き）
+    # payment_term: 但し書き
     # deleted_flag: 削除フラグ
     note = Column(String(500), nullable=True)  # 備考
     invoice_date = Column(Date, nullable=False)  # 請求日
