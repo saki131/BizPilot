@@ -102,6 +102,8 @@ class InvoiceResponse(BaseModel):
     receipt_date: Optional[date] = None
     discount_rate_id: int
     discount_rate: float
+    non_discountable_amount: int
+    note: Optional[str] = None
     quota_subtotal: int
     quota_discount_amount: int
     quota_total: int
@@ -306,6 +308,8 @@ def generate_invoice_for_sales_person(
         receipt_date=invoice.receipt_date,
         discount_rate_id=invoice.discount_rate_id,
         discount_rate=discount_rate_value,
+        non_discountable_amount=invoice.non_discountable_amount,
+        note=invoice.note,
         quota_subtotal=invoice.quota_subtotal,
         quota_discount_amount=invoice.quota_discount_amount,
         quota_total=invoice.quota_total,
@@ -607,6 +611,8 @@ async def get_sales_invoices(
             receipt_date=invoice.receipt_date,
             discount_rate_id=invoice.discount_rate_id,
             discount_rate=discount_rate_value,
+            non_discountable_amount=invoice.non_discountable_amount,
+            note=invoice.note,
             quota_subtotal=invoice.quota_subtotal,
             quota_discount_amount=invoice.quota_discount_amount,
             quota_total=invoice.quota_total,
@@ -670,6 +676,8 @@ async def get_sales_invoice(
         receipt_date=invoice.receipt_date,
         discount_rate_id=invoice.discount_rate_id,
         discount_rate=float(discount_rate.rate) if discount_rate else 0.0,
+        non_discountable_amount=invoice.non_discountable_amount,
+        note=invoice.note,
         quota_subtotal=invoice.quota_subtotal,
         quota_discount_amount=invoice.quota_discount_amount,
         quota_total=invoice.quota_total,
