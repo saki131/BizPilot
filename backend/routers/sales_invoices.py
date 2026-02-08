@@ -27,6 +27,7 @@ router = APIRouter()
 
 class InvoiceUpdateRequest(BaseModel):
     discount_rate_id: Optional[int] = None
+    receipt_date: Optional[date] = None
     note: Optional[str] = None
 
 
@@ -427,6 +428,9 @@ async def update_invoice_fields(
     
     if update_data.note is not None:
         invoice.note = update_data.note
+    
+    if update_data.receipt_date is not None:
+        invoice.receipt_date = update_data.receipt_date
     
     db.commit()
     db.refresh(invoice)

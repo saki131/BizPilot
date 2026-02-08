@@ -115,6 +115,7 @@ class ContractorInvoiceUpdateRequest(BaseModel):
     discount_rate_id: Optional[int] = None
     tax_rate_id: Optional[int] = None
     invoice_date: Optional[date] = None
+    receipt_date: Optional[date] = None
     payment_due_date: Optional[date] = None
     payment_term: Optional[str] = None
     note: Optional[str] = None
@@ -352,6 +353,9 @@ def update_contractor_invoice(
     
     if request.invoice_date is not None:
         invoice.invoice_date = request.invoice_date
+    
+    if request.receipt_date is not None:
+        invoice.receipt_date = request.receipt_date
     
     if request.payment_due_date is not None:
         invoice.payment_due_date = request.payment_due_date

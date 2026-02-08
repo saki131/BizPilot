@@ -290,11 +290,13 @@ class ContractorInvoice(Base):
     # その他
     # note: 備考
     # invoice_date: 請求日
+    # receipt_date: 領収日
     # payment_due_date: 支払期日
     # payment_term: 但し書き
     # deleted_flag: 削除フラグ
     note = Column(String(500), nullable=True)  # 備考
     invoice_date = Column(Date, nullable=False)  # 請求日
+    receipt_date = Column(Date, nullable=True)  # 領収日
     payment_due_date = Column(Date, nullable=True)  # 支払期日
     payment_term = Column(String(200), nullable=True)  # 但
     deleted_flag = Column(Boolean, default=False, nullable=False)  # 削除フラグ
