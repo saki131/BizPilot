@@ -440,6 +440,14 @@ async def update_invoice_fields(
     discount_rate = db.query(DiscountRate).filter(DiscountRate.id == invoice.discount_rate_id).first()
     details = db.query(SalesInvoiceDetail).filter(SalesInvoiceDetail.sales_invoice_id == invoice.id).all()
     
+    # Calculate discount rate value
+    if discount_rate:
+        raw_rate = float(discount_rate.rate)
+        # If rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
+        discount_rate_value = raw_rate / 100 if raw_rate >= 1 else raw_rate
+    else:
+        discount_rate_value = 0.0
+    
     return {
         "id": invoice.id,
         "invoice_number": invoice.invoice_number,
@@ -450,7 +458,7 @@ async def update_invoice_fields(
         "invoice_date": invoice.invoice_date.isoformat() if invoice.invoice_date else None,
         "receipt_date": invoice.receipt_date.isoformat() if invoice.receipt_date else None,
         "discount_rate_id": invoice.discount_rate_id,
-        "discount_rate": discount_rate.rate if discount_rate else 0,
+        "discount_rate": discount_rate_value,
         "quota_subtotal": invoice.quota_subtotal,
         "quota_discount_amount": invoice.quota_discount_amount,
         "quota_total": invoice.quota_total,
@@ -648,6 +656,14 @@ async def get_sales_invoice(
         DiscountRate.id == invoice.discount_rate_id
     ).first()
     
+    # Calculate discount rate value
+    if discount_rate:
+        raw_rate = float(discount_rate.rate)
+        # If rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
+        discount_rate_value = raw_rate / 100 if raw_rate >= 1 else raw_rate
+    else:
+        discount_rate_value = 0.0
+    
     # Get sales person
     sales_person = db.query(SalesPerson).filter(
         SalesPerson.id == invoice.sales_person_id
@@ -675,7 +691,7 @@ async def get_sales_invoice(
         invoice_date=invoice.invoice_date,
         receipt_date=invoice.receipt_date,
         discount_rate_id=invoice.discount_rate_id,
-        discount_rate=float(discount_rate.rate) if discount_rate else 0.0,
+        discount_rate=discount_rate_value,
         note=invoice.note,
         non_discountable_amount=invoice.non_discountable_amount or 0,
         quota_subtotal=invoice.quota_subtotal,
