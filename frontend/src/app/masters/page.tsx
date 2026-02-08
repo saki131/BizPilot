@@ -11,19 +11,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface SalesPerson {
-  id: number;
+  sales_person_id: number;
   name: string;
+  display_order: number;
 }
 
 interface Product {
-  id: number;
+  product_id: number;
   name: string;
   price: number;
+  display_order: number;
 }
 
 interface Contractor {
-  id: number;
+  contractor_id: number;
   name: string;
+  display_order: number;
 }
 
 export default function MastersPage() {
@@ -94,8 +97,8 @@ export default function MastersPage() {
           </TableHeader>
           <TableBody>
             {salesPersons.map((person) => (
-              <TableRow key={person.id}>
-                <TableCell>{person.id}</TableCell>
+              <TableRow key={person.sales_person_id}>
+                <TableCell>{person.sales_person_id}</TableCell>
                 <TableCell>{person.name}</TableCell>
                 <TableCell>
                   <Button variant="outline" size="sm">編集</Button>
@@ -119,8 +122,8 @@ export default function MastersPage() {
           </TableHeader>
           <TableBody>
             {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>{product.id}</TableCell>
+              <TableRow key={product.product_id}>
+                <TableCell>{product.product_id}</TableCell>
                 <TableCell>{product.name}</TableCell>
                 <TableCell>{product.price}</TableCell>
                 <TableCell>
@@ -144,8 +147,8 @@ export default function MastersPage() {
           </TableHeader>
           <TableBody>
             {contractors.map((contractor) => (
-              <TableRow key={contractor.id}>
-                <TableCell>{contractor.id}</TableCell>
+              <TableRow key={contractor.contractor_id}>
+                <TableCell>{contractor.contractor_id}</TableCell>
                 <TableCell>{contractor.name}</TableCell>
                 <TableCell>
                   <Button variant="outline" size="sm">編集</Button>

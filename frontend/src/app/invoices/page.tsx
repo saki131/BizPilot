@@ -47,24 +47,27 @@ interface InvoiceDetail {
 }
 
 interface SalesPerson {
-  id: number;
+  sales_person_id: number;
   name: string;
+  display_order: number;
 }
 
 interface Contractor {
-  id: number;
+  contractor_id: number;
   name: string;
+  display_order: number;
 }
 
 interface Product {
-  id: number;
+  product_id: number;
   name: string;
   price: number;
+  display_order: number;
   quota_target_flag: boolean;
 }
 
 interface DiscountRate {
-  id: number;
+  discount_rate_id: number;
   rate: number;
   threshold_amount: number;
   customer_flag: boolean;
@@ -108,7 +111,7 @@ interface ContractorInvoiceFormData {
 }
 
 interface TaxRate {
-  id: number;
+  tax_rate_id: number;
   rate: number;
   display_name: string;
 }
@@ -239,7 +242,7 @@ export default function InvoicesPage() {
         console.log('[DEBUG] Discount rates from API:', response.data);
         const ratesData = response.data as DiscountRate[];
         ratesData.forEach((rate: any) => {
-          console.log(`[DEBUG]   ID=${rate.id}, rate=${rate.rate} (type: ${typeof rate.rate}), rate*100=${rate.rate * 100}`);
+          console.log(`[DEBUG]   ID=${rate.discount_rate_id}, rate=${rate.rate} (type: ${typeof rate.rate}), rate*100=${rate.rate * 100}`);
         });
         setDiscountRates(ratesData);
       }
@@ -296,7 +299,7 @@ export default function InvoicesPage() {
         if (defaultRate && contractorFormData.tax_rate_id === 0) {
           setContractorFormData(prev => ({
             ...prev,
-            tax_rate_id: defaultRate.id
+            tax_rate_id: defaultRate.tax_rate_id
           }));
         }
       }
@@ -337,7 +340,7 @@ export default function InvoicesPage() {
       const month = String(today.getMonth() + 1).padStart(2, '0');
       setContractorFormData({
         contractor_id: 0,
-        tax_rate_id: defaultTaxRate?.id || 0,
+        tax_rate_id: defaultTaxRate?.tax_rate_id || 0,
         invoice_date: `${year}-${month}-20`,
         receipt_date: '',
         note: '御品代として',
@@ -382,7 +385,7 @@ export default function InvoicesPage() {
     
     // 商品IDが変更された場合、単価を自動設定
     if (field === 'product_id') {
-      const product = products.find(p => p.id === value);
+      const product = products.find(p => p.product_id === value);
       if (product) {
         newDetails[index].unit_price = product.price;
       }
@@ -567,7 +570,7 @@ export default function InvoicesPage() {
     try {
       // 明細のバリデーションと単価の自動設定
       const details = (editingContractorInvoice.details || selectedContractorInvoice.details).map((d: any) => {
-        const product = products.find(p => p.id === d.product_id);
+        const product = products.find(p => p.product_id === d.product_id);
         const unitPrice = d.unit_price || (product?.price || 0);
         
         return {
@@ -702,21 +705,21 @@ export default function InvoicesPage() {
                 <Label className="text-sm">販売員（複数選択可）</Label>
                 <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 bg-white">
                   {salesPersons.map((person) => (
-                    <div key={person.id} className="flex items-center">
+                    <div key={person.sales_person_id} className="flex items-center">
                       <input
                         type="checkbox"
-                        id={`filter_sales_person_${person.id}`}
-                        checked={filters.salesPersonIds.includes(person.id)}
+                        id={`filter_sales_person_${person.sales_person_id}`}
+                        checked={filters.salesPersonIds.includes(person.sales_person_id)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setFilters({ ...filters, salesPersonIds: [...filters.salesPersonIds, person.id] });
+                            setFilters({ ...filters, salesPersonIds: [...filters.salesPersonIds, person.sales_person_id] });
                           } else {
-                            setFilters({ ...filters, salesPersonIds: filters.salesPersonIds.filter(id => id !== person.id) });
+                            setFilters({ ...filters, salesPersonIds: filters.salesPersonIds.filter(id => id !== person.sales_person_id) });
                           }
                         }}
                         className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
-                      <label htmlFor={`filter_sales_person_${person.id}`} className="ml-2 text-sm text-gray-700 cursor-pointer">
+                      <label htmlFor={`filter_sales_person_${person.sales_person_id}`} className="ml-2 text-sm text-gray-700 cursor-pointer">
                         {person.name}
                       </label>
                     </div>
@@ -897,13 +900,13 @@ export default function InvoicesPage() {
                     {!selectAllSalesPersons && (
                       <div className="pl-6 space-y-2 max-h-48 overflow-y-auto border p-2 rounded">
                         {salesPersons.map((sp) => (
-                          <div key={sp.id} className="flex items-center space-x-2">
+                          <div key={sp.sales_person_id} className="flex items-center space-x-2">
                             <Checkbox
-                              id={`sp-${sp.id}`}
-                              checked={selectedSalesPersonIds.includes(sp.id)}
-                              onCheckedChange={() => toggleSalesPerson(sp.id)}
+                              id={`sp-${sp.sales_person_id}`}
+                              checked={selectedSalesPersonIds.includes(sp.sales_person_id)}
+                              onCheckedChange={() => toggleSalesPerson(sp.sales_person_id)}
                             />
-                            <label htmlFor={`sp-${sp.id}`}>
+                            <label htmlFor={`sp-${sp.sales_person_id}`}>
                               {sp.name}
                             </label>
                           </div>
@@ -942,7 +945,7 @@ export default function InvoicesPage() {
                     dr => dr.customer_flag && dr.rate === 0.10
                   );
                   if (tenPercentRate) {
-                    handleChangeDiscountRate(tenPercentRate.id);
+                    handleChangeDiscountRate(tenPercentRate.discount_rate_id);
                   }
                 }}
                 className="flex-1 text-white bg-blue-600 hover:bg-blue-700"
@@ -1220,7 +1223,7 @@ export default function InvoicesPage() {
                       .filter(dr => dr.customer_flag)
                       .sort((a, b) => a.rate - b.rate)
                       .map((rate) => (
-                        <option key={rate.id} value={rate.id}>
+                        <option key={rate.discount_rate_id} value={rate.discount_rate_id}>
                           {rate.rate >= 1 ? Math.round(rate.rate) : Math.round(rate.rate * 100)}%
                         </option>
                       ))}
@@ -1319,21 +1322,21 @@ export default function InvoicesPage() {
                     <Label className="text-sm">委託先（複数選択可）</Label>
                     <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 bg-white">
                       {contractors.map((contractor) => (
-                        <div key={contractor.id} className="flex items-center">
+                        <div key={contractor.contractor_id} className="flex items-center">
                           <input
                             type="checkbox"
-                            id={`filter_contractor_${contractor.id}`}
-                            checked={contractorFilters.contractorIds.includes(contractor.id)}
+                            id={`filter_contractor_${contractor.contractor_id}`}
+                            checked={contractorFilters.contractorIds.includes(contractor.contractor_id)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setContractorFilters({ ...contractorFilters, contractorIds: [...contractorFilters.contractorIds, contractor.id] });
+                                setContractorFilters({ ...contractorFilters, contractorIds: [...contractorFilters.contractorIds, contractor.contractor_id] });
                               } else {
-                                setContractorFilters({ ...contractorFilters, contractorIds: contractorFilters.contractorIds.filter(id => id !== contractor.id) });
+                                setContractorFilters({ ...contractorFilters, contractorIds: contractorFilters.contractorIds.filter(id => id !== contractor.contractor_id) });
                               }
                             }}
                             className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
-                          <label htmlFor={`filter_contractor_${contractor.id}`} className="ml-2 text-sm text-gray-700 cursor-pointer">
+                          <label htmlFor={`filter_contractor_${contractor.contractor_id}`} className="ml-2 text-sm text-gray-700 cursor-pointer">
                             {contractor.name}
                           </label>
                         </div>
@@ -1480,7 +1483,7 @@ export default function InvoicesPage() {
                       </SelectTrigger>
                       <SelectContent className="bg-white">
                         {contractors.map((c) => (
-                          <SelectItem key={c.id} value={c.id.toString()}>
+                          <SelectItem key={c.contractor_id} value={c.contractor_id.toString()}>
                             {c.name}
                           </SelectItem>
                         ))}
@@ -1499,7 +1502,7 @@ export default function InvoicesPage() {
                       </SelectTrigger>
                       <SelectContent className="bg-white">
                         {taxRates.map((rate) => (
-                          <SelectItem key={rate.id} value={rate.id.toString()}>
+                          <SelectItem key={rate.tax_rate_id} value={rate.tax_rate_id.toString()}>
                             {rate.display_name}
                           </SelectItem>
                         ))}
@@ -1532,7 +1535,7 @@ export default function InvoicesPage() {
                     <Label>商品明細</Label>
                     <div className="space-y-3 mt-2">
                       {contractorFormData.details.map((detail, index) => {
-                        const selectedProduct = products.find(p => p.id === detail.product_id);
+                        const selectedProduct = products.find(p => p.product_id === detail.product_id);
                         return (
                           <div key={index} className="p-4 bg-gray-50 rounded-lg">
                             <div className="flex gap-3 items-end">
@@ -1547,7 +1550,7 @@ export default function InvoicesPage() {
                                   </SelectTrigger>
                                   <SelectContent className="bg-white">
                                     {products.map((p) => (
-                                      <SelectItem key={p.id} value={p.id.toString()}>
+                                      <SelectItem key={p.product_id} value={p.product_id.toString()}>
                                         {p.name}
                                       </SelectItem>
                                     ))}
@@ -1826,7 +1829,7 @@ export default function InvoicesPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-white">
-                              {contractors.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                              {contractors.map(c => <SelectItem key={c.contractor_id} value={c.contractor_id.toString()}>{c.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
@@ -1874,7 +1877,7 @@ export default function InvoicesPage() {
                       <h3 className="font-semibold text-sm text-gray-700 border-b pb-2">商品明細</h3>
                       <div className="space-y-2">
                         {(editingContractorInvoice.details || selectedContractorInvoice.details).map((detail: any, index: number) => {
-                          const product = products.find(p => p.id === (detail.product_id || selectedContractorInvoice.details[index]?.product_id));
+                          const product = products.find(p => p.product_id === (detail.product_id || selectedContractorInvoice.details[index]?.product_id));
                           const isNewItem = editingContractorInvoice.details && !selectedContractorInvoice.details.find((d: any) => d.product_id === detail.product_id);
                           
                           return (
@@ -1887,7 +1890,7 @@ export default function InvoicesPage() {
                                       <Select 
                                         value={detail.product_id?.toString() || ''} 
                                         onValueChange={(v) => {
-                                          const selectedProduct = products.find(p => p.id === parseInt(v));
+                                          const selectedProduct = products.find(p => p.product_id === parseInt(v));
                                           const updatedDetails = [...(editingContractorInvoice.details || selectedContractorInvoice.details)];
                                           updatedDetails[index] = { 
                                             ...updatedDetails[index], 
@@ -1902,7 +1905,7 @@ export default function InvoicesPage() {
                                         </SelectTrigger>
                                         <SelectContent className="bg-white">
                                           {products.map(p => (
-                                            <SelectItem key={p.id} value={p.id.toString()}>
+                                            <SelectItem key={p.product_id} value={p.product_id.toString()}>
                                               {p.name}
                                             </SelectItem>
                                           ))}

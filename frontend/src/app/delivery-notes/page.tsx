@@ -34,19 +34,22 @@ interface DeliveryNoteDetail {
 }
 
 interface SalesPerson {
-  id: number;
+  sales_person_id: number;
   name: string;
+  display_order: number;
 }
 
 interface Product {
-  id: number;
+  product_id: number;
   name: string;
   price: number;
+  display_order: number;
 }
 
 interface Contractor {
-  id: number;
+  contractor_id: number;
   name: string;
+  display_order: number;
 }
 
 interface RecognitionResult {
@@ -565,7 +568,7 @@ export default function DeliveryNotesPage() {
 
       // 商品マスタから単価を取得して明細を作成
       const details = newDeliveryNote.details.map(detail => {
-        const product = products.find(p => p.id.toString() === detail.product_id);
+        const product = products.find(p => p.product_id.toString() === detail.product_id);
         return {
           product_id: parseInt(detail.product_id),
           quantity: parseInt(detail.quantity),
@@ -677,7 +680,7 @@ export default function DeliveryNotesPage() {
     try {
       // 明細のバリデーションと単価の自動設定
       const details = editingNote.details.map((d: any) => {
-        const product = products.find(p => p.id === parseInt(d.product_id));
+        const product = products.find(p => p.product_id === parseInt(d.product_id));
         const unitPrice = d.unit_price ? parseInt(d.unit_price) : (product?.price || 0);
         
         return {
@@ -832,21 +835,21 @@ export default function DeliveryNotesPage() {
                       <Label className="text-sm">販売員（複数選択可）</Label>
                       <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 bg-white">
                         {salesPersons.map((person) => (
-                          <div key={person.id} className="flex items-center">
+                          <div key={person.sales_person_id} className="flex items-center">
                             <input
                               type="checkbox"
-                              id={`sales_person_${person.id}`}
-                              checked={filters.salesPersonIds.includes(person.id.toString())}
+                              id={`sales_person_${person.sales_person_id}`}
+                              checked={filters.salesPersonIds.includes(person.sales_person_id.toString())}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setFilters({ ...filters, salesPersonIds: [...filters.salesPersonIds, person.id.toString()] });
+                                  setFilters({ ...filters, salesPersonIds: [...filters.salesPersonIds, person.sales_person_id.toString()] });
                                 } else {
-                                  setFilters({ ...filters, salesPersonIds: filters.salesPersonIds.filter(id => id !== person.id.toString()) });
+                                  setFilters({ ...filters, salesPersonIds: filters.salesPersonIds.filter(id => id !== person.sales_person_id.toString()) });
                                 }
                               }}
                               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
-                            <label htmlFor={`sales_person_${person.id}`} className="ml-2 text-sm text-gray-700 cursor-pointer">
+                            <label htmlFor={`sales_person_${person.sales_person_id}`} className="ml-2 text-sm text-gray-700 cursor-pointer">
                               {person.name}
                             </label>
                           </div>
@@ -899,7 +902,7 @@ export default function DeliveryNotesPage() {
                       return b.delivery_date.localeCompare(a.delivery_date);
                     })
                     .map((note) => {
-                    const salesPerson = salesPersons.find(sp => sp.id === note.sales_person_id);
+                    const salesPerson = salesPersons.find(sp => sp.sales_person_id === note.sales_person_id);
                     const totalAmount = note.details.reduce((sum, detail) => sum + (detail.quantity * detail.unit_price), 0);
                     const taxAmount = Math.floor(totalAmount * 0.1);
                     const totalWithTax = totalAmount + taxAmount;
@@ -947,7 +950,7 @@ export default function DeliveryNotesPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
                       <div className="flex items-center">
                         <span className="text-base text-gray-600 w-28">販売員</span>
-                        <span className="text-base font-medium text-gray-900">{salesPersons.find(sp => sp.id === selectedNote.sales_person_id)?.name}</span>
+                        <span className="text-base font-medium text-gray-900">{salesPersons.find(sp => sp.sales_person_id === selectedNote.sales_person_id)?.name}</span>
                       </div>
                       <div className="flex items-center">
                         <span className="text-base text-gray-600 w-28">税率</span>
@@ -996,7 +999,7 @@ export default function DeliveryNotesPage() {
                               }`}
                             >
                               <TableCell className="text-sm text-gray-900 py-3 px-3 font-medium">
-                                {products.find(p => p.id === d.product_id)?.name || d.product_id}
+                                {products.find(p => p.product_id === d.product_id)?.name || d.product_id}
                               </TableCell>
                               <TableCell className="text-center text-sm text-gray-900 py-3 px-2">
                                 {d.quantity}
@@ -1085,7 +1088,7 @@ export default function DeliveryNotesPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-white">
-                            {salesPersons.map(sp => <SelectItem key={sp.id} value={sp.id.toString()}>{sp.name}</SelectItem>)}
+                            {salesPersons.map(sp => <SelectItem key={sp.sales_person_id} value={sp.sales_person_id.toString()}>{sp.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1157,7 +1160,7 @@ export default function DeliveryNotesPage() {
                     <h3 className="font-semibold text-sm text-gray-700 border-b pb-2">商品明細</h3>
                     <div className="space-y-2">
                       {editingNote.details.map((detail: any, index: number) => {
-                        const product = products.find(p => p.id === parseInt(detail.product_id));
+                        const product = products.find(p => p.product_id === parseInt(detail.product_id));
                         const quantity = parseInt(detail.quantity) || 0;
                         const isNewItem = !selectedNote?.details.find(d => d.product_id === parseInt(detail.product_id));
                         
@@ -1171,7 +1174,7 @@ export default function DeliveryNotesPage() {
                                     <Select 
                                       value={detail.product_id?.toString() || ''} 
                                       onValueChange={(v) => {
-                                        const selectedProduct = products.find(p => p.id === parseInt(v));
+                                        const selectedProduct = products.find(p => p.product_id === parseInt(v));
                                         const updatedDetails = [...editingNote.details];
                                         updatedDetails[index] = { 
                                           ...updatedDetails[index], 
@@ -1186,7 +1189,7 @@ export default function DeliveryNotesPage() {
                                       </SelectTrigger>
                                       <SelectContent className="bg-white">
                                         {products.map(p => (
-                                          <SelectItem key={p.id} value={p.id.toString()}>
+                                          <SelectItem key={p.product_id} value={p.product_id.toString()}>
                                             {p.name}
                                           </SelectItem>
                                         ))}
@@ -1268,7 +1271,7 @@ export default function DeliveryNotesPage() {
                 {selectedNote && (
                   <div className="bg-gray-50 p-3 rounded text-sm space-y-1">
                     <p><span className="font-medium">納品書番号:</span> {selectedNote.delivery_note_number}</p>
-                    <p><span className="font-medium">販売員:</span> {salesPersons.find(sp => sp.id === selectedNote.sales_person_id)?.name}</p>
+                    <p><span className="font-medium">販売員:</span> {salesPersons.find(sp => sp.sales_person_id === selectedNote.sales_person_id)?.name}</p>
                   </div>
                 )}
                 <p className="text-sm text-red-600">この操作は取り消せません。</p>
@@ -1313,7 +1316,7 @@ export default function DeliveryNotesPage() {
                           </SelectTrigger>
                           <SelectContent className="bg-white">
                             {salesPersons.map((person) => (
-                              <SelectItem key={person.id} value={person.id.toString()}>
+                              <SelectItem key={person.sales_person_id} value={person.sales_person_id.toString()}>
                                 {person.name}
                               </SelectItem>
                             ))}
@@ -1376,7 +1379,7 @@ export default function DeliveryNotesPage() {
                     <h3 className="text-lg font-medium">商品明細</h3>
                     <div className="space-y-3">
                       {newDeliveryNote.details.map((detail, index) => {
-                        const selectedProduct = products.find(p => p.id.toString() === detail.product_id);
+                        const selectedProduct = products.find(p => p.product_id.toString() === detail.product_id);
                         return (
                           <div key={index} className="p-4 bg-gray-50 rounded-lg">
                             <div className="flex gap-3 items-end">
@@ -1388,7 +1391,7 @@ export default function DeliveryNotesPage() {
                                   </SelectTrigger>
                                   <SelectContent className="bg-white">
                                     {products.map((product) => (
-                                      <SelectItem key={product.id} value={product.id.toString()}>
+                                      <SelectItem key={product.product_id} value={product.product_id.toString()}>
                                         {product.name} 
                                       </SelectItem>
                                     ))}
@@ -1549,8 +1552,8 @@ export default function DeliveryNotesPage() {
                                           <div className="flex justify-between py-1 border-b border-green-200">
                                             <span className="font-medium">販売員:</span>
                                             <span>
-                                              {salesPersons.find(sp => sp.id === Number(image.recognitionResult?.salesPersonId))?.name 
-                                                || salesPersons.find(sp => String(sp.id) === String(image.recognitionResult?.salesPersonId))?.name
+                                              {salesPersons.find(sp => sp.sales_person_id === Number(image.recognitionResult?.salesPersonId))?.name 
+                                                || salesPersons.find(sp => String(sp.sales_person_id) === String(image.recognitionResult?.salesPersonId))?.name
                                                 || '不明'}
                                             </span>
                                           </div>
@@ -1569,8 +1572,8 @@ export default function DeliveryNotesPage() {
                                             <p className="font-medium mb-2">📋 商品明細:</p>
                                             <div className="space-y-1 max-h-[300px] overflow-y-auto">
                                               {image.recognitionResult.details?.map((detail, idx) => {
-                                                const product = products.find(p => p.id === Number(detail.productId)) 
-                                                  || products.find(p => String(p.id) === String(detail.productId));
+                                                const product = products.find(p => p.product_id === Number(detail.productId)) 
+                                                  || products.find(p => String(p.product_id) === String(detail.productId));
                                                 const amount = detail.quantity * detail.unitPrice;
                                                 return (
                                                   <div key={idx} className="bg-white bg-opacity-70 p-2 rounded text-xs">
