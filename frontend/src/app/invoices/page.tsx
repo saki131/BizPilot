@@ -143,6 +143,7 @@ export default function InvoicesPage() {
   const [editingContractorInvoice, setEditingContractorInvoice] = useState<{
     contractor_id: number;
     invoice_date: string;
+    receipt_date?: string;
     note: string;
     details: {
       product_id: number;
@@ -152,6 +153,7 @@ export default function InvoicesPage() {
   }>({
     contractor_id: 0,
     invoice_date: '',
+    receipt_date: '',
     note: '',
     details: []
   });
@@ -575,6 +577,7 @@ export default function InvoicesPage() {
       const updateData = {
         contractor_id: editingContractorInvoice.contractor_id,
         invoice_date: editingContractorInvoice.invoice_date,
+        receipt_date: editingContractorInvoice.receipt_date,
         note: editingContractorInvoice.note,
         details
       };
@@ -1223,6 +1226,15 @@ export default function InvoicesPage() {
               </>
             )}
             <div>
+              <Label>領収日</Label>
+              <Input
+                type="date"
+                value={editingInvoice.receipt_date || selectedInvoice?.receipt_date || ''}
+                onChange={(e) => setEditingInvoice({...editingInvoice, receipt_date: e.target.value})}
+                className="mt-1"
+              />
+            </div>
+            <div>
               <Label>但（ただし書き）</Label>
               <Input
                 value={editingInvoice.note || ''}
@@ -1814,6 +1826,16 @@ export default function InvoicesPage() {
                             className="w-40 mt-1"
                             value={editingContractorInvoice.invoice_date || selectedContractorInvoice.invoice_date || ''} 
                             onChange={(e) => setEditingContractorInvoice({...editingContractorInvoice, invoice_date: e.target.value})} 
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="receipt_date">領収日</Label>
+                          <Input 
+                            id="receipt_date"
+                            type="date" 
+                            className="w-40 mt-1"
+                            value={editingContractorInvoice.receipt_date || selectedContractorInvoice.receipt_date || ''} 
+                            onChange={(e) => setEditingContractorInvoice({...editingContractorInvoice, receipt_date: e.target.value})} 
                           />
                         </div>
                         <div>
