@@ -10,7 +10,7 @@ export default function Home() {
     // Check if user is logged in
     const token = localStorage.getItem('access_token');
     if (token) {
-      router.push('/dashboard');
+      router.push('/delivery-notes');
     } else {
       router.push('/login');
     }
