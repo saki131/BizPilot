@@ -226,6 +226,7 @@ def generate_invoice_for_sales_person(
         existing_invoice.discount_rate_id = discount_rate.id
         existing_invoice.invoice_date = invoice_date
         existing_invoice.receipt_date = receipt_date
+        existing_invoice.note = '御品代として'
         existing_invoice.quota_subtotal = quota_subtotal
         existing_invoice.quota_discount_amount = quota_discount_amount
         existing_invoice.quota_total = quota_total
@@ -252,6 +253,7 @@ def generate_invoice_for_sales_person(
             invoice_date=invoice_date,
             receipt_date=receipt_date,
             discount_rate_id=discount_rate.id,
+            note='御品代として',
             quota_subtotal=quota_subtotal,
             quota_discount_amount=quota_discount_amount,
             quota_total=quota_total,
