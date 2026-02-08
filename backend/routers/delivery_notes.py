@@ -49,9 +49,9 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
         print(f"Loaded {len(sales_persons)} sales persons, {len(products)} products, {len(tax_rates)} tax rates")
         
         # マスタデータをプロンプト用に整形
-        sales_person_list = [f"{sp.id}: {sp.name}" for sp in sales_persons]
-        product_list = [f"{p.id}: {p.name} (¥{p.price})" for p in products]
-        tax_rate_list = [f"{tr.id}: {tr.display_name} ({tr.rate}%)" for tr in tax_rates]
+        sales_person_list = [f"{sp.sales_person_id}: {sp.name}" for sp in sales_persons]
+        product_list = [f"{p.product_id}: {p.name} (¥{p.price})" for p in products]
+        tax_rate_list = [f"{tr.tax_rate_id}: {tr.display_name} ({tr.rate}%)" for tr in tax_rates]
         
         # 画像をBase64エンコード
         with open(image_path, "rb") as image_file:
@@ -205,7 +205,7 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
                         
                         # 結果に追加情報を付与
                         result["taxRate"] = {
-                            "id": tax_rate.id,
+                            "id": tax_rate.tax_rate_id,
                             "rate": tax_rate.rate,
                             "display_name": tax_rate.display_name
                         }
@@ -244,7 +244,7 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
                                 
                                 # 結果に追加情報を付与
                                 result["taxRate"] = {
-                                    "id": tax_rate.id,
+                                    "id": tax_rate.tax_rate_id,
                                     "rate": tax_rate.rate,
                                     "display_name": tax_rate.display_name
                                 }
