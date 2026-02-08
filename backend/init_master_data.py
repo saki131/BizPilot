@@ -11,11 +11,29 @@ ADMIN_HASH = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyWpQkn.U84i"
 def init_data():
     db = SessionLocal()
     try:
-        # ユーザー
-        db.add(User(username="admin", hashed_password=ADMIN_HASH, deleted_flag=False))
+        # ユーザー（既存をチェック）
+        existing_admin = db.query(User).filter(User.username == "admin").first()
+        if not existing_admin:
+            db.add(User(username="admin", hashed_password=ADMIN_HASH, deleted_flag=False))
+            print("✅ adminユーザーを作成しました")
+        else:
+            print("ℹ️  adminユーザーは既に存在します")
         
-        # 税率
-        db.add(TaxRate(rate=0.10, display_name="10%", deleted_flag=False))
+        # 税率（既存をチェック）
+        existing_tax = db.query(TaxRate).first()
+        if not existing_tax:
+            db.add(TaxRate(rate=0.10, display_name="10%", deleted_flag=False))
+            print("✅ 税率を作成しました")
+        else:
+            print("ℹ️  税率は既に存在します")
+        
+        # 既存のマスタデータを削除
+        print("🗑️  既存のマスタデータを削除中...")
+        db.query(SalesPerson).delete()
+        db.query(Product).delete()
+        db.query(Contractor).delete()
+        db.query(DiscountRate).delete()
+        print("✅ 既存のマスタデータを削除しました")
         
         # 割引率
         db.add(DiscountRate(rate=0.00, threshold_amount=0, customer_flag=True, deleted_flag=False))
