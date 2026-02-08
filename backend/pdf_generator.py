@@ -138,17 +138,16 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     # ハンコ画像を追加（会社名の一部に重ねる）
     stamp_path = os.path.join(os.path.dirname(__file__), "static", "stamp.png")
     if os.path.exists(stamp_path):
-        # 代表者名の横にハンコを配置（文字に少しかかるように）
+        # 会社名の横にハンコを配置（文字に少しかかるように）
         stamp_size = 16*mm
         stamp_x = 75*mm  # 会社名の右側
-        stamp_y = issuer_y*mm
+        stamp_y = issuer_y - 21*mm
         pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
     # フッター
     footer_y = 30*mm
     pdf.setFont(font_name, 8)
     pdf.drawCentredString(width / 2, footer_y, "上記の金額を正に領収いたしました。")
-    pdf.drawCentredString(width / 2, footer_y - 7*mm, "※再発行はいたしません")
     
     pdf.save()
     buffer.seek(0)
