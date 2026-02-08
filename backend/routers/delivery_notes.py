@@ -328,7 +328,7 @@ class DeliveryNoteResponse(DeliveryNoteBase):
 # Delivery Note endpoints
 @router.get("/", response_model=List[DeliveryNoteResponse])
 async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    delivery_notes = db.query(DeliveryNote).all()
+    delivery_notes = db.query(DeliveryNote).filter(DeliveryNote.deleted_flag == False).all()
     print(f"📋 Retrieved {len(delivery_notes)} delivery notes")
     if delivery_notes:
         print(f"📋 Note IDs: {[note.id for note in delivery_notes]}")
@@ -528,14 +528,14 @@ async def delete_delivery_note(delivery_note_id: str, db: Session = Depends(get_
     print(f"✅ Found delivery note: {db_delivery_note.id}, Number: {db_delivery_note.delivery_note_number}")
     
     try:
-        # Delete all details first with synchronize_session
-        deleted_details = db.query(DeliveryNoteDetail).filter(
-            DeliveryNoteDetail.delivery_note_id == delivery_note_id
-        ).delete(synchronize_session=False)
-        print(f"🗑️ Deleted {deleted_details} detail records")
+        # 論理削除: deleted_flagをTrueに設定
+        db_delivery_note.deleted_flag = True
         
-        # Delete the delivery note
-        db.delete(db_delivery_note)
+        # 明細も論理削除
+        db.query(DeliveryNoteDetail).filter(
+            DeliveryNoteDetail.delivery_note_id == delivery_note_id
+        ).update({DeliveryNoteDetail.deleted_flag: True}, synchronize_session=False)
+        
         db.commit()
         print(f"✅ Successfully deleted delivery note ID: {delivery_note_id}")
         return {"message": "Delivery note deleted"}

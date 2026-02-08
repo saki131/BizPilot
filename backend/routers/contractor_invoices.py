@@ -483,16 +483,23 @@ async def generate_contractor_invoice_pdf_endpoint(
 
 @router.delete("/{invoice_id}")
 def delete_contractor_invoice(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    """委託先請求書削除"""
+    """委託先請求書削除（論理削除）"""
     invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
-    db.delete(invoice)
+    # 論理削除: deleted_flagをTrueに設定
+    invoice.deleted_flag = True
+    
+    # 明細も論理削除
+    db.query(ContractorInvoiceDetail).filter(
+        ContractorInvoiceDetail.contractor_invoice_id == invoice_id
+    ).update({ContractorInvoiceDetail.deleted_flag: True}, synchronize_session=False)
+    
     db.commit()
     
     return {"message": "Invoice deleted successfully"}

@@ -18,6 +18,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
+    deleted_flag = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -142,6 +143,7 @@ class DeliveryNote(Base):
     billing_date = Column(TIMESTAMP, nullable=False)
     image_recognition_data = Column(JSON)
     image_filename = Column(String(500))  # 画像ファイル名
+    deleted_flag = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -168,6 +170,7 @@ class DeliveryNoteDetail(Base):
     unit_price = Column(Integer, nullable=False)
     amount = Column(Integer, nullable=False)
     remarks = Column(String(200))
+    deleted_flag = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -223,6 +226,7 @@ class SalesInvoice(Base):
     total_amount_ex_tax = Column(Integer, default=0, nullable=False)
     tax_amount = Column(Integer, default=0, nullable=False)
     total_amount_inc_tax = Column(Integer, default=0, nullable=False)
+    deleted_flag = Column(Boolean, default=False)
     
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
@@ -248,6 +252,7 @@ class SalesInvoiceDetail(Base):
     total_quantity = Column(Integer, default=0, nullable=False)
     unit_price = Column(Integer, nullable=False)
     amount = Column(Integer, nullable=False)
+    deleted_flag = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     

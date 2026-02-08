@@ -715,18 +715,19 @@ async def delete_sales_invoice(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Delete sales invoice"""
+    """Delete sales invoice (soft delete)"""
     invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
-    # Delete invoice details first (cascade)
+    # 論理削除: deleted_flagをTrueに設定
+    invoice.deleted_flag = True
+    
+    # 明細も論理削除
     db.query(SalesInvoiceDetail).filter(
         SalesInvoiceDetail.sales_invoice_id == invoice_id
-    ).delete()
+    ).update({SalesInvoiceDetail.deleted_flag: True}, synchronize_session=False)
     
-    # Delete invoice
-    db.delete(invoice)
     db.commit()
     
     return {

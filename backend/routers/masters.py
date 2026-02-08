@@ -84,14 +84,15 @@ async def delete_sales_person(sales_person_id: int, db: Session = Depends(get_db
     db_sales_person = db.query(SalesPerson).filter(SalesPerson.id == sales_person_id).first()
     if db_sales_person is None:
         raise HTTPException(status_code=404, detail="Sales person not found")
-    db.delete(db_sales_person)
+    # 論理削除
+    db_sales_person.deleted_flag = True
     db.commit()
     return {"message": "Sales person deleted"}
 
 # Product endpoints
 @router.get("/products", response_model=List[ProductResponse])
 async def get_products(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    products = db.query(Product).all()
+    products = db.query(Product).filter(Product.deleted_flag == False).all()
     return products
 
 @router.post("/products", response_model=ProductResponse)
@@ -125,14 +126,15 @@ async def delete_product(product_id: int, db: Session = Depends(get_db), current
     db_product = db.query(Product).filter(Product.id == product_id).first()
     if db_product is None:
         raise HTTPException(status_code=404, detail="Product not found")
-    db.delete(db_product)
+    # 論理削除
+    db_product.deleted_flag = True
     db.commit()
     return {"message": "Product deleted"}
 
 # Contractor endpoints
 @router.get("/contractors", response_model=List[ContractorResponse])
 async def get_contractors(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    contractors = db.query(Contractor).all()
+    contractors = db.query(Contractor).filter(Contractor.deleted_flag == False).all()
     return contractors
 
 @router.post("/contractors", response_model=ContractorResponse)
@@ -166,7 +168,8 @@ async def delete_contractor(contractor_id: int, db: Session = Depends(get_db), c
     db_contractor = db.query(Contractor).filter(Contractor.id == contractor_id).first()
     if db_contractor is None:
         raise HTTPException(status_code=404, detail="Contractor not found")
-    db.delete(db_contractor)
+    # 論理削除
+    db_contractor.deleted_flag = True
     db.commit()
     return {"message": "Contractor deleted"}
 
