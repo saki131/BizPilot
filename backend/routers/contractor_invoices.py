@@ -24,15 +24,36 @@ router = APIRouter()
 
 
 # Helper function to create ContractorInvoiceResponse
-def create_invoice_response(invoice: ContractorInvoice) -> "ContractorInvoiceResponse":
+def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "ContractorInvoiceResponse":
     """委託先請求書レスポンスを作成"""
+    # Get related data
+    contractor = db.query(Contractor).filter(Contractor.id == invoice.contractor_id).first()
+    discount_rate = db.query(DiscountRate).filter(DiscountRate.id == invoice.discount_rate_id).first()
+    tax_rate = db.query(TaxRate).filter(TaxRate.id == invoice.tax_rate_id).first()
+    details = db.query(ContractorInvoiceDetail).filter(ContractorInvoiceDetail.contractor_invoice_id == invoice.id).all()
+    
+    # Calculate discount rate value (convert from percentage if needed)
+    if discount_rate:
+        raw_rate = float(discount_rate.rate)
+        discount_rate_value = raw_rate / 100 if raw_rate >= 1 else raw_rate
+    else:
+        discount_rate_value = 0.0
+    
+    # Calculate tax rate value (convert from percentage if needed)
+    if tax_rate:
+        raw_tax_rate = float(tax_rate.rate)
+        tax_rate_value = raw_tax_rate / 100 if raw_tax_rate >= 1 else raw_tax_rate
+    else:
+        tax_rate_value = 0.0
+    
     return ContractorInvoiceResponse(
         id=str(invoice.id),
         contractor_id=invoice.contractor_id,
-        contractor_name=invoice.contractor.name,
-        discount_rate=float(invoice.discount_rate.rate),
-        tax_rate=float(invoice.tax_rate.rate),
+        contractor_name=contractor.name if contractor else "",
+        discount_rate=discount_rate_value,
+        tax_rate=tax_rate_value,
         invoice_date=invoice.invoice_date,
+        receipt_date=invoice.receipt_date,
         payment_due_date=invoice.payment_due_date,
         payment_term=invoice.payment_term,
         note=invoice.note,
@@ -52,12 +73,12 @@ def create_invoice_response(invoice: ContractorInvoice) -> "ContractorInvoiceRes
             ContractorInvoiceDetailResponse(
                 id=str(d.id),
                 product_id=d.product_id,
-                product_name=d.product.name,
+                product_name=db.query(Product).filter(Product.id == d.product_id).first().name,
                 total_quantity=d.total_quantity,
                 unit_price=d.unit_price,
                 amount=d.amount
             )
-            for d in invoice.details
+            for d in details
         ]
     )
 
@@ -140,6 +161,7 @@ class ContractorInvoiceResponse(BaseModel):
     discount_rate: float
     tax_rate: float
     invoice_date: date
+    receipt_date: Optional[date]
     payment_due_date: Optional[date]
     payment_term: Optional[str]
     note: Optional[str]
@@ -293,7 +315,7 @@ def get_contractor_invoices(
         ContractorInvoice.invoice_date.desc()
     ).offset(skip).limit(limit).all()
     
-    return [create_invoice_response(inv) for inv in invoices]
+    return [create_invoice_response(inv, db) for inv in invoices]
 
 
 @router.get("/{invoice_id}", response_model=ContractorInvoiceResponse)
@@ -310,7 +332,7 @@ def get_contractor_invoice(
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
-    return create_invoice_response(invoice)
+    return create_invoice_response(invoice, db)
 
 
 @router.put("/{invoice_id}", response_model=ContractorInvoiceResponse)
