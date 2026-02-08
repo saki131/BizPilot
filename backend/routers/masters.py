@@ -16,7 +16,7 @@ class SalesPersonCreate(SalesPersonBase):
     pass
 
 class SalesPersonResponse(SalesPersonBase):
-    id: int
+    sales_person_id: int
 
     class Config:
         from_attributes = True
@@ -29,7 +29,7 @@ class ProductCreate(ProductBase):
     pass
 
 class ProductResponse(ProductBase):
-    id: int
+    product_id: int
 
     class Config:
         from_attributes = True
@@ -41,7 +41,7 @@ class ContractorCreate(ContractorBase):
     pass
 
 class ContractorResponse(ContractorBase):
-    id: int
+    contractor_id: int
 
     class Config:
         from_attributes = True
@@ -64,7 +64,7 @@ async def create_sales_person(sales_person: SalesPersonCreate, db: Session = Dep
 @router.get("/sales-persons/{sales_person_id}", response_model=SalesPersonResponse)
 async def get_sales_person(sales_person_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     sales_person = db.query(SalesPerson).filter(
-        SalesPerson.id == sales_person_id,
+        SalesPerson.sales_person_id == sales_person_id,
         SalesPerson.deleted_flag == False
     ).first()
     if sales_person is None:
@@ -74,7 +74,7 @@ async def get_sales_person(sales_person_id: int, db: Session = Depends(get_db), 
 @router.put("/sales-persons/{sales_person_id}", response_model=SalesPersonResponse)
 async def update_sales_person(sales_person_id: int, sales_person: SalesPersonCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_sales_person = db.query(SalesPerson).filter(
-        SalesPerson.id == sales_person_id,
+        SalesPerson.sales_person_id == sales_person_id,
         SalesPerson.deleted_flag == False
     ).first()
     if db_sales_person is None:
@@ -88,7 +88,7 @@ async def update_sales_person(sales_person_id: int, sales_person: SalesPersonCre
 @router.delete("/sales-persons/{sales_person_id}")
 async def delete_sales_person(sales_person_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_sales_person = db.query(SalesPerson).filter(
-        SalesPerson.id == sales_person_id,
+        SalesPerson.sales_person_id == sales_person_id,
         SalesPerson.deleted_flag == False
     ).first()
     if db_sales_person is None:
@@ -116,7 +116,7 @@ async def create_product(product: ProductCreate, db: Session = Depends(get_db), 
 @router.get("/products/{product_id}", response_model=ProductResponse)
 async def get_product(product_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     product = db.query(Product).filter(
-        Product.id == product_id,
+        Product.product_id == product_id,
         Product.deleted_flag == False
     ).first()
     if product is None:
@@ -126,7 +126,7 @@ async def get_product(product_id: int, db: Session = Depends(get_db), current_us
 @router.put("/products/{product_id}", response_model=ProductResponse)
 async def update_product(product_id: int, product: ProductCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_product = db.query(Product).filter(
-        Product.id == product_id,
+        Product.product_id == product_id,
         Product.deleted_flag == False
     ).first()
     if db_product is None:
@@ -140,7 +140,7 @@ async def update_product(product_id: int, product: ProductCreate, db: Session = 
 @router.delete("/products/{product_id}")
 async def delete_product(product_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_product = db.query(Product).filter(
-        Product.id == product_id,
+        Product.product_id == product_id,
         Product.deleted_flag == False
     ).first()
     if db_product is None:
@@ -168,7 +168,7 @@ async def create_contractor(contractor: ContractorCreate, db: Session = Depends(
 @router.get("/contractors/{contractor_id}", response_model=ContractorResponse)
 async def get_contractor(contractor_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     contractor = db.query(Contractor).filter(
-        Contractor.id == contractor_id,
+        Contractor.contractor_id == contractor_id,
         Contractor.deleted_flag == False
     ).first()
     if contractor is None:
@@ -178,7 +178,7 @@ async def get_contractor(contractor_id: int, db: Session = Depends(get_db), curr
 @router.put("/contractors/{contractor_id}", response_model=ContractorResponse)
 async def update_contractor(contractor_id: int, contractor: ContractorCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_contractor = db.query(Contractor).filter(
-        Contractor.id == contractor_id,
+        Contractor.contractor_id == contractor_id,
         Contractor.deleted_flag == False
     ).first()
     if db_contractor is None:
@@ -192,7 +192,7 @@ async def update_contractor(contractor_id: int, contractor: ContractorCreate, db
 @router.delete("/contractors/{contractor_id}")
 async def delete_contractor(contractor_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_contractor = db.query(Contractor).filter(
-        Contractor.id == contractor_id,
+        Contractor.contractor_id == contractor_id,
         Contractor.deleted_flag == False
     ).first()
     if db_contractor is None:
