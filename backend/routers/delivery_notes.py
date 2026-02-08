@@ -331,11 +331,11 @@ async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depen
     delivery_notes = db.query(DeliveryNote).filter(DeliveryNote.deleted_flag == False).all()
     print(f"📋 Retrieved {len(delivery_notes)} delivery notes")
     if delivery_notes:
-        print(f"📋 Note IDs: {[note.id for note in delivery_notes]}")
+        print(f"📋 Note IDs: {[note.delivery_note_id for note in delivery_notes]}")
     
     return [
         DeliveryNoteResponse(
-            id=str(note.id),
+            id=str(note.delivery_note_id),
             sales_person_id=note.sales_person_id,
             tax_rate_id=note.tax_rate_id,
             delivery_date=note.delivery_date,
@@ -345,7 +345,7 @@ async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depen
             image_filename=note.image_filename,
             details=[
                 DeliveryNoteDetailResponse(
-                    id=str(d.id),
+                    id=str(d.delivery_note_detail_id),
                     delivery_note_id=str(d.delivery_note_id),
                     product_id=d.product_id,
                     quantity=d.quantity,
@@ -383,14 +383,14 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
         db.add(db_delivery_note)
         db.commit()
         db.refresh(db_delivery_note)
-        print(f"✅ Created delivery note with ID: {db_delivery_note.id}")
+        print(f"✅ Created delivery note with ID: {db_delivery_note.delivery_note_id}")
 
         # Create delivery note details
         for i, detail in enumerate(delivery_note.details):
             amount = detail.quantity * detail.unit_price
             print(f"  📦 Detail {i+1}: product_id={detail.product_id}, qty={detail.quantity}, price={detail.unit_price}, amount={amount}")
             db_detail = DeliveryNoteDetail(
-                delivery_note_id=db_delivery_note.id,
+                delivery_note_id=db_delivery_note.delivery_note_id,
                 product_id=detail.product_id,
                 quantity=detail.quantity,
                 unit_price=detail.unit_price,
@@ -406,7 +406,7 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
         
         # Convert to response format with string IDs
         return DeliveryNoteResponse(
-            id=str(db_delivery_note.id),
+            id=str(db_delivery_note.delivery_note_id),
             sales_person_id=db_delivery_note.sales_person_id,
             tax_rate_id=db_delivery_note.tax_rate_id,
             delivery_date=db_delivery_note.delivery_date,
@@ -416,7 +416,7 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
             image_filename=db_delivery_note.image_filename,
             details=[
                 DeliveryNoteDetailResponse(
-                    id=str(d.id),
+                    id=str(d.delivery_note_detail_id),
                     delivery_note_id=str(d.delivery_note_id),
                     product_id=d.product_id,
                     quantity=d.quantity,
@@ -443,7 +443,7 @@ async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Delivery note not found")
     
     return DeliveryNoteResponse(
-        id=str(delivery_note.id),
+        id=str(delivery_note.delivery_note_id),
         sales_person_id=delivery_note.sales_person_id,
         tax_rate_id=delivery_note.tax_rate_id,
         delivery_date=delivery_note.delivery_date,
@@ -453,7 +453,7 @@ async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db)
         image_filename=delivery_note.image_filename,
         details=[
             DeliveryNoteDetailResponse(
-                id=str(d.id),
+                id=str(d.delivery_note_detail_id),
                 delivery_note_id=str(d.delivery_note_id),
                 product_id=d.product_id,
                 quantity=d.quantity,
@@ -497,7 +497,7 @@ async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNot
     db.refresh(db_delivery_note)
     
     return DeliveryNoteResponse(
-        id=str(db_delivery_note.id),
+        id=str(db_delivery_note.delivery_note_id),
         sales_person_id=db_delivery_note.sales_person_id,
         tax_rate_id=db_delivery_note.tax_rate_id,
         delivery_date=db_delivery_note.delivery_date,
@@ -507,7 +507,7 @@ async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNot
         image_filename=db_delivery_note.image_filename,
         details=[
             DeliveryNoteDetailResponse(
-                id=str(d.id),
+                id=str(d.delivery_note_detail_id),
                 delivery_note_id=str(d.delivery_note_id),
                 product_id=d.product_id,
                 quantity=d.quantity,
@@ -530,11 +530,11 @@ async def delete_delivery_note(delivery_note_id: str, db: Session = Depends(get_
     if db_delivery_note is None:
         print(f"❌ Delivery note not found: ID {delivery_note_id}")
         # Check if the note exists at all
-        all_notes = db.query(DeliveryNote.id).all()
-        print(f"📋 Available delivery note IDs: {[note.id for note in all_notes]}")
+        all_notes = db.query(DeliveryNote.delivery_note_id).all()
+        print(f"📋 Available delivery note IDs: {[note.delivery_note_id for note in all_notes]}")
         raise HTTPException(status_code=404, detail="Delivery note not found")
     
-    print(f"✅ Found delivery note: {db_delivery_note.id}, Number: {db_delivery_note.delivery_note_number}")
+    print(f"✅ Found delivery note: {db_delivery_note.delivery_note_id}, Number: {db_delivery_note.delivery_note_number}")
     
     try:
         # 論理削除: deleted_flagをTrueに設定
