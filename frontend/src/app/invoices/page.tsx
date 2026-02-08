@@ -1611,7 +1611,6 @@ export default function InvoicesPage() {
               <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-bold">委託先請求書明細</DialogTitle>
-                  <DialogDescription className="text-sm text-gray-500">請求書ID: {selectedContractorInvoice?.id}</DialogDescription>
                 </DialogHeader>
                 {selectedContractorInvoice && (
                   <div className="space-y-6">
