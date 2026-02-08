@@ -140,7 +140,7 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     if os.path.exists(stamp_path):
         # 会社名の横にハンコを配置（文字に少しかかるように）
         stamp_size = 16*mm
-        stamp_x = 75*mm  # 会社名の右側
+        stamp_x = 72*mm  # 会社名の右側
         stamp_y = issuer_y - 10*mm  # 会社名に少しかかる高さ
         pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
