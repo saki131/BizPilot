@@ -114,8 +114,8 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     # 但し書き
     pdf.setFont(font_name, 11)
-    note_text = invoice.note if invoice.note else "御品代として"
-    pdf.drawString(30*mm, box_y - 15*mm, f"但し、{note_text}")
+    note_text = invoice.note
+    pdf.drawString(30*mm, box_y - 15*mm, f"但、{note_text}")
     
     # 領収日
     receipt_date = invoice.receipt_date if invoice.receipt_date else invoice.invoice_date

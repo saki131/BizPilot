@@ -429,7 +429,7 @@ def update_contractor_invoice(
 
 @router.get("/{invoice_id}/pdf")
 async def generate_contractor_invoice_pdf_endpoint(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -468,7 +468,7 @@ def delete_contractor_invoice(
 
 @router.get("/{invoice_id}/receipt-pdf")
 def get_contractor_receipt_pdf(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):

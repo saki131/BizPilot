@@ -716,7 +716,7 @@ async def delete_sales_invoice(
 
 @router.get("/{invoice_id}/pdf")
 async def generate_invoice_pdf(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -738,7 +738,7 @@ async def generate_invoice_pdf(
 
 @router.get("/{invoice_id}/receipt-pdf")
 def get_sales_receipt_pdf(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
