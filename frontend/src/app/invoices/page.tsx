@@ -98,6 +98,7 @@ interface ContractorInvoiceFormData {
   contractor_id: number;
   tax_rate_id: number;
   invoice_date: string;
+  receipt_date?: string;
   note: string;
   details: {
     product_id: number;
@@ -166,6 +167,7 @@ export default function InvoicesPage() {
       const month = String(today.getMonth() + 1).padStart(2, '0');
       return `${year}-${month}-20`;
     })(),
+    receipt_date: '',
     note: '御品代として',
     details: []
   });
@@ -337,6 +339,7 @@ export default function InvoicesPage() {
         contractor_id: 0,
         tax_rate_id: defaultTaxRate?.id || 0,
         invoice_date: `${year}-${month}-20`,
+        receipt_date: '',
         note: '御品代として',
         details: []
       });
@@ -1512,6 +1515,16 @@ export default function InvoicesPage() {
                       onChange={(e) => setContractorFormData({ ...contractorFormData, invoice_date: e.target.value })}
                       className="w-40 mt-1 bg-white"
                       required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>領収日</Label>
+                    <Input
+                      type="date"
+                      value={contractorFormData.receipt_date || ''}
+                      onChange={(e) => setContractorFormData({ ...contractorFormData, receipt_date: e.target.value })}
+                      className="w-40 mt-1 bg-white"
                     />
                   </div>
                   
