@@ -124,7 +124,7 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawString(30*mm, box_y - 30*mm, f"領収日: {receipt_date.strftime('%Y年%m月%d日')}")
     
     # 発行者情報
-    issuer_y = box_y - 60*mm
+    issuer_y = box_y - 45*mm
     pdf.setFont(font_name, 11)
     pdf.drawString(30*mm, issuer_y, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
@@ -140,8 +140,8 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     if os.path.exists(stamp_path):
         # 代表者名の横にハンコを配置（文字に少しかかるように）
         stamp_size = 16*mm
-        stamp_x = 70*mm  # 会社名の右側
-        stamp_y = issuer_y - 21*mm
+        stamp_x = 75*mm  # 会社名の右側
+        stamp_y = issuer_y*mm
         pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
     # フッター
