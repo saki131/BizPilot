@@ -151,7 +151,7 @@ def generate_invoice_for_sales_person(
         func.sum(DeliveryNoteDetail.quantity).label('total_quantity'),
         DeliveryNoteDetail.unit_price
     ).join(
-        Product, DeliveryNoteDetail.product_id == Product.id
+        Product, DeliveryNoteDetail.product_id == Product.product_id
     ).filter(
         DeliveryNoteDetail.delivery_note_id.in_(delivery_note_ids)
     ).group_by(
@@ -239,7 +239,7 @@ def generate_invoice_for_sales_person(
         
         # Delete old details
         db.query(SalesInvoiceDetail).filter(
-            SalesInvoiceDetail.sales_invoice_id == existing_invoice.id
+            SalesInvoiceDetail.sales_invoice_id == existing_invoice.sales_invoice_id
         ).delete()
         
         invoice = existing_invoice
@@ -273,13 +273,13 @@ def generate_invoice_for_sales_person(
     detail_responses = []
     for detail_data in invoice_details:
         detail = SalesInvoiceDetail(
-            sales_invoice_id=invoice.id,
+            sales_invoice_id=invoice.sales_invoice_id,
             **detail_data
         )
         db.add(detail)
         db.flush()
         
-        product = db.query(Product).filter(Product.id == detail.product_id).first()
+        product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         detail_responses.append(InvoiceDetailResponse(
             id=str(detail.id),
             product_id=detail.product_id,
@@ -293,11 +293,11 @@ def generate_invoice_for_sales_person(
     
     # Get sales person name
     sales_person = db.query(SalesPerson).filter(
-        SalesPerson.id == sales_person_id
+        SalesPerson.sales_person_id == sales_person_id
     ).first()
     
     return InvoiceResponse(
-        id=str(invoice.id),
+        id=str(invoice.sales_invoice_id),
         sales_person_id=invoice.sales_person_id,
         sales_person_name=sales_person.name if sales_person else "",
         invoice_number=invoice.invoice_number,
@@ -348,7 +348,7 @@ async def bulk_generate_sales_invoices(
     # Get target sales persons
     if request.sales_person_ids:
         sales_persons = db.query(SalesPerson).filter(
-            SalesPerson.id.in_(request.sales_person_ids),
+            SalesPerson.sales_person_id.in_(request.sales_person_ids),
             SalesPerson.deleted_flag == False
         ).all()
     else:
@@ -365,7 +365,7 @@ async def bulk_generate_sales_invoices(
     
     for sales_person in sales_persons:
         invoice = generate_invoice_for_sales_person(
-            sales_person.id,
+            sales_person.sales_person_id,
             start_date,
             request.closing_date,
             db
@@ -397,7 +397,7 @@ async def update_invoice_fields(
 ):
     """Update invoice fields like discount_rate_id and note"""
     invoice = db.query(SalesInvoice).filter(
-        SalesInvoice.id == invoice_id,
+        SalesInvoice.sales_invoice_id == invoice_id,
         SalesInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -406,7 +406,7 @@ async def update_invoice_fields(
     # Update fields if provided
     if update_data.discount_rate_id is not None:
         # 割引率を変更する場合は、金額も再計算
-        discount_rate = db.query(DiscountRate).filter(DiscountRate.id == update_data.discount_rate_id).first()
+        discount_rate = db.query(DiscountRate).filter(DiscountRate.discount_rate_id == update_data.discount_rate_id).first()
         if not discount_rate:
             raise HTTPException(status_code=404, detail="Discount rate not found")
         
@@ -441,9 +441,9 @@ async def update_invoice_fields(
     db.refresh(invoice)
     
     # 請求書データを取得して返す（JOINでリレーション情報も含める）
-    sales_person = db.query(SalesPerson).filter(SalesPerson.id == invoice.sales_person_id).first()
-    discount_rate = db.query(DiscountRate).filter(DiscountRate.id == invoice.discount_rate_id).first()
-    details = db.query(SalesInvoiceDetail).filter(SalesInvoiceDetail.sales_invoice_id == invoice.id).all()
+    sales_person = db.query(SalesPerson).filter(SalesPerson.sales_person_id == invoice.sales_person_id).first()
+    discount_rate = db.query(DiscountRate).filter(DiscountRate.discount_rate_id == invoice.discount_rate_id).first()
+    details = db.query(SalesInvoiceDetail).filter(SalesInvoiceDetail.sales_invoice_id == invoice.sales_invoice_id).all()
     
     # Calculate discount rate value
     if discount_rate:
@@ -454,7 +454,7 @@ async def update_invoice_fields(
         discount_rate_value = 0.0
     
     return {
-        "id": invoice.id,
+        "id": invoice.sales_invoice_id,
         "invoice_number": invoice.invoice_number,
         "sales_person_id": invoice.sales_person_id,
         "sales_person_name": sales_person.name if sales_person else None,
@@ -479,7 +479,7 @@ async def update_invoice_fields(
             {
                 "id": detail.id,
                 "product_id": detail.product_id,
-                "product_name": db.query(Product).filter(Product.id == detail.product_id).first().name,
+                "product_name": db.query(Product).filter(Product.product_id == detail.product_id).first().name,
                 "total_quantity": detail.total_quantity,
                 "unit_price": detail.unit_price,
                 "amount": detail.amount
@@ -502,7 +502,7 @@ async def update_invoice_discount_rate(
     """
     # Get invoice
     invoice = db.query(SalesInvoice).filter(
-        SalesInvoice.id == invoice_id,
+        SalesInvoice.sales_invoice_id == invoice_id,
         SalesInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -510,7 +510,7 @@ async def update_invoice_discount_rate(
     
     # Get new discount rate
     discount_rate = db.query(DiscountRate).filter(
-        DiscountRate.id == request.discount_rate_id,
+        DiscountRate.discount_rate_id == request.discount_rate_id,
         DiscountRate.customer_flag == True,
         DiscountRate.deleted_flag == False
     ).first()
@@ -541,7 +541,7 @@ async def update_invoice_discount_rate(
     total_amount_inc_tax = total_amount_ex_tax + tax_amount
     
     # Update invoice
-    invoice.discount_rate_id = discount_rate.id
+    invoice.discount_rate_id = discount_rate.discount_rate_id
     invoice.quota_discount_amount = quota_discount_amount
     invoice.non_quota_discount_amount = non_quota_discount_amount
     invoice.quota_total = quota_total
@@ -556,8 +556,8 @@ async def update_invoice_discount_rate(
     return {
         "success": True,
         "message": "Discount rate updated successfully",
-        "invoice_id": invoice.id,
-        "old_rate": float(db.query(DiscountRate).filter(DiscountRate.id == invoice.discount_rate_id).first().rate),
+        "invoice_id": invoice.sales_invoice_id,
+        "old_rate": float(db.query(DiscountRate).filter(DiscountRate.discount_rate_id == invoice.discount_rate_id).first().rate),
         "new_rate": discount_rate_value,
         "new_total_amount_inc_tax": total_amount_inc_tax
     }
@@ -580,12 +580,12 @@ async def get_sales_invoices(
     result = []
     for invoice in invoices:
         details = db.query(SalesInvoiceDetail).filter(
-            SalesInvoiceDetail.sales_invoice_id == invoice.id
+            SalesInvoiceDetail.sales_invoice_id == invoice.sales_invoice_id
         ).all()
         
         # Get discount rate
         discount_rate = db.query(DiscountRate).filter(
-            DiscountRate.id == invoice.discount_rate_id
+            DiscountRate.discount_rate_id == invoice.discount_rate_id
         ).first()
         
         # Calculate discount rate value
@@ -601,12 +601,12 @@ async def get_sales_invoices(
         
         # Get sales person
         sales_person = db.query(SalesPerson).filter(
-            SalesPerson.id == invoice.sales_person_id
+            SalesPerson.sales_person_id == invoice.sales_person_id
         ).first()
         
         detail_responses = []
         for detail in details:
-            product = db.query(Product).filter(Product.id == detail.product_id).first()
+            product = db.query(Product).filter(Product.product_id == detail.product_id).first()
             detail_responses.append(InvoiceDetailResponse(
                 id=str(detail.id),
                 product_id=detail.product_id,
@@ -617,7 +617,7 @@ async def get_sales_invoices(
             ))
         
         result.append(InvoiceResponse(
-            id=str(invoice.id),
+            id=str(invoice.sales_invoice_id),
             sales_person_id=invoice.sales_person_id,
             sales_person_name=sales_person.name if sales_person else "",
             invoice_number=invoice.invoice_number,
@@ -652,19 +652,19 @@ async def get_sales_invoice(
 ):
     """Get sales invoice detail"""
     invoice = db.query(SalesInvoice).filter(
-        SalesInvoice.id == invoice_id,
+        SalesInvoice.sales_invoice_id == invoice_id,
         SalesInvoice.deleted_flag == False
     ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
     details = db.query(SalesInvoiceDetail).filter(
-        SalesInvoiceDetail.sales_invoice_id == invoice.id
+        SalesInvoiceDetail.sales_invoice_id == invoice.sales_invoice_id
     ).all()
     
     # Get discount rate
     discount_rate = db.query(DiscountRate).filter(
-        DiscountRate.id == invoice.discount_rate_id
+        DiscountRate.discount_rate_id == invoice.discount_rate_id
     ).first()
     
     # Calculate discount rate value
@@ -677,12 +677,12 @@ async def get_sales_invoice(
     
     # Get sales person
     sales_person = db.query(SalesPerson).filter(
-        SalesPerson.id == invoice.sales_person_id
+        SalesPerson.sales_person_id == invoice.sales_person_id
     ).first()
     
     detail_responses = []
     for detail in details:
-        product = db.query(Product).filter(Product.id == detail.product_id).first()
+        product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         detail_responses.append(InvoiceDetailResponse(
             id=detail.id,
             product_id=detail.product_id,
@@ -693,7 +693,7 @@ async def get_sales_invoice(
         ))
     
     return InvoiceResponse(
-        id=invoice.id,
+        id=invoice.sales_invoice_id,
         sales_person_id=invoice.sales_person_id,
         sales_person_name=sales_person.name if sales_person else "",
         invoice_number=invoice.invoice_number,
@@ -726,7 +726,7 @@ async def delete_sales_invoice(
 ):
     """Delete sales invoice (soft delete)"""
     invoice = db.query(SalesInvoice).filter(
-        SalesInvoice.id == invoice_id,
+        SalesInvoice.sales_invoice_id == invoice_id,
         SalesInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -757,7 +757,7 @@ async def generate_invoice_pdf(
 ):
     """Generate sales invoice PDF"""
     invoice = db.query(SalesInvoice).filter(
-        SalesInvoice.id == invoice_id,
+        SalesInvoice.sales_invoice_id == invoice_id,
         SalesInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -769,7 +769,7 @@ async def generate_invoice_pdf(
         pdf_buffer,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment; filename=invoice_{invoice.id}.pdf"
+            "Content-Disposition": f"attachment; filename=invoice_{invoice.sales_invoice_id}.pdf"
         }
     )
 
@@ -782,7 +782,7 @@ def get_sales_receipt_pdf(
 ):
     """Generate sales receipt PDF"""
     invoice = db.query(SalesInvoice).filter(
-        SalesInvoice.id == invoice_id,
+        SalesInvoice.sales_invoice_id == invoice_id,
         SalesInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -794,6 +794,6 @@ def get_sales_receipt_pdf(
         pdf_buffer,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment; filename=receipt_{invoice.id}.pdf"
+            "Content-Disposition": f"attachment; filename=receipt_{invoice.sales_invoice_id}.pdf"
         }
     )

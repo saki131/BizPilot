@@ -27,10 +27,10 @@ router = APIRouter()
 def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "ContractorInvoiceResponse":
     """委託先請求書レスポンスを作成"""
     # Get related data
-    contractor = db.query(Contractor).filter(Contractor.id == invoice.contractor_id).first()
-    discount_rate = db.query(DiscountRate).filter(DiscountRate.id == invoice.discount_rate_id).first()
-    tax_rate = db.query(TaxRate).filter(TaxRate.id == invoice.tax_rate_id).first()
-    details = db.query(ContractorInvoiceDetail).filter(ContractorInvoiceDetail.contractor_invoice_id == invoice.id).all()
+    contractor = db.query(Contractor).filter(Contractor.contractor_id == invoice.contractor_id).first()
+    discount_rate = db.query(DiscountRate).filter(DiscountRate.discount_rate_id == invoice.discount_rate_id).first()
+    tax_rate = db.query(TaxRate).filter(TaxRate.tax_rate_id == invoice.tax_rate_id).first()
+    details = db.query(ContractorInvoiceDetail).filter(ContractorInvoiceDetail.contractor_invoice_id == invoice.contractor_invoice_id).all()
     
     # Calculate discount rate value (convert from percentage if needed)
     if discount_rate:
@@ -47,7 +47,7 @@ def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "Contrac
         tax_rate_value = 0.0
     
     return ContractorInvoiceResponse(
-        id=str(invoice.id),
+        id=str(invoice.contractor_invoice_id),
         contractor_id=invoice.contractor_id,
         contractor_name=contractor.name if contractor else "",
         discount_rate=discount_rate_value,
@@ -71,9 +71,9 @@ def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "Contrac
         total_amount_inc_tax=invoice.total_amount_inc_tax,
         details=[
             ContractorInvoiceDetailResponse(
-                id=str(d.id),
+                id=str(d.contractor_invoice_detail_id),
                 product_id=d.product_id,
-                product_name=db.query(Product).filter(Product.id == d.product_id).first().name,
+                product_name=db.query(Product).filter(Product.product_id == d.product_id).first().name,
                 total_quantity=d.total_quantity,
                 unit_price=d.unit_price,
                 amount=d.amount
@@ -190,7 +190,7 @@ def create_contractor_invoice(
     
     # 委託先の存在確認
     contractor = db.query(Contractor).filter(
-        Contractor.id == request.contractor_id,
+        Contractor.contractor_id == request.contractor_id,
         Contractor.deleted_flag == False
     ).first()
     if not contractor:
@@ -198,7 +198,7 @@ def create_contractor_invoice(
     
     # 税率取得
     tax_rate = db.query(TaxRate).filter(
-        TaxRate.id == request.tax_rate_id,
+        TaxRate.tax_rate_id == request.tax_rate_id,
         TaxRate.deleted_flag == False
     ).first()
     if not tax_rate:
@@ -211,7 +211,7 @@ def create_contractor_invoice(
     details_data = []
     
     for detail in request.details:
-        product = db.query(Product).filter(Product.id == detail.product_id).first()
+        product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {detail.product_id} not found")
         
@@ -229,7 +229,7 @@ def create_contractor_invoice(
             non_quota_subtotal += amount
         
         details_data.append({
-            "product_id": product.id,
+            "product_id": product.product_id,
             "total_quantity": quantity,
             "unit_price": unit_price,
             "amount": amount
@@ -263,7 +263,7 @@ def create_contractor_invoice(
     # 請求書作成
     invoice = ContractorInvoice(
         contractor_id=request.contractor_id,
-        discount_rate_id=discount_rate.id,
+        discount_rate_id=discount_rate.discount_rate_id,
         tax_rate_id=request.tax_rate_id,
         invoice_date=request.invoice_date,
         payment_due_date=request.payment_due_date,
@@ -289,7 +289,7 @@ def create_contractor_invoice(
     # 明細作成
     for detail_data in details_data:
         detail = ContractorInvoiceDetail(
-            contractor_invoice_id=invoice.id,
+            contractor_invoice_id=invoice.contractor_invoice_id,
             **detail_data
         )
         db.add(detail)
@@ -326,7 +326,7 @@ def get_contractor_invoice(
 ):
     """委託先請求書詳細取得"""
     invoice = db.query(ContractorInvoice).filter(
-        ContractorInvoice.id == invoice_id,
+        ContractorInvoice.contractor_invoice_id == invoice_id,
         ContractorInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -344,7 +344,7 @@ def update_contractor_invoice(
 ):
     """委託先請求書更新"""
     invoice = db.query(ContractorInvoice).filter(
-        ContractorInvoice.id == invoice_id,
+        ContractorInvoice.contractor_invoice_id == invoice_id,
         ContractorInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -354,7 +354,7 @@ def update_contractor_invoice(
     if request.discount_rate_id is not None:
         invoice.discount_rate_id = request.discount_rate_id
         # 割引率変更時は金額を再計算
-        discount_rate = db.query(DiscountRate).filter(DiscountRate.id == request.discount_rate_id).first()
+        discount_rate = db.query(DiscountRate).filter(DiscountRate.discount_rate_id == request.discount_rate_id).first()
         if discount_rate:
             discount_rate_value = float(discount_rate.rate) / 100
             invoice.quota_discount_amount = int(invoice.quota_subtotal * discount_rate_value)
@@ -368,7 +368,7 @@ def update_contractor_invoice(
             invoice.total_after_discount = invoice.total_amount_ex_tax
             
             # 税率取得
-            tax_rate = db.query(TaxRate).filter(TaxRate.id == invoice.tax_rate_id).first()
+            tax_rate = db.query(TaxRate).filter(TaxRate.tax_rate_id == invoice.tax_rate_id).first()
             if tax_rate:
                 invoice.tax_amount = int(invoice.total_amount_ex_tax * float(tax_rate.rate) / 100)
                 invoice.total_amount_inc_tax = invoice.total_amount_ex_tax + invoice.tax_amount
@@ -403,7 +403,7 @@ def update_contractor_invoice(
         non_discountable_amount = 0
         
         for detail in request.details:
-            product = db.query(Product).filter(Product.id == detail.product_id).first()
+            product = db.query(Product).filter(Product.product_id == detail.product_id).first()
             if not product:
                 continue
             
@@ -422,7 +422,7 @@ def update_contractor_invoice(
             
             new_detail = ContractorInvoiceDetail(
                 contractor_invoice_id=invoice_id,
-                product_id=product.id,
+                product_id=product.product_id,
                 total_quantity=quantity,
                 unit_price=unit_price,
                 amount=amount
@@ -435,7 +435,7 @@ def update_contractor_invoice(
         invoice.non_quota_subtotal = non_quota_subtotal
         
         # 割引率を取得
-        discount_rate = db.query(DiscountRate).filter(DiscountRate.id == invoice.discount_rate_id).first()
+        discount_rate = db.query(DiscountRate).filter(DiscountRate.discount_rate_id == invoice.discount_rate_id).first()
         if discount_rate:
             discount_rate_value = float(discount_rate.rate) / 100 if float(discount_rate.rate) >= 1 else float(discount_rate.rate)
         else:
@@ -451,7 +451,7 @@ def update_contractor_invoice(
         invoice.total_discount_amount = invoice.quota_discount_amount + invoice.non_quota_discount_amount
         invoice.total_after_discount = invoice.total_amount_ex_tax
         
-        tax_rate = db.query(TaxRate).filter(TaxRate.id == invoice.tax_rate_id).first()
+        tax_rate = db.query(TaxRate).filter(TaxRate.tax_rate_id == invoice.tax_rate_id).first()
         if tax_rate:
             invoice.tax_amount = int(invoice.total_amount_ex_tax * float(tax_rate.rate) / 100)
             invoice.total_amount_inc_tax = invoice.total_amount_ex_tax + invoice.tax_amount
@@ -470,7 +470,7 @@ async def generate_contractor_invoice_pdf_endpoint(
 ):
     """委託先請求書PDF生成"""
     invoice = db.query(ContractorInvoice).filter(
-        ContractorInvoice.id == invoice_id,
+        ContractorInvoice.contractor_invoice_id == invoice_id,
         ContractorInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -482,7 +482,7 @@ async def generate_contractor_invoice_pdf_endpoint(
         pdf_buffer,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment; filename=contractor_invoice_{invoice.id}.pdf"
+            "Content-Disposition": f"attachment; filename=contractor_invoice_{invoice.contractor_invoice_id}.pdf"
         }
     )
 
@@ -494,7 +494,7 @@ def delete_contractor_invoice(
     current_user=Depends(get_current_user)
 ):
     """委託先請求書削除（論理削除）"""
-    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.contractor_invoice_id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -519,7 +519,7 @@ def get_contractor_receipt_pdf(
 ):
     """Generate contractor receipt PDF"""
     invoice = db.query(ContractorInvoice).filter(
-        ContractorInvoice.id == invoice_id,
+        ContractorInvoice.contractor_invoice_id == invoice_id,
         ContractorInvoice.deleted_flag == False
     ).first()
     if not invoice:
@@ -531,6 +531,6 @@ def get_contractor_receipt_pdf(
         pdf_buffer,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment; filename=contractor_receipt_{invoice.id}.pdf"
+            "Content-Disposition": f"attachment; filename=contractor_receipt_{invoice.contractor_invoice_id}.pdf"
         }
     )

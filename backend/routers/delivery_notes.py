@@ -187,7 +187,7 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
                 # 認識成功時に税率情報と税込み金額を追加
                 if result.get("success") and result.get("taxRateId"):
                     # 税率情報を取得
-                    tax_rate = db.query(TaxRate).filter(TaxRate.id == result["taxRateId"]).first()
+                    tax_rate = db.query(TaxRate).filter(TaxRate.tax_rate_id == result["taxRateId"]).first()
                     if tax_rate:
                         # 税抜き合計を計算
                         subtotal = sum(detail["quantity"] * detail["unitPrice"] for detail in result.get("details", []))
@@ -226,7 +226,7 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
                         # 認識成功時に税率情報と税込み金額を追加
                         if result.get("success") and result.get("taxRateId"):
                             # 税率情報を取得
-                            tax_rate = db.query(TaxRate).filter(TaxRate.id == result["taxRateId"]).first()
+                            tax_rate = db.query(TaxRate).filter(TaxRate.tax_rate_id == result["taxRateId"]).first()
                             if tax_rate:
                                 # 税抜き合計を計算
                                 subtotal = sum(detail["quantity"] * detail["unitPrice"] for detail in result.get("details", []))
@@ -436,7 +436,7 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
 @router.get("/{delivery_note_id}", response_model=DeliveryNoteResponse)
 async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     delivery_note = db.query(DeliveryNote).filter(
-        DeliveryNote.id == delivery_note_id,
+        DeliveryNote.delivery_note_id == delivery_note_id,
         DeliveryNote.deleted_flag == False
     ).first()
     if delivery_note is None:
@@ -467,7 +467,7 @@ async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db)
 @router.put("/{delivery_note_id}", response_model=DeliveryNoteResponse)
 async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNoteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     db_delivery_note = db.query(DeliveryNote).filter(
-        DeliveryNote.id == delivery_note_id,
+        DeliveryNote.delivery_note_id == delivery_note_id,
         DeliveryNote.deleted_flag == False
     ).first()
     if db_delivery_note is None:
@@ -523,7 +523,7 @@ async def delete_delivery_note(delivery_note_id: str, db: Session = Depends(get_
     print(f"🗑️ Attempting to delete delivery note ID: {delivery_note_id}")
     
     db_delivery_note = db.query(DeliveryNote).filter(
-        DeliveryNote.id == delivery_note_id,
+        DeliveryNote.delivery_note_id == delivery_note_id,
         DeliveryNote.deleted_flag == False
     ).first()
     
