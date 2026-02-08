@@ -128,18 +128,20 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 11)
     pdf.drawString(30*mm, issuer_y, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, issuer_y - 7*mm, f"代表者: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 14*mm, COMPANY_INFO["postal_code"])
-    pdf.drawString(30*mm, issuer_y - 21*mm, COMPANY_INFO["address1"])
-    pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO["address2"])
+    pdf.drawString(30*mm, issuer_y - 7*mm, "新札幌代理店")
+    pdf.drawString(30*mm, issuer_y - 14*mm, f"代表者: {COMPANY_INFO['representative']}")
+    pdf.drawString(30*mm, issuer_y - 21*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO["postal_code"])
+    pdf.drawString(30*mm, issuer_y - 35*mm, COMPANY_INFO["address1"])
+    pdf.drawString(30*mm, issuer_y - 42*mm, COMPANY_INFO["address2"])
     
     # ハンコ画像を追加（会社名の一部に重ねる）
     stamp_path = os.path.join(os.path.dirname(__file__), "static", "stamp.png")
     if os.path.exists(stamp_path):
         # 代表者名の横にハンコを配置（文字に少しかかるように）
-        stamp_size = 25*mm
-        stamp_x = 55*mm  # 会社名の右側
-        stamp_y = issuer_y - 15*mm
+        stamp_size = 16*mm
+        stamp_x = 70*mm  # 会社名の右側
+        stamp_y = issuer_y - 21*mm
         pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
     # フッター
