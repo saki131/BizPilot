@@ -204,7 +204,7 @@ async def delete_contractor(contractor_id: int, db: Session = Depends(get_db), c
 
 # Discount Rate endpoints
 class DiscountRateResponse(BaseModel):
-    id: int
+    discount_rate_id: int
     rate: float
     threshold_amount: int
     customer_flag: bool
@@ -223,10 +223,10 @@ async def get_discount_rates(db: Session = Depends(get_db), current_user = Depen
         raw_rate = float(rate.rate)
         # If rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
         converted_rate = raw_rate / 100 if raw_rate >= 1 else raw_rate
-        print(f"[DEBUG]   ID={rate.id}, raw_rate={raw_rate}, converted_rate={converted_rate}")
+        print(f"[DEBUG]   ID={rate.discount_rate_id}, raw_rate={raw_rate}, converted_rate={converted_rate}")
         
         result.append(DiscountRateResponse(
-            id=rate.id,
+            discount_rate_id=rate.discount_rate_id,
             rate=converted_rate,
             threshold_amount=rate.threshold_amount,
             customer_flag=rate.customer_flag
@@ -236,7 +236,7 @@ async def get_discount_rates(db: Session = Depends(get_db), current_user = Depen
 
 # Tax Rate endpoints
 class TaxRateResponse(BaseModel):
-    id: int
+    tax_rate_id: int
     rate: float
     display_name: str
 
@@ -255,7 +255,7 @@ async def get_tax_rates(db: Session = Depends(get_db), current_user = Depends(ge
         converted_rate = raw_rate / 100 if raw_rate >= 1 else raw_rate
         
         result.append(TaxRateResponse(
-            id=rate.id,
+            tax_rate_id=rate.tax_rate_id,
             rate=converted_rate,
             display_name=rate.display_name
         ))
