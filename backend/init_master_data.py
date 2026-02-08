@@ -44,18 +44,18 @@ def init_data():
         
         # 販売員
         sales_persons = [
-            ("平田 雄里", False), ("水口 千春", False), ("石田 美樹", False), ("板澤 かすみ", False),
-            ("伝法谷 由紀", False), ("藤澤 玲子", True), ("大島 純子", False), ("中本 幸子", False),
-            ("山村 由香", False), ("渡邉 麻衣子", False), ("西邑 ひとみ", False), ("藤谷 友佳里", False),
-            ("馬渡 知子", False), ("田村 喜美代", False), ("安井眞由美", False), ("千枝 笑子", False),
-            ("藤盛 貞子", False), ("神田 めぐみ", False), ("中島 奈緒美", False), ("下山 薫", False),
-            ("竹坂 公希", False), ("株式会社 正晃", False), ("熊田商店", False), ("松久 陽子", False),
-            ("加賀 文恵", False), ("大井  恵子", False), ("岩橋智子", False), ("工藤ひろみ", False),
-            ("東麻衣子", False), ("丸美ヶ丘温泉", False), ("大島 淳一", False), ("後藤 希", False),
-            ("樋口 洋子", False), ("千田商店", False)
+            ("平田 雄里", False, 1), ("水口 千春", False, 2), ("石田 美樹", False, 3), ("板澤 かすみ", False, 4),
+            ("伝法谷 由紀", False, 5), ("藤澤 玲子", True, 6), ("大島 純子", False, 7), ("中本 幸子", False, 8),
+            ("山村 由香", False, 9), ("渡邉 麻衣子", False, 10), ("西邑 ひとみ", False, 11), ("藤谷 友佳里", False, 12),
+            ("馬渡 知子", False, 13), ("田村 喜美代", False, 14), ("安井眞由美", False, 15), ("千枝 笑子", False, 16),
+            ("藤盛 貞子", False, 17), ("神田 めぐみ", False, 18), ("中島 奈緒美", False, 19), ("下山 薫", False, 20),
+            ("竹坂 公希", False, 21), ("株式会社 正晃", False, 22), ("熊田商店", False, 23), ("松久 陽子", False, 24),
+            ("加賀 文恵", False, 25), ("大井  恵子", False, 26), ("岩橋智子", False, 27), ("工藤ひろみ", False, 28),
+            ("東麻衣子", False, 29), ("丸美ケ丘温泉", False, 30), ("大島 淳一", False, 31), ("後藤 希", False, 32),
+            ("樋口 洋子", False, 33), ("千田商店", False, 34)
         ]
-        for name, deleted in sales_persons:
-            db.add(SalesPerson(name=name, deleted_flag=deleted))
+        for name, deleted, order in sales_persons:
+            db.add(SalesPerson(name=name, deleted_flag=deleted, display_order=order))
         
         # 商品
         products = [
@@ -106,11 +106,11 @@ def init_data():
         
         # 委託先
         contractors = [
-            ("すがの", False), ("193スタイル", False), ("ふれあい", False),
-            ("熊田商店", False), ("丸美ヶ丘温泉", False)
+            ("すがの", False, 1), ("193スタイル", False, 2), ("ふれあい", False, 3),
+            ("熊田商店", False, 4), ("丸美ケ丘温泉", False, 5)
         ]
-        for name, deleted in contractors:
-            db.add(Contractor(name=name, deleted_flag=deleted))
+        for name, deleted, order in contractors:
+            db.add(Contractor(name=name, deleted_flag=deleted, display_order=order))
         
         db.commit()
         print("✅ マスタデータ投入完了")

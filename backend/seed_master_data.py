@@ -14,7 +14,7 @@ def seed_master_data():
         # ユーザー
         admin_user = User(
             username="admin",
-            hashed_password=pwd_context.hash("admin123".encode('utf-8')),
+            hashed_password=pwd_context.hash("admin123"),
             deleted_flag=False
         )
         db.add(admin_user)

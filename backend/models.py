@@ -15,7 +15,7 @@ class User(Base):
     # hashed_password: ハッシュ化されたパスワード
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     deleted_flag = Column(Boolean, default=False)
@@ -28,11 +28,13 @@ class SalesPerson(Base):
     # id: 主キー（販売員ID）
     # name: 販売員氏名
     # deleted_flag: 削除フラグ
+    # display_order: 表示順
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(Integer, primary_key=True, index=True)
+    sales_person_id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     deleted_flag = Column(Boolean, default=False)
+    display_order = Column(Integer, default=0)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -49,7 +51,7 @@ class Product(Base):
     # display_order: 表示順
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False)
     price = Column(Integer, nullable=False)
     discount_exclusion_flag = Column(Boolean, default=False)
@@ -66,11 +68,13 @@ class Contractor(Base):
     # id: 主キー（委託先ID）
     # name: 委託先名
     # deleted_flag: 削除フラグ
+    # display_order: 表示順
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(Integer, primary_key=True, index=True)
+    contractor_id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     deleted_flag = Column(Boolean, default=False)
+    display_order = Column(Integer, default=0)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -83,7 +87,7 @@ class TaxRate(Base):
     # deleted_flag: 削除フラグ
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(Integer, primary_key=True, index=True)
+    tax_rate_id = Column(Integer, primary_key=True, index=True)
     rate = Column(DECIMAL(4, 2), nullable=False)
     display_name = Column(String(20), nullable=False)
     deleted_flag = Column(Boolean, default=False)
@@ -100,7 +104,7 @@ class DiscountRate(Base):
     # deleted_flag: 削除フラグ
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(Integer, primary_key=True, index=True)
+    discount_rate_id = Column(Integer, primary_key=True, index=True)
     rate = Column(DECIMAL(4, 2), nullable=False)
     threshold_amount = Column(Integer, default=0)  # 下限額
     customer_flag = Column(Boolean, default=True)
@@ -128,9 +132,9 @@ class DeliveryNote(Base):
     # image_filename: 画像ファイル名
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    sales_person_id = Column(Integer, ForeignKey("sales_persons.id"))
-    tax_rate_id = Column(Integer, ForeignKey("tax_rates.id"))
+    delivery_note_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    sales_person_id = Column(Integer, ForeignKey("sales_persons.sales_person_id"))
+    tax_rate_id = Column(Integer, ForeignKey("tax_rates.tax_rate_id"))
     quota_amount = Column(Integer, default=0)
     non_quota_amount = Column(Integer, default=0)
     tax_amount = Column(Integer, default=0)
@@ -163,9 +167,9 @@ class DeliveryNoteDetail(Base):
     # remarks: 備考
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    delivery_note_id = Column(UUID(as_uuid=True), ForeignKey("delivery_notes.id", ondelete="CASCADE"))
-    product_id = Column(Integer, ForeignKey("products.id"))
+    delivery_note_detail_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    delivery_note_id = Column(UUID(as_uuid=True), ForeignKey("delivery_notes.delivery_note_id", ondelete="CASCADE"))
+    product_id = Column(Integer, ForeignKey("products.product_id"))
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Integer, nullable=False)
     amount = Column(Integer, nullable=False)
@@ -187,12 +191,12 @@ class SalesInvoice(Base):
     # start_date: 対象期間 開始日
     # end_date: 対象期間 終了日
     # discount_rate_id: 割引率ID（外部キー）
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    sales_person_id = Column(Integer, ForeignKey("sales_persons.id"), nullable=False)
+    sales_invoice_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    sales_person_id = Column(Integer, ForeignKey("sales_persons.sales_person_id"), nullable=False)
     invoice_number = Column(String(50), default="[COMPANY_REGISTRATION_NUMBER]", nullable=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
-    discount_rate_id = Column(Integer, ForeignKey("discount_rates.id"), nullable=False)
+    discount_rate_id = Column(Integer, ForeignKey("discount_rates.discount_rate_id"), nullable=False)
 
     # invoice_date: 請求日
     # receipt_date: 領収日
@@ -246,9 +250,9 @@ class SalesInvoiceDetail(Base):
     # amount: 金額（税抜）
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    sales_invoice_id = Column(UUID(as_uuid=True), ForeignKey("sales_invoices.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    sales_invoice_detail_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    sales_invoice_id = Column(UUID(as_uuid=True), ForeignKey("sales_invoices.sales_invoice_id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.product_id"), nullable=False)
     total_quantity = Column(Integer, default=0, nullable=False)
     unit_price = Column(Integer, nullable=False)
     amount = Column(Integer, nullable=False)
@@ -266,10 +270,10 @@ class ContractorInvoice(Base):
     # contractor_id: 委託先ID（外部キー）
     # discount_rate_id: 割引率ID（外部キー）
     # tax_rate_id: 税率ID（外部キー）
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    contractor_id = Column(Integer, ForeignKey("contractors.id"), nullable=False)
-    discount_rate_id = Column(Integer, ForeignKey("discount_rates.id"), nullable=False)
-    tax_rate_id = Column(Integer, ForeignKey("tax_rates.id"), nullable=False)
+    contractor_invoice_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    contractor_id = Column(Integer, ForeignKey("contractors.contractor_id"), nullable=False)
+    discount_rate_id = Column(Integer, ForeignKey("discount_rates.discount_rate_id"), nullable=False)
+    tax_rate_id = Column(Integer, ForeignKey("tax_rates.tax_rate_id"), nullable=False)
     
     # 金額フィールド
     # non_discountable_amount: 割引対象外金額
@@ -326,9 +330,9 @@ class ContractorInvoiceDetail(Base):
     # deleted_flag: 削除フラグ
     # created_at: 作成日時
     # updated_at: 更新日時
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    contractor_invoice_id = Column(UUID(as_uuid=True), ForeignKey("contractor_invoices.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    contractor_invoice_detail_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    contractor_invoice_id = Column(UUID(as_uuid=True), ForeignKey("contractor_invoices.contractor_invoice_id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.product_id"), nullable=False)
     total_quantity = Column(Integer, default=0, nullable=False)  # 数量
     unit_price = Column(Integer, nullable=False)  # 単価
     amount = Column(Integer, nullable=False)  # 金額（税抜）
