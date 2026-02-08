@@ -141,7 +141,7 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         # 会社名の横にハンコを配置（文字に少しかかるように）
         stamp_size = 16*mm
         stamp_x = 75*mm  # 会社名の右側
-        stamp_y = issuer_y - 21*mm
+        stamp_y = issuer_y - 10*mm  # 会社名に少しかかる高さ
         pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
     # フッター
@@ -230,7 +230,7 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
         # 代表者名の横にハンコを配置（文字に少しかかるように）
         stamp_size = 25*mm
         stamp_x = 55*mm  # 会社名の右側
-        stamp_y = issuer_y - 15*mm
+        stamp_y = issuer_y - 10*mm  # 会社名に少しかかる高さ
         pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
     # フッター
