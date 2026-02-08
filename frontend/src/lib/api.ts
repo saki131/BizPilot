@@ -390,8 +390,9 @@ class ApiClient {
     const url = `${this.baseURL}/contractor-invoices/${invoiceId}/pdf`;
     const headers: Record<string, string> = {};
     
-    if (this.accessToken) {
-      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    const token = this.getAccessToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(url, {
