@@ -435,7 +435,10 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
 
 @router.get("/{delivery_note_id}", response_model=DeliveryNoteResponse)
 async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    delivery_note = db.query(DeliveryNote).filter(DeliveryNote.id == delivery_note_id).first()
+    delivery_note = db.query(DeliveryNote).filter(
+        DeliveryNote.id == delivery_note_id,
+        DeliveryNote.deleted_flag == False
+    ).first()
     if delivery_note is None:
         raise HTTPException(status_code=404, detail="Delivery note not found")
     
@@ -463,7 +466,10 @@ async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db)
 
 @router.put("/{delivery_note_id}", response_model=DeliveryNoteResponse)
 async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNoteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    db_delivery_note = db.query(DeliveryNote).filter(DeliveryNote.id == delivery_note_id).first()
+    db_delivery_note = db.query(DeliveryNote).filter(
+        DeliveryNote.id == delivery_note_id,
+        DeliveryNote.deleted_flag == False
+    ).first()
     if db_delivery_note is None:
         raise HTTPException(status_code=404, detail="Delivery note not found")
 
@@ -516,7 +522,10 @@ async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNot
 async def delete_delivery_note(delivery_note_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     print(f"🗑️ Attempting to delete delivery note ID: {delivery_note_id}")
     
-    db_delivery_note = db.query(DeliveryNote).filter(DeliveryNote.id == delivery_note_id).first()
+    db_delivery_note = db.query(DeliveryNote).filter(
+        DeliveryNote.id == delivery_note_id,
+        DeliveryNote.deleted_flag == False
+    ).first()
     
     if db_delivery_note is None:
         print(f"❌ Delivery note not found: ID {delivery_note_id}")

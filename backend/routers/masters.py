@@ -63,14 +63,20 @@ async def create_sales_person(sales_person: SalesPersonCreate, db: Session = Dep
 
 @router.get("/sales-persons/{sales_person_id}", response_model=SalesPersonResponse)
 async def get_sales_person(sales_person_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    sales_person = db.query(SalesPerson).filter(SalesPerson.id == sales_person_id).first()
+    sales_person = db.query(SalesPerson).filter(
+        SalesPerson.id == sales_person_id,
+        SalesPerson.deleted_flag == False
+    ).first()
     if sales_person is None:
         raise HTTPException(status_code=404, detail="Sales person not found")
     return sales_person
 
 @router.put("/sales-persons/{sales_person_id}", response_model=SalesPersonResponse)
 async def update_sales_person(sales_person_id: int, sales_person: SalesPersonCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    db_sales_person = db.query(SalesPerson).filter(SalesPerson.id == sales_person_id).first()
+    db_sales_person = db.query(SalesPerson).filter(
+        SalesPerson.id == sales_person_id,
+        SalesPerson.deleted_flag == False
+    ).first()
     if db_sales_person is None:
         raise HTTPException(status_code=404, detail="Sales person not found")
     for key, value in sales_person.dict().items():
@@ -81,7 +87,10 @@ async def update_sales_person(sales_person_id: int, sales_person: SalesPersonCre
 
 @router.delete("/sales-persons/{sales_person_id}")
 async def delete_sales_person(sales_person_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    db_sales_person = db.query(SalesPerson).filter(SalesPerson.id == sales_person_id).first()
+    db_sales_person = db.query(SalesPerson).filter(
+        SalesPerson.id == sales_person_id,
+        SalesPerson.deleted_flag == False
+    ).first()
     if db_sales_person is None:
         raise HTTPException(status_code=404, detail="Sales person not found")
     # 論理削除
@@ -105,14 +114,20 @@ async def create_product(product: ProductCreate, db: Session = Depends(get_db), 
 
 @router.get("/products/{product_id}", response_model=ProductResponse)
 async def get_product(product_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    product = db.query(Product).filter(Product.id == product_id).first()
+    product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.deleted_flag == False
+    ).first()
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
 @router.put("/products/{product_id}", response_model=ProductResponse)
 async def update_product(product_id: int, product: ProductCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    db_product = db.query(Product).filter(Product.id == product_id).first()
+    db_product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.deleted_flag == False
+    ).first()
     if db_product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     for key, value in product.dict().items():
@@ -123,7 +138,10 @@ async def update_product(product_id: int, product: ProductCreate, db: Session = 
 
 @router.delete("/products/{product_id}")
 async def delete_product(product_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    db_product = db.query(Product).filter(Product.id == product_id).first()
+    db_product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.deleted_flag == False
+    ).first()
     if db_product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     # 論理削除
@@ -147,14 +165,20 @@ async def create_contractor(contractor: ContractorCreate, db: Session = Depends(
 
 @router.get("/contractors/{contractor_id}", response_model=ContractorResponse)
 async def get_contractor(contractor_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    contractor = db.query(Contractor).filter(Contractor.id == contractor_id).first()
+    contractor = db.query(Contractor).filter(
+        Contractor.id == contractor_id,
+        Contractor.deleted_flag == False
+    ).first()
     if contractor is None:
         raise HTTPException(status_code=404, detail="Contractor not found")
     return contractor
 
 @router.put("/contractors/{contractor_id}", response_model=ContractorResponse)
 async def update_contractor(contractor_id: int, contractor: ContractorCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    db_contractor = db.query(Contractor).filter(Contractor.id == contractor_id).first()
+    db_contractor = db.query(Contractor).filter(
+        Contractor.id == contractor_id,
+        Contractor.deleted_flag == False
+    ).first()
     if db_contractor is None:
         raise HTTPException(status_code=404, detail="Contractor not found")
     for key, value in contractor.dict().items():
@@ -165,7 +189,10 @@ async def update_contractor(contractor_id: int, contractor: ContractorCreate, db
 
 @router.delete("/contractors/{contractor_id}")
 async def delete_contractor(contractor_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    db_contractor = db.query(Contractor).filter(Contractor.id == contractor_id).first()
+    db_contractor = db.query(Contractor).filter(
+        Contractor.id == contractor_id,
+        Contractor.deleted_flag == False
+    ).first()
     if db_contractor is None:
         raise HTTPException(status_code=404, detail="Contractor not found")
     # 論理削除

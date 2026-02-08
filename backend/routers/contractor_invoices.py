@@ -343,7 +343,10 @@ def update_contractor_invoice(
     current_user=Depends(get_current_user)
 ):
     """委託先請求書更新"""
-    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    invoice = db.query(ContractorInvoice).filter(
+        ContractorInvoice.id == invoice_id,
+        ContractorInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -466,7 +469,10 @@ async def generate_contractor_invoice_pdf_endpoint(
     current_user=Depends(get_current_user)
 ):
     """委託先請求書PDF生成"""
-    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    invoice = db.query(ContractorInvoice).filter(
+        ContractorInvoice.id == invoice_id,
+        ContractorInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -512,7 +518,10 @@ def get_contractor_receipt_pdf(
     current_user: dict = Depends(get_current_user)
 ):
     """Generate contractor receipt PDF"""
-    invoice = db.query(ContractorInvoice).filter(ContractorInvoice.id == invoice_id).first()
+    invoice = db.query(ContractorInvoice).filter(
+        ContractorInvoice.id == invoice_id,
+        ContractorInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     

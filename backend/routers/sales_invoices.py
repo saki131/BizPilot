@@ -396,7 +396,10 @@ async def update_invoice_fields(
     current_user: dict = Depends(get_current_user)
 ):
     """Update invoice fields like discount_rate_id and note"""
-    invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+    invoice = db.query(SalesInvoice).filter(
+        SalesInvoice.id == invoice_id,
+        SalesInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -498,7 +501,10 @@ async def update_invoice_discount_rate(
     This is typically used to change 0% invoices to 10%.
     """
     # Get invoice
-    invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+    invoice = db.query(SalesInvoice).filter(
+        SalesInvoice.id == invoice_id,
+        SalesInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -564,7 +570,7 @@ async def get_sales_invoices(
     current_user: dict = Depends(get_current_user)
 ):
     """Get sales invoices list"""
-    query = db.query(SalesInvoice)
+    query = db.query(SalesInvoice).filter(SalesInvoice.deleted_flag == False)
     
     if sales_person_id:
         query = query.filter(SalesInvoice.sales_person_id == sales_person_id)
@@ -645,7 +651,10 @@ async def get_sales_invoice(
     current_user: dict = Depends(get_current_user)
 ):
     """Get sales invoice detail"""
-    invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+    invoice = db.query(SalesInvoice).filter(
+        SalesInvoice.id == invoice_id,
+        SalesInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -716,7 +725,10 @@ async def delete_sales_invoice(
     current_user: dict = Depends(get_current_user)
 ):
     """Delete sales invoice (soft delete)"""
-    invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+    invoice = db.query(SalesInvoice).filter(
+        SalesInvoice.id == invoice_id,
+        SalesInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -744,7 +756,10 @@ async def generate_invoice_pdf(
     current_user: dict = Depends(get_current_user)
 ):
     """Generate sales invoice PDF"""
-    invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+    invoice = db.query(SalesInvoice).filter(
+        SalesInvoice.id == invoice_id,
+        SalesInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
@@ -766,7 +781,10 @@ def get_sales_receipt_pdf(
     current_user: dict = Depends(get_current_user)
 ):
     """Generate sales receipt PDF"""
-    invoice = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+    invoice = db.query(SalesInvoice).filter(
+        SalesInvoice.id == invoice_id,
+        SalesInvoice.deleted_flag == False
+    ).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
