@@ -142,7 +142,7 @@ def generate_invoice_for_sales_person(
     if not tax_rate:
         raise HTTPException(status_code=404, detail="Tax rate not found")
     
-    delivery_note_ids = [dn.id for dn in delivery_notes]
+    delivery_note_ids = [dn.delivery_note_id for dn in delivery_notes]
     
     # Aggregate by product
     aggregated_data = db.query(
@@ -223,7 +223,7 @@ def generate_invoice_for_sales_person(
     
     if existing_invoice:
         # Update existing invoice
-        existing_invoice.discount_rate_id = discount_rate.id
+        existing_invoice.discount_rate_id = discount_rate.discount_rate_id
         existing_invoice.invoice_date = invoice_date
         existing_invoice.receipt_date = receipt_date
         existing_invoice.note = '御品代として'
@@ -252,7 +252,7 @@ def generate_invoice_for_sales_person(
             end_date=end_date,
             invoice_date=invoice_date,
             receipt_date=receipt_date,
-            discount_rate_id=discount_rate.id,
+            discount_rate_id=discount_rate.discount_rate_id,
             note='御品代として',
             quota_subtotal=quota_subtotal,
             quota_discount_amount=quota_discount_amount,
@@ -281,7 +281,7 @@ def generate_invoice_for_sales_person(
         
         product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         detail_responses.append(InvoiceDetailResponse(
-            id=str(detail.id),
+            id=str(detail.sales_invoice_detail_id),
             product_id=detail.product_id,
             product_name=product.name if product else "",
             total_quantity=detail.total_quantity,
@@ -477,7 +477,7 @@ async def update_invoice_fields(
         "note": invoice.note,
         "details": [
             {
-                "id": detail.id,
+                "id": detail.sales_invoice_detail_id,
                 "product_id": detail.product_id,
                 "product_name": db.query(Product).filter(Product.product_id == detail.product_id).first().name,
                 "total_quantity": detail.total_quantity,
@@ -597,7 +597,7 @@ async def get_sales_invoices(
             # Fallback: discount_rate not found, default to 0
             discount_rate_value = 0.0
         
-        print(f"[DEBUG API] Invoice {invoice.id}: discount_rate_id={invoice.discount_rate_id}, raw_rate={raw_rate if discount_rate else 'N/A'}, discount_rate_value={discount_rate_value}")
+        print(f"[DEBUG API] Invoice {invoice.sales_invoice_id}: discount_rate_id={invoice.discount_rate_id}, raw_rate={raw_rate if discount_rate else 'N/A'}, discount_rate_value={discount_rate_value}")
         
         # Get sales person
         sales_person = db.query(SalesPerson).filter(
@@ -608,7 +608,7 @@ async def get_sales_invoices(
         for detail in details:
             product = db.query(Product).filter(Product.product_id == detail.product_id).first()
             detail_responses.append(InvoiceDetailResponse(
-                id=str(detail.id),
+                id=str(detail.sales_invoice_detail_id),
                 product_id=detail.product_id,
                 product_name=product.name if product else "",
                 total_quantity=detail.total_quantity,
@@ -684,7 +684,7 @@ async def get_sales_invoice(
     for detail in details:
         product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         detail_responses.append(InvoiceDetailResponse(
-            id=detail.id,
+            id=detail.sales_invoice_detail_id,
             product_id=detail.product_id,
             product_name=product.name if product else "",
             total_quantity=detail.total_quantity,
