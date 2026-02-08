@@ -49,8 +49,8 @@ class ContractorResponse(ContractorBase):
 # SalesPerson endpoints
 @router.get("/sales-persons", response_model=List[SalesPersonResponse])
 async def get_sales_persons(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    # 削除フラグがFalseの販売員のみ取得
-    sales_persons = db.query(SalesPerson).filter(SalesPerson.deleted_flag == False).all()
+    # 削除フラグがFalseの販売員のみ取得、表示順でソート
+    sales_persons = db.query(SalesPerson).filter(SalesPerson.deleted_flag == False).order_by(SalesPerson.display_order).all()
     return sales_persons
 
 @router.post("/sales-persons", response_model=SalesPersonResponse)
@@ -101,7 +101,8 @@ async def delete_sales_person(sales_person_id: int, db: Session = Depends(get_db
 # Product endpoints
 @router.get("/products", response_model=List[ProductResponse])
 async def get_products(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    products = db.query(Product).filter(Product.deleted_flag == False).all()
+    # 削除フラグがFalseの商品のみ取得、表示順でソート
+    products = db.query(Product).filter(Product.deleted_flag == False).order_by(Product.display_order).all()
     return products
 
 @router.post("/products", response_model=ProductResponse)
@@ -152,7 +153,8 @@ async def delete_product(product_id: int, db: Session = Depends(get_db), current
 # Contractor endpoints
 @router.get("/contractors", response_model=List[ContractorResponse])
 async def get_contractors(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    contractors = db.query(Contractor).filter(Contractor.deleted_flag == False).all()
+    # 削除フラグがFalseの委託先のみ取得、表示順でソート
+    contractors = db.query(Contractor).filter(Contractor.deleted_flag == False).order_by(Contractor.display_order).all()
     return contractors
 
 @router.post("/contractors", response_model=ContractorResponse)
