@@ -298,7 +298,7 @@ def create_contractor_invoice(
     db.refresh(invoice)
     
     # レスポンス作成
-    return create_invoice_response(invoice)
+    return create_invoice_response(invoice, db)
 
 
 @router.get("/", response_model=List[ContractorInvoiceResponse])
@@ -431,7 +431,13 @@ def update_contractor_invoice(
         invoice.quota_subtotal = quota_subtotal
         invoice.non_quota_subtotal = non_quota_subtotal
         
-        discount_rate_value = float(invoice.discount_rate.rate)
+        # 割引率を取得
+        discount_rate = db.query(DiscountRate).filter(DiscountRate.id == invoice.discount_rate_id).first()
+        if discount_rate:
+            discount_rate_value = float(discount_rate.rate) / 100 if float(discount_rate.rate) >= 1 else float(discount_rate.rate)
+        else:
+            discount_rate_value = 0.0
+        
         invoice.quota_discount_amount = int(quota_subtotal * discount_rate_value)
         invoice.non_quota_discount_amount = int(non_quota_subtotal * discount_rate_value)
         invoice.quota_total = quota_subtotal - invoice.quota_discount_amount
@@ -450,7 +456,7 @@ def update_contractor_invoice(
     db.commit()
     db.refresh(invoice)
     
-    return create_invoice_response(invoice)
+    return create_invoice_response(invoice, db)
 
 
 @router.get("/{invoice_id}/pdf")
