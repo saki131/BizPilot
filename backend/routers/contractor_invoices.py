@@ -315,7 +315,7 @@ def get_contractor_invoice(
 
 @router.put("/{invoice_id}", response_model=ContractorInvoiceResponse)
 def update_contractor_invoice(
-    invoice_id: int,
+    invoice_id: str,
     request: ContractorInvoiceUpdateRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)

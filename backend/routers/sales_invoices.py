@@ -388,7 +388,7 @@ async def bulk_generate_sales_invoices(
 
 @router.patch("/{invoice_id}")
 async def update_invoice_fields(
-    invoice_id: int,
+    invoice_id: str,
     update_data: InvoiceUpdateRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
@@ -478,7 +478,7 @@ async def update_invoice_fields(
 
 @router.patch("/{invoice_id}/discount-rate")
 async def update_invoice_discount_rate(
-    invoice_id: int,
+    invoice_id: str,
     request: DiscountRateUpdateRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
