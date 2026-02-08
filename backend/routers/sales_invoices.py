@@ -738,7 +738,7 @@ async def generate_invoice_pdf(
 
 @router.get("/{invoice_id}/receipt-pdf")
 def get_sales_receipt_pdf(
-    invoice_id: str,
+    invoice_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
