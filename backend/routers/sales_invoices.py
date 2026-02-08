@@ -711,7 +711,7 @@ async def get_sales_invoice(
 
 @router.delete("/{invoice_id}")
 async def delete_sales_invoice(
-    invoice_id: int,
+    invoice_id: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
