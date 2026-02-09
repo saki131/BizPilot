@@ -76,7 +76,7 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     """
     # データ取得
     sales_person = db.query(SalesPerson).filter(
-        SalesPerson.id == invoice.sales_person_id
+        SalesPerson.sales_person_id == invoice.sales_person_id
     ).first()
     
     # PDF生成（横向き）
@@ -167,7 +167,7 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
     """
     # データ取得
     contractor = db.query(Contractor).filter(
-        Contractor.id == invoice.contractor_id
+        Contractor.contractor_id == invoice.contractor_id
     ).first()
     
     # PDF生成（横向き）
@@ -258,15 +258,15 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     """
     # データ取得
     sales_person = db.query(SalesPerson).filter(
-        SalesPerson.id == invoice.sales_person_id
+        SalesPerson.sales_person_id == invoice.sales_person_id
     ).first()
     
     discount_rate = db.query(DiscountRate).filter(
-        DiscountRate.id == invoice.discount_rate_id
+        DiscountRate.discount_rate_id == invoice.discount_rate_id
     ).first()
     
     details = db.query(SalesInvoiceDetail).filter(
-        SalesInvoiceDetail.sales_invoice_id == invoice.id
+        SalesInvoiceDetail.sales_invoice_id == invoice.sales_invoice_id
     ).all()
     
     # PDF生成
@@ -428,7 +428,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     for detail in details:
         y -= row_height
-        product = db.query(Product).filter(Product.id == detail.product_id).first()
+        product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         
         # 行の描画
         pdf.rect(table_left, y, table_width, row_height, stroke=1, fill=0)
@@ -658,15 +658,15 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     """
     # データ取得
     contractor = db.query(Contractor).filter(
-        Contractor.id == invoice.contractor_id
+        Contractor.contractor_id == invoice.contractor_id
     ).first()
     
     discount_rate = db.query(DiscountRate).filter(
-        DiscountRate.id == invoice.discount_rate_id
+        DiscountRate.discount_rate_id == invoice.discount_rate_id
     ).first()
     
     details = db.query(ContractorInvoiceDetail).filter(
-        ContractorInvoiceDetail.contractor_invoice_id == invoice.id
+        ContractorInvoiceDetail.contractor_invoice_id == invoice.contractor_invoice_id
     ).all()
     
     # PDF生成
@@ -834,7 +834,7 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     for detail in details:
         y -= row_height
-        product = db.query(Product).filter(Product.id == detail.product_id).first()
+        product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         
         # 行の描画
         pdf.rect(table_left, y, table_width, row_height, stroke=1, fill=0)
