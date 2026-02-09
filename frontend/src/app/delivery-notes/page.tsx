@@ -1564,7 +1564,11 @@ export default function DeliveryNotesPage() {
                                           {image.recognitionResult.taxRate && (
                                             <div className="flex justify-between py-1 border-b border-green-200">
                                               <span className="font-medium">税率:</span>
-                                              <span>{image.recognitionResult.taxRate.rate}%</span>
+                                              <span>
+                                                {image.recognitionResult.taxRate.rate >= 1 
+                                                  ? image.recognitionResult.taxRate.rate 
+                                                  : (image.recognitionResult.taxRate.rate * 100)}%
+                                              </span>
                                             </div>
                                           )}
                                           
