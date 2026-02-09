@@ -5,8 +5,9 @@ import sys
 from database import SessionLocal
 from models import User, SalesPerson, Product, Contractor, TaxRate, DiscountRate
 
-# 事前にハッシュ化されたパスワード（admin123）
-ADMIN_HASH = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyWpQkn.U84i"
+# 事前にハッシュ化されたパスワード
+ADMIN_HASH = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyWpQkn.U84i"  # admin123
+KAZUMI_HASH = "$2b$12$M6dJyysfFvYebLoyrV2p4OuCH777uwIYVHjyHrHTe8e5BohJW8OdO"  # kazumi/1431
 
 def init_data():
     db = SessionLocal()
@@ -18,6 +19,13 @@ def init_data():
             print("✅ adminユーザーを作成しました")
         else:
             print("ℹ️  adminユーザーは既に存在します")
+        
+        existing_kazumi = db.query(User).filter(User.username == "kazumi").first()
+        if not existing_kazumi:
+            db.add(User(user_id=2, username="kazumi", hashed_password=KAZUMI_HASH, deleted_flag=False))
+            print("✅ kazumiユーザーを作成しました")
+        else:
+            print("ℹ️  kazumiユーザーは既に存在します")
         
         # 税率（既存をチェック）
         existing_tax = db.query(TaxRate).first()
