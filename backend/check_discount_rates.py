@@ -17,7 +17,7 @@ try:
     print("=== Discount Rates ===")
     rates = db.query(DiscountRate).order_by(DiscountRate.threshold_amount).all()
     for rate in rates:
-        print(f"ID: {rate.id}, Rate: {rate.rate} ({type(rate.rate).__name__}), Threshold: {rate.threshold_amount}, Customer: {rate.customer_flag}")
+        print(f"ID: {rate.id}, Rate: {rate.rate} ({type(rate.rate).__name__}), Threshold: {rate.threshold_amount}, Customer: {rate.sales_person_flag}")
         print(f"  Rate as float: {float(rate.rate)}")
         print(f"  Rate * 100: {float(rate.rate) * 100}")
         print()

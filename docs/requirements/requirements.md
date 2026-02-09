@@ -330,7 +330,7 @@
 ```sql
 - id: SERIAL PRIMARY KEY
 - rate: DECIMAL(4,2) NOT NULL
-- customer_flag: BOOLEAN DEFAULT TRUE
+- sales_person_flag: BOOLEAN DEFAULT TRUE
 - deleted_flag: BOOLEAN DEFAULT FALSE
 - created_at: TIMESTAMP DEFAULT NOW()
 - updated_at: TIMESTAMP DEFAULT NOW()

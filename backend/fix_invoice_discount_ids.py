@@ -15,8 +15,8 @@ try:
     invoices = db.query(SalesInvoice).all()
     
     # Get valid discount rates
-    rate_0 = db.query(DiscountRate).filter(DiscountRate.rate == 0.00, DiscountRate.customer_flag == True).first()
-    rate_10 = db.query(DiscountRate).filter(DiscountRate.rate == 0.10, DiscountRate.customer_flag == True).first()
+    rate_0 = db.query(DiscountRate).filter(DiscountRate.rate == 0.00, DiscountRate.sales_person_flag == True).first()
+    rate_10 = db.query(DiscountRate).filter(DiscountRate.rate == 0.10, DiscountRate.sales_person_flag == True).first()
     
     print(f"Valid rates: 0%=ID{rate_0.id if rate_0 else 'N/A'}, 10%=ID{rate_10.id if rate_10 else 'N/A'}")
     print()

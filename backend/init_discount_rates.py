@@ -25,16 +25,16 @@ def init_discount_rates():
 
         # 販売員請求書用の割引率（0%を追加）
         discount_rates = [
-            {"rate": 0.00, "threshold_amount": 0, "customer_flag": True},
-            {"rate": 0.10, "threshold_amount": 21000, "customer_flag": True},
-            {"rate": 0.20, "threshold_amount": 42000, "customer_flag": True},
-            {"rate": 0.30, "threshold_amount": 200000, "customer_flag": True},
-            {"rate": 0.40, "threshold_amount": 400000, "customer_flag": True},
+            {"rate": 0.00, "threshold_amount": 0, "sales_person_flag": True},
+            {"rate": 0.10, "threshold_amount": 21000, "sales_person_flag": True},
+            {"rate": 0.20, "threshold_amount": 42000, "sales_person_flag": True},
+            {"rate": 0.30, "threshold_amount": 200000, "sales_person_flag": True},
+            {"rate": 0.40, "threshold_amount": 400000, "sales_person_flag": True},
             
             # 委託先請求書用の割引率
-            {"rate": 0.20, "threshold_amount": 0, "customer_flag": False},
-            {"rate": 0.30, "threshold_amount": 200000, "customer_flag": False},
-            {"rate": 0.40, "threshold_amount": 400000, "customer_flag": False},
+            {"rate": 0.20, "threshold_amount": 0, "sales_person_flag": False},
+            {"rate": 0.30, "threshold_amount": 200000, "sales_person_flag": False},
+            {"rate": 0.40, "threshold_amount": 400000, "sales_person_flag": False},
         ]
 
         for dr in discount_rates:
@@ -47,7 +47,7 @@ def init_discount_rates():
         # 確認
         print("\n登録された割引率:")
         for rate in db.query(DiscountRate).all():
-            flag_type = "販売員" if rate.customer_flag else "委託先"
+            flag_type = "販売員" if rate.sales_person_flag else "委託先"
             print(f"  - ID: {rate.id}, 割引率: {rate.rate}%, 下限額: ¥{rate.threshold_amount:,}, 種別: {flag_type}")
 
     except Exception as e:

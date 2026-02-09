@@ -13,7 +13,7 @@ db = SessionLocal()
 try:
     rate = db.query(DiscountRate).filter(DiscountRate.id == 2).first()
     if rate:
-        print(f"ID=2: rate={rate.rate}, threshold={rate.threshold_amount}, customer_flag={rate.customer_flag}, deleted_flag={rate.deleted_flag}")
+        print(f"ID=2: rate={rate.rate}, threshold={rate.threshold_amount}, sales_person_flag={rate.sales_person_flag}, deleted_flag={rate.deleted_flag}")
         print(f"  rate as float: {float(rate.rate)}")
     else:
         print("ID=2: NOT FOUND")

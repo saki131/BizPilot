@@ -29,20 +29,20 @@ def seed_master_data():
         
         # 割引率（販売員向け）
         discount_rates_sales = [
-            DiscountRate(rate=0.00, threshold_amount=0, customer_flag=True, deleted_flag=False),
-            DiscountRate(rate=0.10, threshold_amount=0, customer_flag=True, deleted_flag=False),
-            DiscountRate(rate=0.20, threshold_amount=42000, customer_flag=True, deleted_flag=False),
-            DiscountRate(rate=0.30, threshold_amount=200000, customer_flag=True, deleted_flag=False),
-            DiscountRate(rate=0.40, threshold_amount=400000, customer_flag=True, deleted_flag=False),
+            DiscountRate(rate=0.00, threshold_amount=0, sales_person_flag=True, deleted_flag=False),
+            DiscountRate(rate=0.10, threshold_amount=0, sales_person_flag=True, deleted_flag=False),
+            DiscountRate(rate=0.20, threshold_amount=42000, sales_person_flag=True, deleted_flag=False),
+            DiscountRate(rate=0.30, threshold_amount=200000, sales_person_flag=True, deleted_flag=False),
+            DiscountRate(rate=0.40, threshold_amount=400000, sales_person_flag=True, deleted_flag=False),
         ]
         for rate in discount_rates_sales:
             db.add(rate)
         
         # 割引率（委託先向け）
         discount_rates_contractor = [
-            DiscountRate(rate=0.00, threshold_amount=0, customer_flag=False, deleted_flag=False),
-            DiscountRate(rate=0.10, threshold_amount=0, customer_flag=False, deleted_flag=False),
-            DiscountRate(rate=0.20, threshold_amount=42000, customer_flag=False, deleted_flag=False),
+            DiscountRate(rate=0.00, threshold_amount=0, sales_person_flag=False, deleted_flag=False),
+            DiscountRate(rate=0.10, threshold_amount=0, sales_person_flag=False, deleted_flag=False),
+            DiscountRate(rate=0.20, threshold_amount=42000, sales_person_flag=False, deleted_flag=False),
         ]
         for rate in discount_rates_contractor:
             db.add(rate)

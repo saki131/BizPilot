@@ -207,7 +207,7 @@ class DiscountRateResponse(BaseModel):
     discount_rate_id: int
     rate: float
     threshold_amount: int
-    customer_flag: bool
+    sales_person_flag: bool
 
     class Config:
         from_attributes = True
@@ -229,7 +229,7 @@ async def get_discount_rates(db: Session = Depends(get_db), current_user = Depen
             discount_rate_id=rate.discount_rate_id,
             rate=converted_rate,
             threshold_amount=rate.threshold_amount,
-            customer_flag=rate.customer_flag
+            sales_person_flag=rate.sales_person_flag
         ))
     
     return result

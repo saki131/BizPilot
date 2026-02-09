@@ -12,7 +12,7 @@ def add_contractor_discount_rates():
     try:
         # 既存の委託先用割引率を確認
         existing_contractor_rates = db.query(DiscountRate).filter(
-            DiscountRate.customer_flag == False
+            DiscountRate.sales_person_flag == False
         ).count()
         
         if existing_contractor_rates > 0:
@@ -20,7 +20,7 @@ def add_contractor_discount_rates():
             response = input("既存の委託先用割引率を削除して再投入しますか？ (y/n): ")
             if response.lower() == 'y':
                 db.query(DiscountRate).filter(
-                    DiscountRate.customer_flag == False
+                    DiscountRate.sales_person_flag == False
                 ).delete()
                 db.commit()
                 print("既存の委託先用割引率を削除しました。")
@@ -30,9 +30,9 @@ def add_contractor_discount_rates():
 
         # 委託先請求書用の割引率を追加
         contractor_rates = [
-            {"rate": 0.20, "threshold_amount": 0, "customer_flag": False},
-            {"rate": 0.30, "threshold_amount": 200000, "customer_flag": False},
-            {"rate": 0.40, "threshold_amount": 400000, "customer_flag": False},
+            {"rate": 0.20, "threshold_amount": 0, "sales_person_flag": False},
+            {"rate": 0.30, "threshold_amount": 200000, "sales_person_flag": False},
+            {"rate": 0.40, "threshold_amount": 400000, "sales_person_flag": False},
         ]
 
         for dr in contractor_rates:
@@ -45,12 +45,12 @@ def add_contractor_discount_rates():
         # 確認
         print("\n現在の割引率一覧:")
         all_rates = db.query(DiscountRate).order_by(
-            DiscountRate.customer_flag.desc(),
+            DiscountRate.sales_person_flag.desc(),
             DiscountRate.threshold_amount
         ).all()
         
         for rate in all_rates:
-            flag_type = "販売員" if rate.customer_flag else "委託先"
+            flag_type = "販売員" if rate.sales_person_flag else "委託先"
             print(f"  - ID: {rate.id}, 割引率: {rate.rate}%, 下限額: ¥{rate.threshold_amount:,}, 種別: {flag_type}")
 
     except Exception as e:

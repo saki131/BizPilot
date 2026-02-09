@@ -43,7 +43,7 @@ def calculate_optimal_discount_rate(total_amount: int, db: Session) -> DiscountR
     """
     # Get all sales person discount rates ordered by threshold desc
     discount_rates = db.query(DiscountRate).filter(
-        DiscountRate.customer_flag == True,
+        DiscountRate.sales_person_flag == True,
         DiscountRate.deleted_flag == False
     ).order_by(DiscountRate.threshold_amount.desc()).all()
     
@@ -54,7 +54,7 @@ def calculate_optimal_discount_rate(total_amount: int, db: Session) -> DiscountR
     
     # If no rate >= 20% applies, return 0% rate
     zero_rate = db.query(DiscountRate).filter(
-        DiscountRate.customer_flag == True,
+        DiscountRate.sales_person_flag == True,
         DiscountRate.rate == 0,
         DiscountRate.deleted_flag == False
     ).first()
@@ -511,7 +511,7 @@ async def update_invoice_discount_rate(
     # Get new discount rate
     discount_rate = db.query(DiscountRate).filter(
         DiscountRate.discount_rate_id == request.discount_rate_id,
-        DiscountRate.customer_flag == True,
+        DiscountRate.sales_person_flag == True,
         DiscountRate.deleted_flag == False
     ).first()
     if not discount_rate:

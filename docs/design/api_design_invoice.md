@@ -176,31 +176,31 @@
     "id": 8,
     "rate": "0.00",
     "threshold_amount": 0,
-    "customer_flag": true
+    "sales_person_flag": true
   },
   {
     "id": 9,
     "rate": "0.10",
     "threshold_amount": 21000,
-    "customer_flag": true
+    "sales_person_flag": true
   },
   {
     "id": 10,
     "rate": "0.20",
     "threshold_amount": 42000,
-    "customer_flag": true
+    "sales_person_flag": true
   },
   {
     "id": 11,
     "rate": "0.30",
     "threshold_amount": 200000,
-    "customer_flag": true
+    "sales_person_flag": true
   },
   {
     "id": 12,
     "rate": "0.40",
     "threshold_amount": 400000,
-    "customer_flag": true
+    "sales_person_flag": true
   }
 ]
 ```

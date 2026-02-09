@@ -15,6 +15,6 @@ try:
     rates = db.query(DiscountRate).order_by(DiscountRate.id).all()
     for rate in rates:
         deleted = " [DELETED]" if rate.deleted_flag else ""
-        print(f"ID: {rate.id}, Rate: {rate.rate}, Threshold: {rate.threshold_amount}, Customer: {rate.customer_flag}, Deleted: {rate.deleted_flag}{deleted}")
+        print(f"ID: {rate.id}, Rate: {rate.rate}, Threshold: {rate.threshold_amount}, Customer: {rate.sales_person_flag}, Deleted: {rate.deleted_flag}{deleted}")
 finally:
     db.close()

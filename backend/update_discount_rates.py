@@ -29,7 +29,7 @@ def update_discount_rates():
         # 確認
         print("\n修正後の割引率:")
         for rate in db.query(DiscountRate).all():
-            flag_type = "販売員" if rate.customer_flag else "委託先"
+            flag_type = "販売員" if rate.sales_person_flag else "委託先"
             print(f"  - ID: {rate.id}, 割引率: {float(rate.rate)*100}%, 下限額: ¥{rate.threshold_amount:,}, 種別: {flag_type}")
     
     except Exception as e:

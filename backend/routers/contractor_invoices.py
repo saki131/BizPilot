@@ -94,7 +94,7 @@ def calculate_contractor_discount_rate(total_amount: int, db: Session) -> Discou
     """
     # Get all contractor discount rates ordered by threshold desc
     discount_rates = db.query(DiscountRate).filter(
-        DiscountRate.customer_flag == False,  # 委託先フラグ
+        DiscountRate.sales_person_flag == False,  # 委託先フラグ
         DiscountRate.deleted_flag == False
     ).order_by(DiscountRate.threshold_amount.desc()).all()
     
@@ -105,7 +105,7 @@ def calculate_contractor_discount_rate(total_amount: int, db: Session) -> Discou
     
     # Default to 20% (0.20) if nothing found
     default_rate = db.query(DiscountRate).filter(
-        DiscountRate.customer_flag == False,
+        DiscountRate.sales_person_flag == False,
         DiscountRate.rate == 0.20,
         DiscountRate.deleted_flag == False
     ).first()

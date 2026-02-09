@@ -70,7 +70,7 @@ interface DiscountRate {
   discount_rate_id: number;
   rate: number;
   threshold_amount: number;
-  customer_flag: boolean;
+  sales_person_flag: boolean;
 }
 
 interface ContractorInvoice {
@@ -942,7 +942,7 @@ export default function InvoicesPage() {
               <Button
                 onClick={() => {
                   const tenPercentRate = discountRates.find(
-                    dr => dr.customer_flag && dr.rate === 0.10
+                    dr => dr.sales_person_flag && dr.rate === 0.10
                   );
                   if (tenPercentRate) {
                     handleChangeDiscountRate(tenPercentRate.discount_rate_id);
@@ -1220,7 +1220,7 @@ export default function InvoicesPage() {
                     className="w-full px-3 py-2 mt-2 border rounded-md bg-white"
                   >
                     {discountRates
-                      .filter(dr => dr.customer_flag)
+                      .filter(dr => dr.sales_person_flag)
                       .sort((a, b) => a.rate - b.rate)
                       .map((rate) => (
                         <option key={rate.discount_rate_id} value={rate.discount_rate_id}>

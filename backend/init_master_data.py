@@ -35,12 +35,15 @@ def init_data():
         db.query(DiscountRate).delete()
         print("✅ 既存のマスタデータを削除しました")
         
-        # 割引率
-        db.add(DiscountRate(discount_rate_id=1, rate=0.00, threshold_amount=0, customer_flag=True, deleted_flag=False))
-        db.add(DiscountRate(discount_rate_id=2, rate=0.10, threshold_amount=0, customer_flag=True, deleted_flag=False))
-        db.add(DiscountRate(discount_rate_id=3, rate=0.20, threshold_amount=42000, customer_flag=True, deleted_flag=False))
-        db.add(DiscountRate(discount_rate_id=4, rate=0.30, threshold_amount=200000, customer_flag=False, deleted_flag=False))
-        db.add(DiscountRate(discount_rate_id=5, rate=0.40, threshold_amount=400000, customer_flag=False, deleted_flag=False))
+        # 割引率（CSVデータを反映、sales_person_flagに変更）
+        db.add(DiscountRate(discount_rate_id=1, rate=0.00, threshold_amount=0, sales_person_flag=True, deleted_flag=False))
+        db.add(DiscountRate(discount_rate_id=2, rate=0.10, threshold_amount=0, sales_person_flag=True, deleted_flag=False))
+        db.add(DiscountRate(discount_rate_id=3, rate=0.20, threshold_amount=42000, sales_person_flag=True, deleted_flag=False))
+        db.add(DiscountRate(discount_rate_id=4, rate=0.30, threshold_amount=200000, sales_person_flag=True, deleted_flag=False))
+        db.add(DiscountRate(discount_rate_id=5, rate=0.40, threshold_amount=400000, sales_person_flag=True, deleted_flag=False))
+        db.add(DiscountRate(discount_rate_id=6, rate=0.20, threshold_amount=0, sales_person_flag=False, deleted_flag=False))
+        db.add(DiscountRate(discount_rate_id=7, rate=0.30, threshold_amount=200000, sales_person_flag=False, deleted_flag=False))
+        db.add(DiscountRate(discount_rate_id=8, rate=0.40, threshold_amount=400000, sales_person_flag=False, deleted_flag=False))
         
         # 販売員
         sales_persons = [

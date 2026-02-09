@@ -100,14 +100,14 @@ class DiscountRate(Base):
     # id: 主キー（割引率ID）
     # rate: 割引率（小数、例: 0.20 = 20%）
     # threshold_amount: 割引適用下限金額
-    # customer_flag: 顧客種別フラグ（True=販売員向け、False=委託先向け）
+    # sales_person_flag: 顧客種別フラグ（True=販売員向け、False=委託先向け）
     # deleted_flag: 削除フラグ
     # created_at: 作成日時
     # updated_at: 更新日時
     discount_rate_id = Column(Integer, primary_key=True, index=True)
     rate = Column(DECIMAL(4, 2), nullable=False)
     threshold_amount = Column(Integer, default=0)  # 下限額
-    customer_flag = Column(Boolean, default=True)
+    sales_person_flag = Column(Boolean, default=True)
     deleted_flag = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

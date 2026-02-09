@@ -49,7 +49,7 @@ tax_rates (税率)
 discount_rates (割引率)
 ├── id (PK)
 ├── rate
-├── customer_flag
+├── sales_person_flag
 ├── deleted_flag
 ├── created_at
 └── updated_at
@@ -156,7 +156,7 @@ CREATE TABLE tax_rates (
 CREATE TABLE discount_rates (
     id SERIAL PRIMARY KEY,
     rate DECIMAL(4,2) NOT NULL,
-    customer_flag BOOLEAN DEFAULT TRUE,
+    sales_person_flag BOOLEAN DEFAULT TRUE,
     deleted_flag BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()

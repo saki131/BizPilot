@@ -105,7 +105,7 @@ def upgrade() -> None:
         sa.Column('discount_rate_id', sa.Integer(), nullable=False),
         sa.Column('rate', sa.DECIMAL(precision=4, scale=2), nullable=False),
         sa.Column('threshold_amount', sa.Integer(), nullable=True, server_default='0'),
-        sa.Column('customer_flag', sa.Boolean(), nullable=True, server_default='true'),
+        sa.Column('sales_person_flag', sa.Boolean(), nullable=True, server_default='true'),
         sa.Column('deleted_flag', sa.Boolean(), nullable=True, server_default='false'),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=True),
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=True),
