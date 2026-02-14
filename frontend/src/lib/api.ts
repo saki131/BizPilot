@@ -3,6 +3,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://bizpilot-backen
 // Debug: Log the API URL being used (only in browser)
 if (typeof window !== 'undefined') {
   console.log('API Base URL:', API_BASE_URL);
+  console.log('Environment:', process.env.NODE_ENV);
 }
 
 interface LoginRequest {

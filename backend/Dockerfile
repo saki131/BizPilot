@@ -17,11 +17,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリをコピー
 COPY . /app
 
+# startup.shに実行権限を付与
+RUN chmod +x /app/startup.sh
+
 # 環境変数 PORT は Fly.io が提供
 ENV PYTHONUNBUFFERED=1
 
 # デフォルトのポート
 EXPOSE 8000
 
-# 起動コマンド（マイグレーション実行後にサーバー起動）
-CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# 起動コマンド（startup.shでDB初期化とマイグレーションを実行）
+CMD ["/app/startup.sh"]

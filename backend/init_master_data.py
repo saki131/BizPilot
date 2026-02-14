@@ -6,7 +6,7 @@ from database import SessionLocal
 from models import User, SalesPerson, Product, Contractor, TaxRate, DiscountRate
 
 # 事前にハッシュ化されたパスワード
-ADMIN_HASH = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyWpQkn.U84i"  # admin123
+ADMIN_HASH = "$2b$12$8CE.0fRvw0Zz3QxjZrucgOl5tTdSBYFt1vtFOIym82su8qL.T6c06"  # password123
 KAZUMI_HASH = "$2b$12$M6dJyysfFvYebLoyrV2p4OuCH777uwIYVHjyHrHTe8e5BohJW8OdO"  # kazumi/1431
 
 def init_data():

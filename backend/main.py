@@ -1,6 +1,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+import re
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,14 +12,17 @@ from routers.contractor_invoices import router as contractor_invoices_router
 app = FastAPI(title="Invoice Management API", version="1.0.0")
 
 # CORS設定
+allowed_origins = [
+    "http://localhost:3000",
+    "http://172.16.0.71:3000", 
+    "https://biz-pilot.vercel.app",  # Vercel本番環境（旧）
+    "https://biz-pilot-mu.vercel.app"  # Vercel本番環境（新）
+]
+
+# Vercelプレビューデプロイメント用の動的CORS設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://172.16.0.71:3000", 
-        "https://biz-pilot.vercel.app",  # Vercel本番環境（旧）
-        "https://biz-pilot-mu.vercel.app"  # Vercel本番環境（新）
-    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Vercelの全プレビュー/本番URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
