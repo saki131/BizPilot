@@ -133,6 +133,7 @@ export default function InvoicesPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Partial<SalesInvoice>>({});
+  const [affectedBillingDates, setAffectedBillingDates] = useState<string[]>([]);
   
   // 委託先請求書用
   const [contractorInvoices, setContractorInvoices] = useState<ContractorInvoice[]>([]);
@@ -203,6 +204,12 @@ export default function InvoicesPage() {
       fetchContractors();
       fetchProducts();
       fetchTaxRates();
+    }
+    
+    // localStorageから影響を受けた締め日を読み込み
+    const storedDates = localStorage.getItem('affectedBillingDates');
+    if (storedDates) {
+      setAffectedBillingDates(JSON.parse(storedDates));
     }
   }, [activeTab]);
 
@@ -408,6 +415,12 @@ export default function InvoicesPage() {
 
       if (response.data) {
         const result = response.data as any;
+        
+        // 生成した締め日をaffectedBillingDatesから削除
+        const updatedDates = affectedBillingDates.filter(date => date !== closingDate);
+        setAffectedBillingDates(updatedDates);
+        localStorage.setItem('affectedBillingDates', JSON.stringify(updatedDates));
+        
         alert(
           `請求書を生成しました\n` +
           `生成数: ${result.generated_count}件\n` +
@@ -657,6 +670,32 @@ export default function InvoicesPage() {
         {/* 販売員請求書タブ */}
         {activeTab === 'sales' && (
           <>
+        {/* 影響を受けた締め日のアラート */}
+        {affectedBillingDates.length > 0 && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-yellow-800 mb-1">
+                  請求書の再生成が必要な締め日
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {affectedBillingDates.sort().map((date) => (
+                    <span key={date} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                      {new Date(date).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-yellow-700 mt-2">
+                  納品書の追加・修正・削除により、これらの締め日の請求書に影響があります。一括請求書生成で最新の納品書を反映してください。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <Button 
           onClick={() => setShowBulkDialog(true)}
           className="w-full mb-4 h-12 font-semibold bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"

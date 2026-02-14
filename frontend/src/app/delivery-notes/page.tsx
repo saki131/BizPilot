@@ -595,6 +595,13 @@ export default function DeliveryNotesPage() {
       const result = await apiClient.createDeliveryNote(deliveryNoteData);
 
       if (result?.data) {
+        // 締め日をlocalStorageに保存（一括請求書生成が必要）
+        const affectedDates = JSON.parse(localStorage.getItem('affectedBillingDates') || '[]');
+        if (!affectedDates.includes(newDeliveryNote.billing_date)) {
+          affectedDates.push(newDeliveryNote.billing_date);
+          localStorage.setItem('affectedBillingDates', JSON.stringify(affectedDates));
+        }
+        
         alert('納品書を作成しました');
         setIsDialogOpen(false);
         setNewDeliveryNote({
@@ -641,6 +648,13 @@ export default function DeliveryNotesPage() {
       
       if (response.error) {
         throw new Error(response.error);
+      }
+      
+      // 締め日をlocalStorageに保存（一括請求書生成が必要）
+      const affectedDates = JSON.parse(localStorage.getItem('affectedBillingDates') || '[]');
+      if (!affectedDates.includes(selectedNote.billing_date)) {
+        affectedDates.push(selectedNote.billing_date);
+        localStorage.setItem('affectedBillingDates', JSON.stringify(affectedDates));
       }
       
       setShowDeleteDialog(false);
@@ -711,6 +725,13 @@ export default function DeliveryNotesPage() {
 
       console.log('Update response:', response);
 
+      // 締め日をlocalStorageに保存（一括請求書生成が必要）
+      const affectedDates = JSON.parse(localStorage.getItem('affectedBillingDates') || '[]');
+      if (!affectedDates.includes(editingNote.billing_date)) {
+        affectedDates.push(editingNote.billing_date);
+        localStorage.setItem('affectedBillingDates', JSON.stringify(affectedDates));
+      }
+      
       setShowEditDialog(false);
       setEditingNote(null);
       setSelectedNote(null);
