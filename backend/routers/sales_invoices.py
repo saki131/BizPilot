@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from pydantic import BaseModel
 
@@ -569,8 +569,14 @@ async def get_sales_invoices(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get sales invoices list"""
-    query = db.query(SalesInvoice).filter(SalesInvoice.deleted_flag == False)
+    """Get sales invoices list with optimized queries (prevents N+1 problem)"""
+    query = db.query(SalesInvoice)\
+        .options(
+            joinedload(SalesInvoice.details).joinedload(SalesInvoiceDetail.product),
+            joinedload(SalesInvoice.sales_person),
+            joinedload(SalesInvoice.discount_rate)
+        )\
+        .filter(SalesInvoice.deleted_flag == False)
     
     if sales_person_id:
         query = query.filter(SalesInvoice.sales_person_id == sales_person_id)
@@ -579,38 +585,23 @@ async def get_sales_invoices(
     
     result = []
     for invoice in invoices:
-        details = db.query(SalesInvoiceDetail).filter(
-            SalesInvoiceDetail.sales_invoice_id == invoice.sales_invoice_id
-        ).all()
-        
-        # Get discount rate
-        discount_rate = db.query(DiscountRate).filter(
-            DiscountRate.discount_rate_id == invoice.discount_rate_id
-        ).first()
-        
         # Calculate discount rate value
-        if discount_rate:
-            raw_rate = float(discount_rate.rate)
+        if invoice.discount_rate:
+            raw_rate = float(invoice.discount_rate.rate)
             # If rate >= 1, it's stored as percentage (10 = 10%), convert to decimal
             discount_rate_value = raw_rate / 100 if raw_rate >= 1 else raw_rate
         else:
             # Fallback: discount_rate not found, default to 0
             discount_rate_value = 0.0
         
-        print(f"[DEBUG API] Invoice {invoice.sales_invoice_id}: discount_rate_id={invoice.discount_rate_id}, raw_rate={raw_rate if discount_rate else 'N/A'}, discount_rate_value={discount_rate_value}")
-        
-        # Get sales person
-        sales_person = db.query(SalesPerson).filter(
-            SalesPerson.sales_person_id == invoice.sales_person_id
-        ).first()
+        print(f"[DEBUG API] Invoice {invoice.sales_invoice_id}: discount_rate_id={invoice.discount_rate_id}, raw_rate={raw_rate if invoice.discount_rate else 'N/A'}, discount_rate_value={discount_rate_value}")
         
         detail_responses = []
-        for detail in details:
-            product = db.query(Product).filter(Product.product_id == detail.product_id).first()
+        for detail in invoice.details:
             detail_responses.append(InvoiceDetailResponse(
                 id=str(detail.sales_invoice_detail_id),
                 product_id=detail.product_id,
-                product_name=product.name if product else "",
+                product_name=detail.product.name if detail.product else "",
                 total_quantity=detail.total_quantity,
                 unit_price=detail.unit_price,
                 amount=detail.amount
@@ -619,7 +610,7 @@ async def get_sales_invoices(
         result.append(InvoiceResponse(
             id=str(invoice.sales_invoice_id),
             sales_person_id=invoice.sales_person_id,
-            sales_person_name=sales_person.name if sales_person else "",
+            sales_person_name=invoice.sales_person.name if invoice.sales_person else "",
             invoice_number=invoice.invoice_number,
             start_date=invoice.start_date,
             end_date=invoice.end_date,

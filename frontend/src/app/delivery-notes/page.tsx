@@ -975,7 +975,6 @@ export default function DeliveryNotesPage() {
             <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-bold">納品書詳細</DialogTitle>
-                <DialogDescription className="text-sm text-gray-500">{selectedNote?.delivery_note_number}</DialogDescription>
               </DialogHeader>
               {selectedNote ? (
                 <div className="space-y-6">

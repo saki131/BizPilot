@@ -679,7 +679,7 @@ export default function InvoicesPage() {
               </svg>
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-yellow-800 mb-1">
-                  請求書の再生成が必要な締め日
+                  請求書の再反映が必要な締め日
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {affectedBillingDates.sort().map((date) => (
@@ -688,9 +688,6 @@ export default function InvoicesPage() {
                     </span>
                   ))}
                 </div>
-                <p className="text-xs text-yellow-700 mt-2">
-                  納品書の追加・修正・削除により、これらの締め日の請求書に影響があります。一括請求書生成で最新の納品書を反映してください。
-                </p>
               </div>
             </div>
           </div>
@@ -700,7 +697,7 @@ export default function InvoicesPage() {
           onClick={() => setShowBulkDialog(true)}
           className="w-full mb-4 h-12 font-semibold bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
         >
-          一括請求書生成
+          一括請求書反映
         </Button>
 
         {/* フィルター */}

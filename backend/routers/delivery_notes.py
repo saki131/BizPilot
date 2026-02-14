@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models import DeliveryNote, DeliveryNoteDetail
 from dependencies import get_current_user
@@ -328,7 +328,11 @@ class DeliveryNoteResponse(DeliveryNoteBase):
 # Delivery Note endpoints
 @router.get("/", response_model=List[DeliveryNoteResponse])
 async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    delivery_notes = db.query(DeliveryNote).filter(DeliveryNote.deleted_flag == False).all()
+    # Use joinedload to fetch related data in a single query (prevents N+1 problem)
+    delivery_notes = db.query(DeliveryNote)\
+        .options(joinedload(DeliveryNote.details))\
+        .filter(DeliveryNote.deleted_flag == False)\
+        .all()
     print(f"📋 Retrieved {len(delivery_notes)} delivery notes")
     if delivery_notes:
         print(f"📋 Note IDs: {[note.delivery_note_id for note in delivery_notes]}")

@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from pydantic import BaseModel
 
@@ -26,11 +26,10 @@ router = APIRouter()
 # Helper function to create ContractorInvoiceResponse
 def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "ContractorInvoiceResponse":
     """委託先請求書レスポンスを作成"""
-    # Get related data
-    contractor = db.query(Contractor).filter(Contractor.contractor_id == invoice.contractor_id).first()
-    discount_rate = db.query(DiscountRate).filter(DiscountRate.discount_rate_id == invoice.discount_rate_id).first()
-    tax_rate = db.query(TaxRate).filter(TaxRate.tax_rate_id == invoice.tax_rate_id).first()
-    details = db.query(ContractorInvoiceDetail).filter(ContractorInvoiceDetail.contractor_invoice_id == invoice.contractor_invoice_id).all()
+    # Use preloaded relationships instead of querying individually
+    contractor = invoice.contractor
+    discount_rate = invoice.discount_rate
+    tax_rate = invoice.tax_rate
     
     # Calculate discount rate value (convert from percentage if needed)
     if discount_rate:
@@ -73,12 +72,12 @@ def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "Contrac
             ContractorInvoiceDetailResponse(
                 id=str(d.contractor_invoice_detail_id),
                 product_id=d.product_id,
-                product_name=db.query(Product).filter(Product.product_id == d.product_id).first().name,
+                product_name=d.product.name if d.product else "",
                 total_quantity=d.total_quantity,
                 unit_price=d.unit_price,
                 amount=d.amount
             )
-            for d in details
+            for d in invoice.details
         ]
     )
 
@@ -308,12 +307,18 @@ def get_contractor_invoices(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    """委託先請求書一覧取得"""
-    invoices = db.query(ContractorInvoice).filter(
-        ContractorInvoice.deleted_flag == False
-    ).order_by(
-        ContractorInvoice.invoice_date.desc()
-    ).offset(skip).limit(limit).all()
+    """委託先請求書一覧取得 (optimized with eager loading)"""
+    invoices = db.query(ContractorInvoice)\
+        .options(
+            joinedload(ContractorInvoice.contractor),
+            joinedload(ContractorInvoice.discount_rate),
+            joinedload(ContractorInvoice.tax_rate),
+            joinedload(ContractorInvoice.details).joinedload(ContractorInvoiceDetail.product)
+        )\
+        .filter(ContractorInvoice.deleted_flag == False)\
+        .order_by(ContractorInvoice.invoice_date.desc())\
+        .offset(skip).limit(limit)\
+        .all()
     
     return [create_invoice_response(inv, db) for inv in invoices]
 
