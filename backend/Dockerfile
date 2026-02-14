@@ -23,5 +23,5 @@ ENV PYTHONUNBUFFERED=1
 # デフォルトのポート
 EXPOSE 8000
 
-# 起動コマンド
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# 起動コマンド（マイグレーション実行後にサーバー起動）
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
