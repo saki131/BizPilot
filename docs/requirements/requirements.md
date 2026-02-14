@@ -37,8 +37,14 @@
 
 #### デプロイ・インフラ
 - **フロントエンド**: Vercel (無料枠)
-- **バックエンド**: Fly.io / Railway (無料枠)
-- **データベース**: Supabase / Neon PostgreSQL (無料枠)
+  - 本番: master ブランチ
+  - ステージング: backlog/master ブランチ（自動デプロイ）
+- **バックエンド**: Fly.io (無料枠)
+  - 本番: bizpilot-backend
+  - ステージング: bizpilot-backend-staging
+- **データベース**: Supabase PostgreSQL (無料枠)
+  - 本番: bizpilot-production
+  - ステージング: bizpilot-staging
 
 #### 開発ツール
 - **IDE**: Visual Studio Code
@@ -241,10 +247,48 @@
 ### 4.1 性能要件
 - **ページ読み込み**: 2秒以内（First Contentful Paint）
 - **API応答時間**: 500ms以内（通常操作）
+- **一覧取得API**: 100ms以内（N+1クエリ防止のため eager loading 実装）
 - **画像認識処理**: 5-10秒以内
 - **同時接続**: 10ユーザー対応
 
-### 4.2 セキュリティ要件
+### 4.2 環境構成
+
+#### 環境一覧
+| 環境 | 用途 | URL/接続先 | データベース |
+|------|------|-----------|-------------|
+| Local | ローカル開発 | localhost:3000 / localhost:8000 | Docker PostgreSQL |
+| Staging | テスト環境 | staging.bizpilot.vercel.app / bizpilot-backend-staging.fly.dev | Supabase (bizpilot-staging) |
+| Production | 本番環境 | bizpilot.vercel.app / bizpilot-backend.fly.dev | Supabase (bizpilot-production) |
+
+#### ブランチ戦略
+```
+develop (開発ブランチ)
+  ↓
+backlog/master (ステージング用ブランチ)
+  ↓ 自動デプロイ → Staging環境
+  ↓ レビュー・検証
+master (本番ブランチ)
+  ↓ 自動デプロイ → Production環境
+```
+
+#### デプロイフロー
+1. **開発**: `develop` ブランチで機能開発
+2. **ステージング**: `backlog/master` ブランチへマージ → Vercel & Fly.io 自動デプロイ
+3. **検証**: ステージング環境でテスト実施
+4. **本番リリース**: `master` ブランチへマージ → 本番環境へ自動デプロイ
+
+#### 環境変数管理
+- `.env` ファイルは Git 管理外（`.gitignore` に追加済み）
+- `.env.example` をテンプレートとして利用
+- 環境ごとに異なる設定:
+  - `DATABASE_URL`: Supabase接続文字列
+  - `SECRET_KEY`: JWT署名キー
+  - `GEMINI_API_KEY`: Gemini API認証キー
+  - `NEXT_PUBLIC_API_URL`: バックエンドAPIエンドポイント
+
+詳細なセットアップ手順は [STAGING_SETUP.md](../STAGING_SETUP.md) を参照。
+
+### 4.3 セキュリティ要件
 - HTTPS通信必須
 - JWT認証
 - CORS設定
