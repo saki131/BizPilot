@@ -115,6 +115,7 @@ export default function DeliveryNotesPage() {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false); // 登録・更新・削除処理中
+  const [isLoading, setIsLoading] = useState(true); // データ読み込み中
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -233,6 +234,7 @@ export default function DeliveryNotesPage() {
   };
 
   const loadData = async () => {
+    setIsLoading(true);
     try {
       const [deliveryNotesRes, salesPersonsRes, productsRes, contractorsRes] = await Promise.all([
         apiClient.getDeliveryNotes(),
@@ -247,6 +249,8 @@ export default function DeliveryNotesPage() {
       if (contractorsRes.data) setContractors(contractorsRes.data as Contractor[]);
     } catch (error) {
       console.error('Failed to load data:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -873,7 +877,17 @@ export default function DeliveryNotesPage() {
                 </CardContent>
               </Card>
               
-              {deliveryNotes.length === 0 ? (
+              {/* Loading State */}
+              {isLoading ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                      <p className="text-gray-600">データを読み込んでいます...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : deliveryNotes.length === 0 ? (
                 <Card>
                   <CardContent className="py-8 text-center text-gray-500">
                     納品書がありません
