@@ -929,7 +929,7 @@ export default function DeliveryNotesPage() {
                       return b.delivery_date.localeCompare(a.delivery_date);
                     })
                     .map((note) => {
-                    const salesPerson = salesPersons.find(sp => sp.sales_person_id === note.sales_person_id);
+                    const salesPerson = salesPersons.find(sp => Number(sp.sales_person_id) === Number(note.sales_person_id));
                     const totalAmount = note.details.reduce((sum, detail) => sum + (detail.quantity * detail.unit_price), 0);
                     const taxAmount = Math.floor(totalAmount * 0.1);
                     const totalWithTax = totalAmount + taxAmount;
@@ -976,7 +976,9 @@ export default function DeliveryNotesPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
                       <div className="flex items-center">
                         <span className="text-base text-gray-600 w-28">販売員</span>
-                        <span className="text-base font-medium text-gray-900">{salesPersons.find(sp => sp.sales_person_id === selectedNote.sales_person_id)?.name}</span>
+                        <span className="text-base font-medium text-gray-900">
+                          {salesPersons.find(sp => Number(sp.sales_person_id) === Number(selectedNote.sales_person_id))?.name || '不明な販売員'}
+                        </span>
                       </div>
                       <div className="flex items-center">
                         <span className="text-base text-gray-600 w-28">税率</span>
@@ -1025,7 +1027,7 @@ export default function DeliveryNotesPage() {
                               }`}
                             >
                               <TableCell className="text-sm text-gray-900 py-3 px-3 font-medium">
-                                {products.find(p => p.product_id === d.product_id)?.name || d.product_id}
+                                {products.find(p => Number(p.product_id) === Number(d.product_id))?.name || `不明な商品 (ID: ${d.product_id})`}
                               </TableCell>
                               <TableCell className="text-center text-sm text-gray-900 py-3 px-2">
                                 {d.quantity}
@@ -1296,7 +1298,7 @@ export default function DeliveryNotesPage() {
               <div className="space-y-4 py-4">
                 {selectedNote && (
                   <div className="bg-gray-50 p-3 rounded text-sm space-y-1">
-                    <p><span className="font-medium">販売員:</span> {salesPersons.find(sp => sp.sales_person_id === selectedNote.sales_person_id)?.name}</p>
+                    <p><span className="font-medium">販売員:</span> {salesPersons.find(sp => Number(sp.sales_person_id) === Number(selectedNote.sales_person_id))?.name || '不明な販売員'}</p>
                     <p><span className="font-medium">納品日:</span> <ClientDate value={selectedNote.delivery_date} /></p>
                   </div>
                 )}
