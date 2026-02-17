@@ -17,6 +17,8 @@ class SalesPersonCreate(SalesPersonBase):
 
 class SalesPersonResponse(SalesPersonBase):
     sales_person_id: int
+    display_order: int
+    deleted_flag: bool
 
     class Config:
         from_attributes = True
@@ -30,6 +32,9 @@ class ProductCreate(ProductBase):
 
 class ProductResponse(ProductBase):
     product_id: int
+    display_order: int
+    deleted_flag: bool
+    discount_exclusion_flag: bool
 
     class Config:
         from_attributes = True
@@ -42,6 +47,8 @@ class ContractorCreate(ContractorBase):
 
 class ContractorResponse(ContractorBase):
     contractor_id: int
+    display_order: int
+    deleted_flag: bool
 
     class Config:
         from_attributes = True
