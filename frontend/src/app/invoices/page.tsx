@@ -140,10 +140,16 @@ export default function InvoicesPage() {
   };
   
   // 期間を表示用フォーマットに変換（YYYY/MM/DD形式）
-  const formatPeriod = (invoiceDateStr: string): string => {
-    const { startDate, endDate } = calculatePeriodFromInvoiceDate(invoiceDateStr);
-    const formatDate = (dateStr: string) => dateStr.replace(/-/g, '/');
-    return `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
+  const formatPeriod = (invoiceDateStr: string | undefined): string => {
+    if (!invoiceDateStr) return '-';
+    try {
+      const { startDate, endDate } = calculatePeriodFromInvoiceDate(invoiceDateStr);
+      const formatDate = (dateStr: string) => dateStr.replace(/-/g, '/');
+      return `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
+    } catch (error) {
+      console.error('Error formatting period:', error, 'invoiceDate:', invoiceDateStr);
+      return '-';
+    }
   };
   
   // 販売員請求書用
@@ -846,8 +852,13 @@ export default function InvoicesPage() {
                       {invoice.sales_person_name}
                     </div>
                     <div className="text-sm text-gray-500 space-y-0.5">
-                      <div>請求期間: {formatPeriod(invoice.invoice_date)}</div>
-                      <div>請求日: {invoice.invoice_date}</div>
+                      {invoice.invoice_date && (
+                        <>
+                          <div>請求期間: {formatPeriod(invoice.invoice_date)}</div>
+                          <div>請求日: {invoice.invoice_date}</div>
+                        </>
+                      )}
+                      {!invoice.invoice_date && <div>請求日: 未設定</div>}
                     </div>
                   </div>
                   <div className="text-right">
