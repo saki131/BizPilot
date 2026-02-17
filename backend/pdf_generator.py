@@ -8,6 +8,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.colors import black, white
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+import gc
+import os
 import os
 
 from models import SalesInvoice, SalesInvoiceDetail, Product, SalesPerson, DiscountRate, ContractorInvoice, ContractorInvoiceDetail, Contractor
@@ -147,6 +149,7 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     pdf.save()
     buffer.seek(0)
+    gc.collect()  # メモリ解放
     
     return buffer
 
@@ -238,6 +241,7 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     pdf.save()
     buffer.seek(0)
+    gc.collect()  # メモリ解放
     
     return buffer
 
@@ -637,6 +641,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     pdf.save()
     buffer.seek(0)
+    gc.collect()  # メモリ解放
     
     return buffer
 
@@ -1042,5 +1047,6 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     pdf.save()
     buffer.seek(0)
+    gc.collect()  # メモリ解放
     
     return buffer
