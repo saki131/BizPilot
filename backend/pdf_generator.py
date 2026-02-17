@@ -8,8 +8,6 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.colors import black, white
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-import gc
-import os
 import os
 
 from models import SalesInvoice, SalesInvoiceDetail, Product, SalesPerson, DiscountRate, ContractorInvoice, ContractorInvoiceDetail, Contractor
@@ -140,7 +138,7 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         stamp_size = 16*mm
         stamp_x = 72*mm  # 会社名の右側
         stamp_y = issuer_y - 10*mm  # 会社名に少しかかる高さ
-        pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size)
+        pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
     # フッター
     footer_y = 30*mm
@@ -149,7 +147,6 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     pdf.save()
     buffer.seek(0)
-    gc.collect()  # メモリ解放
     
     return buffer
 
@@ -232,7 +229,7 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
         stamp_size = 16*mm
         stamp_x = 72*mm  # 会社名の右側
         stamp_y = issuer_y - 10*mm  # 会社名に少しかかる高さ
-        pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size)
+        pdf.drawImage(stamp_path, stamp_x, stamp_y, width=stamp_size, height=stamp_size, mask='auto')
     
     # フッター
     footer_y = 30*mm
@@ -241,7 +238,6 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     pdf.save()
     buffer.seek(0)
-    gc.collect()  # メモリ解放
     
     return buffer
 
@@ -340,7 +336,8 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
                      stamp_y - stamp_height/2, 
                      width=stamp_width, 
                      height=stamp_height,
-                     preserveAspectRatio=True)
+                     preserveAspectRatio=True,
+                     mask='auto')
     except Exception as e:
         # 画像が見つからない場合は従来の円とテキストで描画
         print(f"Warning: Stamp image not found at {stamp_image_path}, using text fallback: {e}")
@@ -641,7 +638,6 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     pdf.save()
     buffer.seek(0)
-    gc.collect()  # メモリ解放
     
     return buffer
 
@@ -746,7 +742,8 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
                      stamp_y - stamp_height/2, 
                      width=stamp_width, 
                      height=stamp_height,
-                     preserveAspectRatio=True)
+                     preserveAspectRatio=True,
+                     mask='auto')
     except Exception as e:
         # 画像が見つからない場合は従来の円とテキストで描画
         print(f"Warning: Stamp image not found at {stamp_image_path}, using text fallback: {e}")
@@ -1047,6 +1044,5 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     
     pdf.save()
     buffer.seek(0)
-    gc.collect()  # メモリ解放
     
     return buffer
