@@ -752,22 +752,35 @@ async def generate_invoice_pdf(
     current_user: dict = Depends(get_current_user)
 ):
     """Generate sales invoice PDF"""
-    invoice = db.query(SalesInvoice).filter(
-        SalesInvoice.sales_invoice_id == invoice_id,
-        SalesInvoice.deleted_flag == False
-    ).first()
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    
-    pdf_buffer = generate_sales_invoice_pdf(invoice, db)
-    
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename=invoice_{invoice.sales_invoice_id}.pdf"
-        }
-    )
+    try:
+        print(f"[PDF] Starting PDF generation for invoice {invoice_id}")
+        invoice = db.query(SalesInvoice).filter(
+            SalesInvoice.sales_invoice_id == invoice_id,
+            SalesInvoice.deleted_flag == False
+        ).first()
+        if not invoice:
+            print(f"[PDF] Invoice {invoice_id} not found")
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        print(f"[PDF] Generating PDF for invoice {invoice.sales_invoice_id}")
+        pdf_buffer = generate_sales_invoice_pdf(invoice, db)
+        print(f"[PDF] PDF generated successfully, size: {pdf_buffer.getbuffer().nbytes} bytes")
+        
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=invoice_{invoice.sales_invoice_id}.pdf",
+                "Access-Control-Allow-Origin": "*",  # CORS header
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            }
+        )
+    except Exception as e:
+        print(f"[PDF] Error generating PDF for invoice {invoice_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
 
 
 @router.get("/{invoice_id}/receipt-pdf")
@@ -777,19 +790,32 @@ def get_sales_receipt_pdf(
     current_user: dict = Depends(get_current_user)
 ):
     """Generate sales receipt PDF"""
-    invoice = db.query(SalesInvoice).filter(
-        SalesInvoice.sales_invoice_id == invoice_id,
-        SalesInvoice.deleted_flag == False
-    ).first()
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    
-    pdf_buffer = generate_sales_receipt_pdf(invoice, db)
-    
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename=receipt_{invoice.sales_invoice_id}.pdf"
-        }
-    )
+    try:
+        print(f"[RECEIPT PDF] Starting receipt PDF generation for invoice {invoice_id}")
+        invoice = db.query(SalesInvoice).filter(
+            SalesInvoice.sales_invoice_id == invoice_id,
+            SalesInvoice.deleted_flag == False
+        ).first()
+        if not invoice:
+            print(f"[RECEIPT PDF] Invoice {invoice_id} not found")
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        print(f"[RECEIPT PDF] Generating receipt PDF for invoice {invoice.sales_invoice_id}")
+        pdf_buffer = generate_sales_receipt_pdf(invoice, db)
+        print(f"[RECEIPT PDF] Receipt PDF generated successfully")
+        
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=receipt_{invoice.sales_invoice_id}.pdf",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            }
+        )
+    except Exception as e:
+        print(f"[RECEIPT PDF] Error generating receipt PDF for invoice {invoice_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Receipt PDF generation failed: {str(e)}")
