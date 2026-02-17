@@ -119,6 +119,33 @@ export default function InvoicesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'sales' | 'contractor'>('sales');
   
+  // 請求日から請求期間を算出（前月21日～当月20日）
+  const calculatePeriodFromInvoiceDate = (invoiceDateStr: string): { startDate: string; endDate: string } => {
+    const invoiceDate = new Date(invoiceDateStr);
+    const year = invoiceDate.getFullYear();
+    const month = invoiceDate.getMonth() + 1; // 1-12
+    
+    // 前月21日を計算
+    let startYear = year;
+    let startMonth = month - 1;
+    if (startMonth === 0) {
+      startYear -= 1;
+      startMonth = 12;
+    }
+    
+    const startDate = `${startYear}-${String(startMonth).padStart(2, '0')}-21`;
+    const endDate = invoiceDateStr; // 請求日 = 当月20日
+    
+    return { startDate, endDate };
+  };
+  
+  // 期間を表示用フォーマットに変換（YYYY/MM/DD形式）
+  const formatPeriod = (invoiceDateStr: string): string => {
+    const { startDate, endDate } = calculatePeriodFromInvoiceDate(invoiceDateStr);
+    const formatDate = (dateStr: string) => dateStr.replace(/-/g, '/');
+    return `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
+  };
+  
   // 販売員請求書用
   const [invoices, setInvoices] = useState<SalesInvoice[]>([]);
   const [salesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
@@ -818,8 +845,9 @@ export default function InvoicesPage() {
                     <div className="font-medium text-gray-900 text-lg mb-1">
                       {invoice.sales_person_name}
                     </div>
-                    <div className="text-sm text-gray-500">
-                      請求日: {invoice.invoice_date}
+                    <div className="text-sm text-gray-500 space-y-0.5">
+                      <div>請求期間: {formatPeriod(invoice.invoice_date)}</div>
+                      <div>請求日: {invoice.invoice_date}</div>
                     </div>
                   </div>
                   <div className="text-right">
@@ -1013,6 +1041,7 @@ export default function InvoicesPage() {
             {selectedInvoice && (
               <div className="bg-gray-50 p-3 rounded text-sm space-y-1">
                 <p><span className="font-medium">販売員:</span> {selectedInvoice.sales_person_name}</p>
+                <p><span className="font-medium">請求期間:</span> {formatPeriod(selectedInvoice.invoice_date)}</p>
                 <p><span className="font-medium">請求日:</span> {selectedInvoice.invoice_date}</p>
                 <p><span className="font-medium">税込合計:</span> ¥{(selectedInvoice.total_amount_inc_tax || 0).toLocaleString()}</p>
               </div>
@@ -1060,7 +1089,7 @@ export default function InvoicesPage() {
                   </div>
                   <div className="flex items-center">
                     <span className="text-base text-gray-600 w-32">請求期間</span>
-                    <span className="text-base font-medium text-gray-900">請求日: {selectedInvoice.invoice_date}</span>
+                    <span className="text-base font-medium text-gray-900">{formatPeriod(selectedInvoice.invoice_date)}</span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-base text-gray-600 w-32">割引率</span>
