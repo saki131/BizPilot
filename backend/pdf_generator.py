@@ -280,7 +280,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setLineWidth(0.5)
     
     # 請求日・支払期日の計算
-    billing_date = invoice.end_date if invoice.end_date else datetime.now().date()
+    billing_date = invoice.invoice_date if invoice.invoice_date else datetime.now().date()
     # 支払期日：締め日の月の25日
     payment_due = billing_date.replace(day=25)
     

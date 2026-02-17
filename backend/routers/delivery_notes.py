@@ -312,7 +312,6 @@ class DeliveryNoteBase(BaseModel):
     tax_rate_id: int
     delivery_date: date
     billing_date: date
-    delivery_note_number: str
     remarks: Optional[str] = None
     image_filename: Optional[str] = None
 
@@ -344,7 +343,6 @@ async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depen
             tax_rate_id=note.tax_rate_id,
             delivery_date=note.delivery_date,
             billing_date=note.billing_date,
-            delivery_note_number=note.delivery_note_number,
             remarks=note.remarks,
             image_filename=note.image_filename,
             details=[
@@ -369,7 +367,6 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
     print(f"  - tax_rate_id: {delivery_note.tax_rate_id}")
     print(f"  - delivery_date: {delivery_note.delivery_date}")
     print(f"  - billing_date: {delivery_note.billing_date}")
-    print(f"  - delivery_note_number: {delivery_note.delivery_note_number}")
     print(f"  - image_filename: {delivery_note.image_filename}")
     print(f"  - details count: {len(delivery_note.details)}")
     
@@ -380,7 +377,6 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
             tax_rate_id=delivery_note.tax_rate_id,
             delivery_date=delivery_note.delivery_date,
             billing_date=delivery_note.billing_date,
-            delivery_note_number=delivery_note.delivery_note_number,
             remarks=delivery_note.remarks,
             image_filename=delivery_note.image_filename
         )
@@ -415,7 +411,6 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
             tax_rate_id=db_delivery_note.tax_rate_id,
             delivery_date=db_delivery_note.delivery_date,
             billing_date=db_delivery_note.billing_date,
-            delivery_note_number=db_delivery_note.delivery_note_number,
             remarks=db_delivery_note.remarks,
             image_filename=db_delivery_note.image_filename,
             details=[
@@ -452,7 +447,6 @@ async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db)
         tax_rate_id=delivery_note.tax_rate_id,
         delivery_date=delivery_note.delivery_date,
         billing_date=delivery_note.billing_date,
-        delivery_note_number=delivery_note.delivery_note_number,
         remarks=delivery_note.remarks,
         image_filename=delivery_note.image_filename,
         details=[
@@ -506,7 +500,6 @@ async def update_delivery_note(delivery_note_id: str, delivery_note: DeliveryNot
         tax_rate_id=db_delivery_note.tax_rate_id,
         delivery_date=db_delivery_note.delivery_date,
         billing_date=db_delivery_note.billing_date,
-        delivery_note_number=db_delivery_note.delivery_note_number,
         remarks=db_delivery_note.remarks,
         image_filename=db_delivery_note.image_filename,
         details=[
@@ -538,7 +531,7 @@ async def delete_delivery_note(delivery_note_id: str, db: Session = Depends(get_
         print(f"📋 Available delivery note IDs: {[note.delivery_note_id for note in all_notes]}")
         raise HTTPException(status_code=404, detail="Delivery note not found")
     
-    print(f"✅ Found delivery note: {db_delivery_note.delivery_note_id}, Number: {db_delivery_note.delivery_note_number}")
+    print(f"✅ Found delivery note: {db_delivery_note.delivery_note_id}")
     
     try:
         # 論理削除: deleted_flagをTrueに設定

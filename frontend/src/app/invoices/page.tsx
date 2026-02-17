@@ -17,11 +17,10 @@ interface SalesInvoice {
   sales_person_id: number;
   sales_person_name: string;
   invoice_number: string;
-  start_date: string;
-  end_date: string;
+  tax_rate_id: number;
   discount_rate_id: number;
   discount_rate: number;
-  invoice_date?: string;
+  invoice_date: string;
   receipt_date?: string;
   non_discountable_amount: number;
   note?: string;
@@ -820,7 +819,7 @@ export default function InvoicesPage() {
                       {invoice.sales_person_name}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {invoice.start_date} ~ {invoice.end_date}
+                      請求日: {invoice.invoice_date}
                     </div>
                   </div>
                   <div className="text-right">
@@ -1014,7 +1013,7 @@ export default function InvoicesPage() {
             {selectedInvoice && (
               <div className="bg-gray-50 p-3 rounded text-sm space-y-1">
                 <p><span className="font-medium">販売員:</span> {selectedInvoice.sales_person_name}</p>
-                <p><span className="font-medium">請求期間:</span> {selectedInvoice.start_date} ~ {selectedInvoice.end_date}</p>
+                <p><span className="font-medium">請求日:</span> {selectedInvoice.invoice_date}</p>
                 <p><span className="font-medium">税込合計:</span> ¥{(selectedInvoice.total_amount_inc_tax || 0).toLocaleString()}</p>
               </div>
             )}
@@ -1061,7 +1060,7 @@ export default function InvoicesPage() {
                   </div>
                   <div className="flex items-center">
                     <span className="text-base text-gray-600 w-32">請求期間</span>
-                    <span className="text-base font-medium text-gray-900">{selectedInvoice.start_date} ~ {selectedInvoice.end_date}</span>
+                    <span className="text-base font-medium text-gray-900">請求日: {selectedInvoice.invoice_date}</span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-base text-gray-600 w-32">割引率</span>

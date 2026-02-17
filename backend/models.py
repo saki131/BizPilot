@@ -122,7 +122,6 @@ class DeliveryNote(Base):
     # total_amount_ex_tax: 合計（税抜）
     # total_amount_inc_tax: 合計（税込）
     # remarks: 備考／但し書き
-    # delivery_note_number: 納品書番号
     # file_path: ファイルパス（PDF等）
     # delivery_date: 納品日
     # billing_date: 請求日／締め日
@@ -139,7 +138,6 @@ class DeliveryNote(Base):
     total_amount_ex_tax = Column(Integer, default=0)
     total_amount_inc_tax = Column(Integer, default=0)
     remarks = Column(Text)
-    delivery_note_number = Column(String(50), unique=True, nullable=False)
     file_path = Column(String(500))
     delivery_date = Column(TIMESTAMP, nullable=False)
     billing_date = Column(TIMESTAMP, nullable=False)
@@ -185,15 +183,11 @@ class SalesInvoice(Base):
     # Columns:
     # id: 主キー（販売員請求書ID, UUID）
     # sales_person_id: 販売員ID（外部キー）
-    # invoice_number: 請求書番号
-    # start_date: 対象期間 開始日
-    # end_date: 対象期間 終了日
+    # tax_rate_id: 税率ID（外部キー）
     # discount_rate_id: 割引率ID（外部キー）
     sales_invoice_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     sales_person_id = Column(Integer, ForeignKey("sales_persons.sales_person_id"), nullable=False)
-    invoice_number = Column(String(50), default="[COMPANY_REGISTRATION_NUMBER]", nullable=False)
-    start_date = Column(Date, nullable=False)
-    end_date = Column(Date, nullable=False)
+    tax_rate_id = Column(Integer, ForeignKey("tax_rates.tax_rate_id"), nullable=False)
     discount_rate_id = Column(Integer, ForeignKey("discount_rates.discount_rate_id"), nullable=False)
 
     # invoice_date: 請求日
@@ -234,6 +228,7 @@ class SalesInvoice(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     sales_person = relationship("SalesPerson")
+    tax_rate = relationship("TaxRate")
     discount_rate = relationship("DiscountRate")
     details = relationship("SalesInvoiceDetail", back_populates="sales_invoice", cascade="all, delete-orphan")
 
@@ -299,13 +294,11 @@ class ContractorInvoice(Base):
     # invoice_date: 請求日
     # receipt_date: 領収日
     # payment_due_date: 支払期日
-    # payment_term: 但し書き
     # deleted_flag: 削除フラグ
     note = Column(String(500), nullable=True)  # 備考
     invoice_date = Column(Date, nullable=False)  # 請求日
     receipt_date = Column(Date, nullable=True)  # 領収日
     payment_due_date = Column(Date, nullable=True)  # 支払期日
-    payment_term = Column(String(200), nullable=True)  # 但
     deleted_flag = Column(Boolean, default=False, nullable=False)  # 削除フラグ
     
     created_at = Column(TIMESTAMP, server_default=func.now())

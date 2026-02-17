@@ -54,7 +54,6 @@ def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "Contrac
         invoice_date=invoice.invoice_date,
         receipt_date=invoice.receipt_date,
         payment_due_date=invoice.payment_due_date,
-        payment_term=invoice.payment_term,
         note=invoice.note,
         non_discountable_amount=invoice.non_discountable_amount,
         quota_subtotal=invoice.quota_subtotal,
@@ -125,7 +124,6 @@ class ContractorInvoiceCreateRequest(BaseModel):
     tax_rate_id: int
     invoice_date: date
     payment_due_date: Optional[date] = None
-    payment_term: Optional[str] = None
     note: Optional[str] = None
     details: List[ContractorInvoiceDetailRequest]
 
@@ -137,7 +135,6 @@ class ContractorInvoiceUpdateRequest(BaseModel):
     invoice_date: Optional[date] = None
     receipt_date: Optional[date] = None
     payment_due_date: Optional[date] = None
-    payment_term: Optional[str] = None
     note: Optional[str] = None
     details: Optional[List[ContractorInvoiceDetailRequest]] = None
 
@@ -162,7 +159,6 @@ class ContractorInvoiceResponse(BaseModel):
     invoice_date: date
     receipt_date: Optional[date]
     payment_due_date: Optional[date]
-    payment_term: Optional[str]
     note: Optional[str]
     non_discountable_amount: int
     quota_subtotal: int
@@ -266,7 +262,6 @@ def create_contractor_invoice(
         tax_rate_id=request.tax_rate_id,
         invoice_date=request.invoice_date,
         payment_due_date=request.payment_due_date,
-        payment_term=request.payment_term,
         note=request.note,
         non_discountable_amount=non_discountable_amount,
         quota_subtotal=quota_subtotal,
@@ -389,9 +384,6 @@ def update_contractor_invoice(
     
     if request.payment_due_date is not None:
         invoice.payment_due_date = request.payment_due_date
-    
-    if request.payment_term is not None:
-        invoice.payment_term = request.payment_term
     
     if request.note is not None:
         invoice.note = request.note

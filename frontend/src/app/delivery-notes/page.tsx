@@ -19,7 +19,6 @@ interface DeliveryNote {
   tax_rate_id: number;
   delivery_date: string;
   billing_date: string;
-  delivery_note_number: string;
   remarks?: string;
   image_filename?: string;
   details: DeliveryNoteDetail[];
@@ -496,7 +495,6 @@ export default function DeliveryNotesPage() {
         tax_rate_id: typeof result.taxRateId === 'number' ? result.taxRateId : parseInt(result.taxRateId),
         delivery_date: deliveryDateFormatted,
         billing_date: formatDate(billingDate),
-        delivery_note_number: deliveryNoteNumber,
         remarks: '画像認識から登録',
         image_filename: fileName,
         details
@@ -568,9 +566,6 @@ export default function DeliveryNotesPage() {
       }
 
       // UUIDを生成
-      const deliveryNoteNumber = `DN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // 商品マスタから単価を取得して明細を作成
       const details = newDeliveryNote.details.map(detail => {
         const product = products.find(p => p.product_id.toString() === detail.product_id);
         return {
@@ -586,7 +581,6 @@ export default function DeliveryNotesPage() {
         tax_rate_id: parseInt(newDeliveryNote.tax_rate_id),
         delivery_date: newDeliveryNote.delivery_date,
         billing_date: newDeliveryNote.billing_date,
-        delivery_note_number: deliveryNoteNumber,
         remarks: newDeliveryNote.remarks,
         details
       };
@@ -678,7 +672,6 @@ export default function DeliveryNotesPage() {
       tax_rate_id: selectedNote.tax_rate_id.toString(),
       delivery_date: selectedNote.delivery_date,
       billing_date: selectedNote.billing_date,
-      delivery_note_number: selectedNote.delivery_note_number,
       remarks: selectedNote.remarks || '',
       details: selectedNote.details.map(d => ({
         product_id: d.product_id.toString(),
@@ -714,7 +707,6 @@ export default function DeliveryNotesPage() {
         tax_rate_id: parseInt(editingNote.tax_rate_id),
         delivery_date: editingNote.delivery_date,
         billing_date: editingNote.billing_date,
-        delivery_note_number: editingNote.delivery_note_number,
         remarks: editingNote.remarks,
         details
       };
@@ -1304,8 +1296,8 @@ export default function DeliveryNotesPage() {
               <div className="space-y-4 py-4">
                 {selectedNote && (
                   <div className="bg-gray-50 p-3 rounded text-sm space-y-1">
-                    <p><span className="font-medium">納品書番号:</span> {selectedNote.delivery_note_number}</p>
                     <p><span className="font-medium">販売員:</span> {salesPersons.find(sp => sp.sales_person_id === selectedNote.sales_person_id)?.name}</p>
+                    <p><span className="font-medium">納品日:</span> <ClientDate value={selectedNote.delivery_date} /></p>
                   </div>
                 )}
                 <p className="text-sm text-red-600">この操作は取り消せません。</p>

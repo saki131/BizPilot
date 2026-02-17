@@ -25,6 +25,24 @@ from pdf_generator import generate_sales_invoice_pdf, generate_sales_receipt_pdf
 router = APIRouter()
 
 
+def calculate_period_from_invoice_date(invoice_date: date) -> tuple[date, date]:
+    """Calculate billing period from invoice date (closing date)
+    
+    Period: Previous month 21st ~ invoice_date (20th)
+    Example: invoice_date=2026-01-20 -> period: 2025-12-21 ~ 2026-01-20
+    """
+    # Start date = previous month 21st
+    if invoice_date.month == 1:
+        start_date = date(invoice_date.year - 1, 12, 21)
+    else:
+        start_date = date(invoice_date.year, invoice_date.month - 1, 21)
+    
+    # End date = invoice_date (should be 20th)
+    end_date = invoice_date
+    
+    return start_date, end_date
+
+
 class InvoiceUpdateRequest(BaseModel):
     discount_rate_id: Optional[int] = None
     receipt_date: Optional[date] = None
@@ -65,9 +83,7 @@ def calculate_optimal_discount_rate(total_amount: int, db: Session) -> DiscountR
 class InvoiceGenerateRequest(BaseModel):
     """請求書生成リクエスト"""
     sales_person_id: int
-    start_date: date
-    end_date: date
-    discount_rate_id: int
+    invoice_date: date  # 請求日（締め日）= 20日
 
 
 class BulkInvoiceGenerateRequest(BaseModel):
@@ -97,9 +113,8 @@ class InvoiceResponse(BaseModel):
     sales_person_id: int
     sales_person_name: str
     invoice_number: str
-    start_date: date
-    end_date: date
-    invoice_date: Optional[date] = None
+    tax_rate_id: int
+    invoice_date: date
     receipt_date: Optional[date] = None
     discount_rate_id: int
     discount_rate: float
@@ -119,11 +134,21 @@ class InvoiceResponse(BaseModel):
 
 def generate_invoice_for_sales_person(
     sales_person_id: int,
-    start_date: date,
-    end_date: date,
+    invoice_date: date,
     db: Session
 ) -> Optional[InvoiceResponse]:
-    """Generate invoice for a specific sales person"""
+    """Generate invoice for a specific sales person
+    
+    Args:
+        sales_person_id: Sales person ID
+        invoice_date: Invoice date (closing date, should be 20th)
+        db: Database session
+    
+    Returns:
+        InvoiceResponse or None if no delivery notes found
+    """
+    # Calculate period from invoice_date
+    start_date, end_date = calculate_period_from_invoice_date(invoice_date)
     
     # Get delivery notes for the period
     delivery_notes = db.query(DeliveryNote).filter(
@@ -208,23 +233,18 @@ def generate_invoice_for_sales_person(
     
     total_amount_inc_tax = total_amount_ex_tax + tax_amount
     
-    # Calculate invoice_date and receipt_date
-    # 請求日 = 締め日と同じ
-    invoice_date = end_date
-    # 領収日 = 請求日当月の25日
-    receipt_date = end_date.replace(day=25)
+    # Calculate receipt_date = 25th of invoice_date month
+    receipt_date = invoice_date.replace(day=25)
     
-    # Check if invoice already exists for this sales person and period
+    # Check if invoice already exists for this sales person and invoice_date
     existing_invoice = db.query(SalesInvoice).filter(
         SalesInvoice.sales_person_id == sales_person_id,
-        SalesInvoice.start_date == start_date,
-        SalesInvoice.end_date == end_date
+        SalesInvoice.invoice_date == invoice_date
     ).first()
     
     if existing_invoice:
         # Update existing invoice
         existing_invoice.discount_rate_id = discount_rate.discount_rate_id
-        existing_invoice.invoice_date = invoice_date
         existing_invoice.receipt_date = receipt_date
         existing_invoice.note = '御品代として'
         existing_invoice.quota_subtotal = quota_subtotal
@@ -247,9 +267,7 @@ def generate_invoice_for_sales_person(
         # Create new invoice record
         invoice = SalesInvoice(
             sales_person_id=sales_person_id,
-            invoice_number="[COMPANY_REGISTRATION_NUMBER]",
-            start_date=start_date,
-            end_date=end_date,
+            tax_rate_id=tax_rate.tax_rate_id,
             invoice_date=invoice_date,
             receipt_date=receipt_date,
             discount_rate_id=discount_rate.discount_rate_id,
@@ -300,9 +318,8 @@ def generate_invoice_for_sales_person(
         id=str(invoice.sales_invoice_id),
         sales_person_id=invoice.sales_person_id,
         sales_person_name=sales_person.name if sales_person else "",
-        invoice_number=invoice.invoice_number,
-        start_date=invoice.start_date,
-        end_date=invoice.end_date,
+        invoice_number="[COMPANY_REGISTRATION_NUMBER]",
+        tax_rate_id=invoice.tax_rate_id,
         invoice_date=invoice.invoice_date,
         receipt_date=invoice.receipt_date,
         discount_rate_id=invoice.discount_rate_id,
@@ -322,6 +339,7 @@ def generate_invoice_for_sales_person(
     )
 
 
+
 @router.post("/bulk-generate")
 async def bulk_generate_sales_invoices(
     request: BulkInvoiceGenerateRequest,
@@ -333,18 +351,6 @@ async def bulk_generate_sales_invoices(
     Generate invoices for all or selected sales persons for a specific closing date.
     Period is automatically calculated: (previous month 21st) to (closing date)
     """
-    # Calculate start date (21st of previous month)
-    if request.closing_date.day >= 21:
-        # If closing date is >= 21st, start from same month 21st
-        start_date = request.closing_date.replace(day=21)
-    else:
-        # If closing date is < 21st, start from previous month 21st
-        if request.closing_date.month == 1:
-            start_date = request.closing_date.replace(year=request.closing_date.year - 1, month=12, day=21)
-        else:
-            prev_month = request.closing_date.month - 1
-            start_date = request.closing_date.replace(month=prev_month, day=21)
-    
     # Get target sales persons
     if request.sales_person_ids:
         sales_persons = db.query(SalesPerson).filter(
@@ -359,6 +365,9 @@ async def bulk_generate_sales_invoices(
     if not sales_persons:
         raise HTTPException(status_code=404, detail="No sales persons found")
     
+    # Calculate period from closing_date
+    start_date, end_date = calculate_period_from_invoice_date(request.closing_date)
+    
     # Generate invoices
     generated_invoices = []
     skipped_persons = []
@@ -366,7 +375,6 @@ async def bulk_generate_sales_invoices(
     for sales_person in sales_persons:
         invoice = generate_invoice_for_sales_person(
             sales_person.sales_person_id,
-            start_date,
             request.closing_date,
             db
         )
@@ -383,7 +391,7 @@ async def bulk_generate_sales_invoices(
         "invoices": generated_invoices,
         "period": {
             "start_date": start_date.isoformat(),
-            "end_date": request.closing_date.isoformat()
+            "end_date": end_date.isoformat()
         }
     }
 
@@ -455,11 +463,10 @@ async def update_invoice_fields(
     
     return {
         "id": invoice.sales_invoice_id,
-        "invoice_number": invoice.invoice_number,
+        "invoice_number": "[COMPANY_REGISTRATION_NUMBER]",
         "sales_person_id": invoice.sales_person_id,
         "sales_person_name": sales_person.name if sales_person else None,
-        "start_date": invoice.start_date.isoformat() if invoice.start_date else None,
-        "end_date": invoice.end_date.isoformat() if invoice.end_date else None,
+        "tax_rate_id": invoice.tax_rate_id,
         "invoice_date": invoice.invoice_date.isoformat() if invoice.invoice_date else None,
         "receipt_date": invoice.receipt_date.isoformat() if invoice.receipt_date else None,
         "discount_rate_id": invoice.discount_rate_id,
@@ -611,9 +618,8 @@ async def get_sales_invoices(
             id=str(invoice.sales_invoice_id),
             sales_person_id=invoice.sales_person_id,
             sales_person_name=invoice.sales_person.name if invoice.sales_person else "",
-            invoice_number=invoice.invoice_number,
-            start_date=invoice.start_date,
-            end_date=invoice.end_date,
+            invoice_number="[COMPANY_REGISTRATION_NUMBER]",
+            tax_rate_id=invoice.tax_rate_id,
             invoice_date=invoice.invoice_date,
             receipt_date=invoice.receipt_date,
             discount_rate_id=invoice.discount_rate_id,
@@ -687,9 +693,8 @@ async def get_sales_invoice(
         id=invoice.sales_invoice_id,
         sales_person_id=invoice.sales_person_id,
         sales_person_name=sales_person.name if sales_person else "",
-        invoice_number=invoice.invoice_number,
-        start_date=invoice.start_date,
-        end_date=invoice.end_date,
+        invoice_number="[COMPANY_REGISTRATION_NUMBER]",
+        tax_rate_id=invoice.tax_rate_id,
         invoice_date=invoice.invoice_date,
         receipt_date=invoice.receipt_date,
         discount_rate_id=invoice.discount_rate_id,
