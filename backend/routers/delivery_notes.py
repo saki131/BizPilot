@@ -329,7 +329,7 @@ class DeliveryNoteResponse(DeliveryNoteBase):
 async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     # Use joinedload to fetch related data in a single query (prevents N+1 problem)
     delivery_notes = db.query(DeliveryNote)\
-        .options(joinedload(DeliveryNote.details))\
+        .options(joinedload(DeliveryNote.details).joinedload(DeliveryNoteDetail.product))\
         .filter(DeliveryNote.deleted_flag == False)\
         .all()
     print(f"📋 Retrieved {len(delivery_notes)} delivery notes")
@@ -354,7 +354,7 @@ async def get_delivery_notes(db: Session = Depends(get_db), current_user = Depen
                     unit_price=d.unit_price,
                     remarks=d.remarks
                 )
-                for d in note.details
+                for d in sorted(note.details, key=lambda x: (x.product.display_order if x.product else 0, x.delivery_note_detail_id))
             ]
         )
         for note in delivery_notes
@@ -434,10 +434,12 @@ async def create_delivery_note(delivery_note: DeliveryNoteCreate, db: Session = 
 
 @router.get("/{delivery_note_id}", response_model=DeliveryNoteResponse)
 async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    delivery_note = db.query(DeliveryNote).filter(
-        DeliveryNote.delivery_note_id == delivery_note_id,
-        DeliveryNote.deleted_flag == False
-    ).first()
+    delivery_note = db.query(DeliveryNote)\
+        .options(joinedload(DeliveryNote.details).joinedload(DeliveryNoteDetail.product))\
+        .filter(
+            DeliveryNote.delivery_note_id == delivery_note_id,
+            DeliveryNote.deleted_flag == False
+        ).first()
     if delivery_note is None:
         raise HTTPException(status_code=404, detail="Delivery note not found")
     
@@ -458,7 +460,7 @@ async def get_delivery_note(delivery_note_id: str, db: Session = Depends(get_db)
                 unit_price=d.unit_price,
                 remarks=d.remarks
             )
-            for d in delivery_note.details
+            for d in sorted(delivery_note.details, key=lambda x: (x.product.display_order if x.product else 0, x.delivery_note_detail_id))
         ]
     )
 

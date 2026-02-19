@@ -76,7 +76,7 @@ def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "Contrac
                 unit_price=d.unit_price,
                 amount=d.amount
             )
-            for d in invoice.details
+            for d in sorted(invoice.details, key=lambda x: (x.product.display_order if x.product else 0, x.contractor_invoice_detail_id))
         ]
     )
 

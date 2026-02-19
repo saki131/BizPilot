@@ -261,9 +261,12 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         DiscountRate.discount_rate_id == invoice.discount_rate_id
     ).first()
     
-    details = db.query(SalesInvoiceDetail).filter(
-        SalesInvoiceDetail.sales_invoice_id == invoice.sales_invoice_id
-    ).all()
+    # 表示順でソートして明細を取得
+    details = db.query(SalesInvoiceDetail)\
+        .join(Product, SalesInvoiceDetail.product_id == Product.product_id)\
+        .filter(SalesInvoiceDetail.sales_invoice_id == invoice.sales_invoice_id)\
+        .order_by(Product.display_order, SalesInvoiceDetail.sales_invoice_detail_id)\
+        .all()
     
     # PDF生成
     buffer = BytesIO()
@@ -661,9 +664,12 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         DiscountRate.discount_rate_id == invoice.discount_rate_id
     ).first()
     
-    details = db.query(ContractorInvoiceDetail).filter(
-        ContractorInvoiceDetail.contractor_invoice_id == invoice.contractor_invoice_id
-    ).all()
+    # 表示順でソートして明細を取得
+    details = db.query(ContractorInvoiceDetail)\
+        .join(Product, ContractorInvoiceDetail.product_id == Product.product_id)\
+        .filter(ContractorInvoiceDetail.contractor_invoice_id == invoice.contractor_invoice_id)\
+        .order_by(Product.display_order, ContractorInvoiceDetail.contractor_invoice_detail_id)\
+        .all()
     
     # PDF生成
     buffer = BytesIO()

@@ -604,7 +604,9 @@ async def get_sales_invoices(
         print(f"[DEBUG API] Invoice {invoice.sales_invoice_id}: discount_rate_id={invoice.discount_rate_id}, raw_rate={raw_rate if invoice.discount_rate else 'N/A'}, discount_rate_value={discount_rate_value}")
         
         detail_responses = []
-        for detail in invoice.details:
+        # 表示順でソート
+        sorted_details = sorted(invoice.details, key=lambda x: (x.product.display_order if x.product else 0, x.sales_invoice_detail_id))
+        for detail in sorted_details:
             detail_responses.append(InvoiceDetailResponse(
                 id=str(detail.sales_invoice_detail_id),
                 product_id=detail.product_id,
