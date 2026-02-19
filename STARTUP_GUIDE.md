@@ -117,6 +117,33 @@ taskkill /f /im python.exe
 - バックエンド: `pip install -r requirements.txt` を再実行
 - フロントエンド: `npm install` を再実行
 
+## デプロイ方法
+
+### Staging環境へのデプロイ
+```bash
+# backendディレクトリから実行
+cd backend
+flyctl deploy --config fly.staging.toml
+```
+
+- **アプリ名**: bizpilot-backend-staging
+- **設定ファイル**: fly.staging.toml
+- **リージョン**: San Jose (sjc)
+- **メモリ**: 512MB
+
+### 本番環境へのデプロイ
+```bash
+cd backend
+flyctl deploy
+```
+
+- **設定ファイル**: fly.toml（デフォルト）
+
+### デプロイ前の確認事項
+- Fly.ioにログイン済みか確認: `flyctl auth whoami`
+- 環境変数が設定されているか確認: `flyctl secrets list -a bizpilot-backend-staging`
+- 必要なシークレット設定: `flyctl secrets set DATABASE_URL=... SECRET_KEY=... -a bizpilot-backend-staging`
+
 ## 環境変数
 必要に応じて以下の環境変数を設定してください：
 - `DATABASE_URL`: PostgreSQL接続文字列
