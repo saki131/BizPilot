@@ -1,0 +1,60 @@
+# Environment variables (機密情報)
+.env
+.env.local
+.env.*.local
+
+# API Keys and Secrets (APIキー・シークレット)
+**/GEMINI_API_KEYS.md
+
+# Database credentials (データベース認証情報)
+**/*credentials*.json
+**/*secrets*.json
+
+# Business Data (実業務データ)
+backend/data/input/
+backend/data/output/
+backend/data/archive/
+
+# Uploads (アップロードファイル)
+uploads/
+uploads/receipts/
+
+# Logs (ログファイル)
+logs/
+*.log
+
+# HEIC images
+*.heic
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (frontend)
+node_modules/
+.next/
+out/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
