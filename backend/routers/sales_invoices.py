@@ -172,6 +172,7 @@ def generate_invoice_for_sales_person(
     # Aggregate by product
     aggregated_data = db.query(
         DeliveryNoteDetail.product_id,
+        Product.discount_exclusion_flag,
         Product.quota_target_flag,
         func.sum(DeliveryNoteDetail.quantity).label('total_quantity'),
         DeliveryNoteDetail.unit_price
@@ -181,18 +182,24 @@ def generate_invoice_for_sales_person(
         DeliveryNoteDetail.delivery_note_id.in_(delivery_note_ids)
     ).group_by(
         DeliveryNoteDetail.product_id,
+        Product.discount_exclusion_flag,
         Product.quota_target_flag,
         DeliveryNoteDetail.unit_price
     ).all()
     
     quota_subtotal = 0
     non_quota_subtotal = 0
+    non_discountable_amount = 0
     invoice_details = []
     
     for item in aggregated_data:
         amount = item.total_quantity * item.unit_price
         
-        if item.quota_target_flag:
+        # 割引対象外の判定（サンプル、紙袋など）
+        if item.discount_exclusion_flag:
+            non_discountable_amount += amount
+        # ノルマ対象の判定
+        elif item.quota_target_flag:
             quota_subtotal += amount
         else:
             non_quota_subtotal += amount
@@ -222,7 +229,8 @@ def generate_invoice_for_sales_person(
     quota_total = quota_subtotal - quota_discount_amount
     non_quota_total = non_quota_subtotal - non_quota_discount_amount
     
-    total_amount_ex_tax = quota_total + non_quota_total
+    # 割引対象外商品も合計に含める
+    total_amount_ex_tax = quota_total + non_quota_total + non_discountable_amount
     
     # Calculate tax (floor rounding) - apply to total amount excluding tax
     tax_rate_value = float(tax_rate.rate)
@@ -247,6 +255,7 @@ def generate_invoice_for_sales_person(
         existing_invoice.discount_rate_id = discount_rate.discount_rate_id
         existing_invoice.receipt_date = receipt_date
         existing_invoice.note = '御品代として'
+        existing_invoice.non_discountable_amount = non_discountable_amount
         existing_invoice.quota_subtotal = quota_subtotal
         existing_invoice.quota_discount_amount = quota_discount_amount
         existing_invoice.quota_total = quota_total
@@ -272,6 +281,7 @@ def generate_invoice_for_sales_person(
             receipt_date=receipt_date,
             discount_rate_id=discount_rate.discount_rate_id,
             note='御品代として',
+            non_discountable_amount=non_discountable_amount,
             quota_subtotal=quota_subtotal,
             quota_discount_amount=quota_discount_amount,
             quota_total=quota_total,
@@ -534,7 +544,8 @@ async def update_invoice_discount_rate(
     quota_total = invoice.quota_subtotal - quota_discount_amount
     non_quota_total = invoice.non_quota_subtotal - non_quota_discount_amount
     
-    total_amount_ex_tax = quota_total + non_quota_total
+    # 割引対象外商品も合計に含める
+    total_amount_ex_tax = quota_total + non_quota_total + invoice.non_discountable_amount
     
     # Get tax rate
     tax_rate = db.query(TaxRate).filter(
