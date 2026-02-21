@@ -26,7 +26,7 @@ BANK_INFO = {
     "bank_name": "[BANK_NAME]",
     "branch_name": "[BANK_BRANCH_NAME]",
     "account_type": "普通",
-    "account_number": "420025",
+    "account_number": "[BANK_ACCOUNT_NUMBER]",
     "account_holder": "[BANK_ACCOUNT_HOLDER]",
     "yucho_symbol": "[BANK_YUCHO_SYMBOL]",
     "yucho_number": "[BANK_ACCOUNT_NUMBER]1",
@@ -124,7 +124,7 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 11)
     pdf.drawString(30*mm, issuer_y, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, issuer_y - 7*mm, "新札幌代理店")
+    pdf.drawString(30*mm, issuer_y - 7*mm, "新さっぽろ代理店")
     pdf.drawString(30*mm, issuer_y - 14*mm, f"代表者: {COMPANY_INFO['representative']}")
     pdf.drawString(30*mm, issuer_y - 21*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
     pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO["postal_code"])
@@ -622,17 +622,17 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawString(20*mm, bank_y - 21*mm, f"口座名義: {BANK_INFO['account_holder']}")
     pdf.drawString(20*mm, bank_y - 28*mm, f"記号: {BANK_INFO['yucho_symbol']}　番号: {BANK_INFO['yucho_number']}")
     
-    # ===== 備考欄 =====
-    remarks_y = bank_y - 42*mm
-    pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, remarks_y, "【備考】")
-    pdf.setFont(font_name, 9)
+    # # ===== 備考欄 =====
+    # remarks_y = bank_y - 42*mm
+    # pdf.setFont(font_name, 10)
+    # pdf.drawString(20*mm, remarks_y, "【備考】")
+    # pdf.setFont(font_name, 9)
     
-    # 但し書きの内容を出力
-    remark_offset = 7*mm
-    if invoice.note:
-        pdf.drawString(20*mm, remarks_y - remark_offset, f"・{invoice.note}")
-        remark_offset += 7*mm
+    # # 但し書きの内容を出力
+    # remark_offset = 7*mm
+    # if invoice.note:
+    #     pdf.drawString(20*mm, remarks_y - remark_offset, f"・{invoice.note}")
+    #     remark_offset += 7*mm
   
     # ===== フッター =====
     footer_y = 20*mm
@@ -1031,17 +1031,17 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.drawString(20*mm, bank_y - 21*mm, f"口座名義: {BANK_INFO['account_holder']}")
     pdf.drawString(20*mm, bank_y - 28*mm, f"記号: {BANK_INFO['yucho_symbol']}　番号: {BANK_INFO['yucho_number']}")
     
-    # ===== 備考欄 =====
-    remarks_y = bank_y - 42*mm
-    pdf.setFont(font_name, 10)
-    pdf.drawString(20*mm, remarks_y, "【備考】")
-    pdf.setFont(font_name, 9)
+    # # ===== 備考欄 =====
+    # remarks_y = bank_y - 42*mm
+    # pdf.setFont(font_name, 10)
+    # pdf.drawString(20*mm, remarks_y, "【備考】")
+    # pdf.setFont(font_name, 9)
     
-    # 但し書きの内容を出力
-    remark_offset = 7*mm
-    if invoice.note:
-        pdf.drawString(20*mm, remarks_y - remark_offset, f"・{invoice.note}")
-        remark_offset += 7*mm
+    # # 但し書きの内容を出力
+    # remark_offset = 7*mm
+    # if invoice.note:
+    #     pdf.drawString(20*mm, remarks_y - remark_offset, f"・{invoice.note}")
+    #     remark_offset += 7*mm
   
     # ===== フッター =====
     footer_y = 20*mm

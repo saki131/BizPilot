@@ -251,8 +251,9 @@ def create_contractor_invoice(
     total_discount_amount = quota_discount_amount + non_quota_discount_amount
     total_after_discount = total_amount_ex_tax
     
-    # 消費税額
-    tax_amount = int(total_amount_ex_tax * float(tax_rate.rate) / 100)
+    # 消費税額（税率が1以上の場合は/100、1未満の場合はそのまま使用）
+    tax_rate_value = float(tax_rate.rate) / 100 if float(tax_rate.rate) >= 1 else float(tax_rate.rate)
+    tax_amount = int(total_amount_ex_tax * tax_rate_value)
     total_amount_inc_tax = total_amount_ex_tax + tax_amount
     
     # 請求書作成
@@ -370,7 +371,8 @@ def update_contractor_invoice(
             # 税率取得
             tax_rate = db.query(TaxRate).filter(TaxRate.tax_rate_id == invoice.tax_rate_id).first()
             if tax_rate:
-                invoice.tax_amount = int(invoice.total_amount_ex_tax * float(tax_rate.rate) / 100)
+                tax_rate_value = float(tax_rate.rate) / 100 if float(tax_rate.rate) >= 1 else float(tax_rate.rate)
+                invoice.tax_amount = int(invoice.total_amount_ex_tax * tax_rate_value)
                 invoice.total_amount_inc_tax = invoice.total_amount_ex_tax + invoice.tax_amount
     
     if request.tax_rate_id is not None:
@@ -450,7 +452,8 @@ def update_contractor_invoice(
         
         tax_rate = db.query(TaxRate).filter(TaxRate.tax_rate_id == invoice.tax_rate_id).first()
         if tax_rate:
-            invoice.tax_amount = int(invoice.total_amount_ex_tax * float(tax_rate.rate) / 100)
+            tax_rate_value = float(tax_rate.rate) / 100 if float(tax_rate.rate) >= 1 else float(tax_rate.rate)
+            invoice.tax_amount = int(invoice.total_amount_ex_tax * tax_rate_value)
             invoice.total_amount_inc_tax = invoice.total_amount_ex_tax + invoice.tax_amount
     
     db.commit()
