@@ -43,4 +43,22 @@ class Settings:
         
         return keys
 
+    # 会社情報
+    COMPANY_NAME: str = os.getenv("COMPANY_NAME", "[COMPANY_NAME]")
+    COMPANY_REPRESENTATIVE: str = os.getenv("COMPANY_REPRESENTATIVE", "")
+    COMPANY_POSTAL_CODE: str = os.getenv("COMPANY_POSTAL_CODE", "")
+    COMPANY_ADDRESS1: str = os.getenv("COMPANY_ADDRESS1", "")
+    COMPANY_ADDRESS2: str = os.getenv("COMPANY_ADDRESS2", "")
+    COMPANY_BRANCH_NAME: str = os.getenv("COMPANY_BRANCH_NAME", "")
+    COMPANY_REGISTRATION_NUMBER: str = os.getenv("COMPANY_REGISTRATION_NUMBER", "")
+
+    # 振込先情報
+    BANK_NAME: str = os.getenv("BANK_NAME", "")
+    BANK_BRANCH_NAME: str = os.getenv("BANK_BRANCH_NAME", "")
+    BANK_ACCOUNT_TYPE: str = os.getenv("BANK_ACCOUNT_TYPE", "普通")
+    BANK_ACCOUNT_NUMBER: str = os.getenv("BANK_ACCOUNT_NUMBER", "")
+    BANK_ACCOUNT_HOLDER: str = os.getenv("BANK_ACCOUNT_HOLDER", "")
+    BANK_YUCHO_SYMBOL: str = os.getenv("BANK_YUCHO_SYMBOL", "")
+    BANK_YUCHO_NUMBER: str = os.getenv("BANK_YUCHO_NUMBER", "")
+
 settings = Settings()

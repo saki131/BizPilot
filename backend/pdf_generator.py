@@ -11,26 +11,33 @@ from datetime import datetime, timedelta
 import os
 
 from models import SalesInvoice, SalesInvoiceDetail, Product, SalesPerson, DiscountRate, ContractorInvoice, ContractorInvoiceDetail, Contractor
+import config
 
-# 会社情報（固定値）
-COMPANY_INFO = {
-    "name": "[COMPANY_NAME]",
-    "representative": "[COMPANY_REPRESENTATIVE]",
-    "postal_code": "[COMPANY_POSTAL_CODE]",
-    "address1": "[COMPANY_ADDRESS1]",
-    "address2": "[COMPANY_ADDRESS2]",
-}
+def get_company_info() -> dict:
+    """環境変数から会社情報を取得"""
+    s = config.settings
+    return {
+        "name": s.COMPANY_NAME,
+        "representative": s.COMPANY_REPRESENTATIVE,
+        "postal_code": s.COMPANY_POSTAL_CODE,
+        "address1": s.COMPANY_ADDRESS1,
+        "address2": s.COMPANY_ADDRESS2,
+        "branch_name": s.COMPANY_BRANCH_NAME,
+        "registration_number": s.COMPANY_REGISTRATION_NUMBER,
+    }
 
-# 振込先情報
-BANK_INFO = {
-    "bank_name": "[BANK_NAME]",
-    "branch_name": "[BANK_BRANCH_NAME]",
-    "account_type": "普通",
-    "account_number": "[BANK_ACCOUNT_NUMBER]",
-    "account_holder": "[BANK_ACCOUNT_HOLDER]",
-    "yucho_symbol": "[BANK_YUCHO_SYMBOL]",
-    "yucho_number": "[BANK_ACCOUNT_NUMBER]1",
-}
+def get_bank_info() -> dict:
+    """環境変数から振込先情報を取得"""
+    s = config.settings
+    return {
+        "bank_name": s.BANK_NAME,
+        "branch_name": s.BANK_BRANCH_NAME,
+        "account_type": s.BANK_ACCOUNT_TYPE,
+        "account_number": s.BANK_ACCOUNT_NUMBER,
+        "account_holder": s.BANK_ACCOUNT_HOLDER,
+        "yucho_symbol": s.BANK_YUCHO_SYMBOL,
+        "yucho_number": s.BANK_YUCHO_NUMBER,
+    }
 
 def setup_japanese_font():
     """日本語フォントの設定（メモリ最適化版）"""
@@ -74,6 +81,8 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     sales_person = db.query(SalesPerson).filter(
         SalesPerson.sales_person_id == invoice.sales_person_id
     ).first()
+    COMPANY_INFO = get_company_info()
+    BANK_INFO = get_bank_info()
     
     # PDF生成（横向き）
     buffer = BytesIO()
@@ -110,7 +119,7 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     # 但し書き
     pdf.setFont(font_name, 11)
-    note_text = invoice.note
+    note_text = invoice.note if invoice.note else "御品代として"
     pdf.drawString(30*mm, box_y - 15*mm, f"但、{note_text}")
     
     # 領収日
@@ -124,9 +133,9 @@ def generate_sales_receipt_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 11)
     pdf.drawString(30*mm, issuer_y, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, issuer_y - 7*mm, "新さっぽろ代理店")
+    pdf.drawString(30*mm, issuer_y - 7*mm, COMPANY_INFO["branch_name"])
     pdf.drawString(30*mm, issuer_y - 14*mm, f"代表者: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 21*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(30*mm, issuer_y - 21*mm, f"登録番号: {COMPANY_INFO['registration_number']}")
     pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(30*mm, issuer_y - 35*mm, COMPANY_INFO["address1"])
     pdf.drawString(30*mm, issuer_y - 42*mm, COMPANY_INFO["address2"])
@@ -165,6 +174,8 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
     contractor = db.query(Contractor).filter(
         Contractor.contractor_id == invoice.contractor_id
     ).first()
+    COMPANY_INFO = get_company_info()
+    BANK_INFO = get_bank_info()
     
     # PDF生成（横向き）
     buffer = BytesIO()
@@ -215,9 +226,9 @@ def generate_contractor_receipt_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.setFont(font_name, 11)
     pdf.drawString(30*mm, issuer_y, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(30*mm, issuer_y - 7*mm, "新さっぽろ代理店")
+    pdf.drawString(30*mm, issuer_y - 7*mm, COMPANY_INFO["branch_name"])
     pdf.drawString(30*mm, issuer_y - 14*mm, f"代表者: {COMPANY_INFO['representative']}")
-    pdf.drawString(30*mm, issuer_y - 21*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(30*mm, issuer_y - 21*mm, f"登録番号: {COMPANY_INFO['registration_number']}")
     pdf.drawString(30*mm, issuer_y - 28*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(30*mm, issuer_y - 35*mm, COMPANY_INFO["address1"])
     pdf.drawString(30*mm, issuer_y - 42*mm, COMPANY_INFO["address2"])
@@ -256,6 +267,8 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     sales_person = db.query(SalesPerson).filter(
         SalesPerson.sales_person_id == invoice.sales_person_id
     ).first()
+    COMPANY_INFO = get_company_info()
+    BANK_INFO = get_bank_info()
     
     discount_rate = db.query(DiscountRate).filter(
         DiscountRate.discount_rate_id == invoice.discount_rate_id
@@ -316,9 +329,9 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.setFont(font_name, 11)
     pdf.drawString(right_x, y_right, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(right_x, y_right - 6*mm, "新さっぽろ代理店")
+    pdf.drawString(right_x, y_right - 6*mm, COMPANY_INFO["branch_name"])
     pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO['representative'])
-    pdf.drawString(right_x, y_right - 18*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(right_x, y_right - 18*mm, f"登録番号: {COMPANY_INFO['registration_number']}")
     pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address1"])
     pdf.drawString(right_x, y_right - 36*mm, COMPANY_INFO["address2"])
@@ -659,6 +672,8 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     contractor = db.query(Contractor).filter(
         Contractor.contractor_id == invoice.contractor_id
     ).first()
+    COMPANY_INFO = get_company_info()
+    BANK_INFO = get_bank_info()
     
     discount_rate = db.query(DiscountRate).filter(
         DiscountRate.discount_rate_id == invoice.discount_rate_id
@@ -725,9 +740,9 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.setFont(font_name, 11)
     pdf.drawString(right_x, y_right, COMPANY_INFO["name"])
     pdf.setFont(font_name, 9)
-    pdf.drawString(right_x, y_right - 6*mm, "新さっぽろ代理店")
+    pdf.drawString(right_x, y_right - 6*mm, COMPANY_INFO["branch_name"])
     pdf.drawString(right_x, y_right - 12*mm, COMPANY_INFO['representative'])
-    pdf.drawString(right_x, y_right - 18*mm, "登録番号: [COMPANY_REGISTRATION_NUMBER]")
+    pdf.drawString(right_x, y_right - 18*mm, f"登録番号: {COMPANY_INFO['registration_number']}")
     pdf.drawString(right_x, y_right - 24*mm, COMPANY_INFO["postal_code"])
     pdf.drawString(right_x, y_right - 30*mm, COMPANY_INFO["address1"])
     pdf.drawString(right_x, y_right - 36*mm, COMPANY_INFO["address2"])
