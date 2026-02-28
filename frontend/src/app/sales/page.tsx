@@ -238,20 +238,6 @@ export default function SalesPage() {
                   </div>
                 ))}
 
-                {/* 合計行 */}
-                {(() => {
-                  const sumS = productQuantities.reduce((s, r) => s + r.sales_total_quantity, 0);
-                  const sumC = productQuantities.reduce((s, r) => s + r.contractor_total_quantity, 0);
-                  const sumT = productQuantities.reduce((s, r) => s + r.grand_total_quantity, 0);
-                  return (
-                    <div className="grid grid-cols-4 gap-0 bg-gray-50 border-t-2 border-gray-300">
-                      <div className="p-3 text-sm font-bold text-gray-800">合計</div>
-                      <div className="p-2 text-right text-sm font-semibold text-gray-800">{sumS.toLocaleString()}</div>
-                      <div className="p-2 text-right text-sm font-semibold text-gray-800">{sumC.toLocaleString()}</div>
-                      <div className="p-2 text-right text-sm font-bold text-gray-900">{sumT.toLocaleString()}</div>
-                    </div>
-                  );
-                })()}
               </div>
             )}
           </>
