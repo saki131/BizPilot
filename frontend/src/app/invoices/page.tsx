@@ -226,6 +226,14 @@ export default function InvoicesPage() {
   });
   const [isContractorFilterOpen, setIsContractorFilterOpen] = useState(false);
 
+  // 認証チェック（未ログインの場合はログインページへリダイレクト）
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      router.push('/login');
+    }
+  }, [router]);
+
   useEffect(() => {
     if (activeTab === 'sales') {
       fetchInvoices();

@@ -156,6 +156,8 @@ class ApiClient {
       } else {
         console.warn('[API] No username in login response!');
       }
+      // middleware認証用Cookieからもトークンを参照できるように設定
+      document.cookie = `access_token=${data.access_token}; path=/; SameSite=Strict; max-age=3600`;
     }
     return { data };
   }
@@ -189,6 +191,8 @@ class ApiClient {
       if (data.username) {
         localStorage.setItem('username', data.username);
       }
+      // Cookieも更新
+      document.cookie = `access_token=${data.access_token}; path=/; SameSite=Strict; max-age=3600`;
     }
     return { data };
   }
@@ -199,6 +203,8 @@ class ApiClient {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('username');
+      // Cookieも削除
+      document.cookie = 'access_token=; path=/; SameSite=Strict; max-age=0';
     }
   }
 
