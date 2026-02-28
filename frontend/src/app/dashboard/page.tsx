@@ -73,7 +73,7 @@ export default function DashboardPage() {
             </button>
 
             <button 
-              className="w-full flex items-center justify-between p-4 active:bg-gray-50"
+              className="w-full flex items-center justify-between p-4 border-b border-gray-100 active:bg-gray-50"
               onClick={() => router.push('/invoices')}
             >
               <div className="flex items-center space-x-3">
@@ -83,6 +83,24 @@ export default function DashboardPage() {
                 <div className="text-left">
                   <div className="font-medium text-gray-900">請求書生成</div>
                   <div className="text-sm text-gray-500">納品書から請求書を生成</div>
+                </div>
+              </div>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            <button 
+              className="w-full flex items-center justify-between p-4 active:bg-gray-50"
+              onClick={() => router.push('/sales')}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-purple-600 text-lg">📊</span>
+                </div>
+                <div className="text-left">
+                  <div className="font-medium text-gray-900">売上表示</div>
+                  <div className="text-sm text-gray-500">月別売上・商品別数量の確認</div>
                 </div>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

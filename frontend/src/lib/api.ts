@@ -543,6 +543,28 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Sales Stats API
+  async getSalesMonthlyTotals(year?: number) {
+    const params = year ? `?year=${year}` : '';
+    return this.request<Array<{
+      year_month: string;
+      sales_invoice_total: number;
+      contractor_invoice_total: number;
+      grand_total: number;
+    }>>(`/sales-stats/monthly-totals${params}`, { method: 'GET' });
+  }
+
+  async getSalesMonthlyProductQuantities(year: number, month: number) {
+    return this.request<Array<{
+      product_id: number;
+      product_name: string;
+      display_order: number;
+      sales_total_quantity: number;
+      contractor_total_quantity: number;
+      grand_total_quantity: number;
+    }>>(`/sales-stats/monthly-product-quantities?year=${year}&month=${month}`, { method: 'GET' });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

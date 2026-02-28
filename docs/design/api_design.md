@@ -235,6 +235,80 @@ PDF生成・ダウンロード
 
 委託先請求書も同様のエンドポイントがあります。プレフィックス: `/api/contractor-invoices`、パスパラメータ: `{contractor_invoice_id}`
 
+### 売上統計API
+
+#### GET /api/sales-stats/monthly-totals
+月別売上合計一覧取得
+
+全販売員請求書・全委託先請求書の `total_amount_inc_tax`（税込合計）を `invoice_date` の年月で集計します。
+削除済み（`deleted_flag=true`）の請求書は除外します。
+
+**Query Parameters:**
+- `year`: integer（省略時: サーバー現在年）
+
+**Response:**
+```json
+[
+  {
+    "year_month": "2025-01",
+    "sales_invoice_total": 1500000,
+    "contractor_invoice_total": 800000,
+    "grand_total": 2300000
+  },
+  {
+    "year_month": "2025-02",
+    "sales_invoice_total": 1200000,
+    "contractor_invoice_total": 650000,
+    "grand_total": 1850000
+  }
+]
+```
+
+**備考:**
+- 請求書が1件もない月のエントリは含まない
+- `year_month` は `YYYY-MM` 形式
+- 金額はすべて円単位（整数）
+
+---
+
+#### GET /api/sales-stats/monthly-product-quantities
+月別商品別数量合計取得
+
+指定した年月の販売員請求書明細・委託先請求書明細の `total_quantity` を商品ごとに集計します。
+削除済みの請求書に紐づく明細は除外します。数量0の商品はレスポンスに含みません。
+
+**Query Parameters:**
+- `year`: integer（必須）
+- `month`: integer（必須, 1〜12）
+
+**Response:**
+```json
+[
+  {
+    "product_id": 1,
+    "product_name": "商品A",
+    "display_order": 1,
+    "sales_total_quantity": 120,
+    "contractor_total_quantity": 50,
+    "grand_total_quantity": 170
+  },
+  {
+    "product_id": 2,
+    "product_name": "商品B",
+    "display_order": 2,
+    "sales_total_quantity": 0,
+    "contractor_total_quantity": 30,
+    "grand_total_quantity": 30
+  }
+]
+```
+
+**備考:**
+- `display_order` 昇順、同値の場合は `product_id` 昇順でソート
+- `grand_total_quantity` が0の商品は除外
+
+---
+
 ## 4. エラーハンドリング
 - 400: Bad Request (バリデーションエラー)
 - 401: Unauthorized (認証エラー)
