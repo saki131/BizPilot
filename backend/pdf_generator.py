@@ -439,6 +439,11 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     y = table_top - header_height
     
     for detail in details:
+        # 行を描くスペースがない場合は改ページ（明細は全件表示）
+        if y - row_height < 20*mm:
+            pdf.showPage()
+            pdf.setFont(font_name, 7)
+            y = height - 20*mm
         y -= row_height
         product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         
@@ -491,13 +496,15 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         if product and product.quota_target_flag:
             pdf.drawCentredString(col_positions[7] + col_widths[7] / 2, row_text_y, "○")
         
-        # ページ送り判定
-        if y < 100*mm:
-            pdf.showPage()
-            pdf.setFont(font_name, 7)
-            y = height - 30*mm
+
     
     # ===== 集計部分（詳細版） =====
+    # 集計テーブルが収まらない場合は改ページ
+    # 高さ: ギャップ8mm + ヘッダー6mm + 4行24mm + 税抜合計6mm + 消費税6mm + 税込合計8mm = 58mm
+    if y - 58*mm < 20*mm:
+        pdf.showPage()
+        pdf.setFont(font_name, 8)
+        y = height - 20*mm
     summary_top = y - 8*mm
     summary_left = table_left
     summary_width = table_width
@@ -626,6 +633,12 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.total_amount_inc_tax:,}")
     
     # ===== 振込先情報 =====
+    # 振込先情報が収まらない場合は改ページ
+    # 高さ: ギャップ15mm + 4行7mm(28mm) = 43mm、下余白25mm
+    if sum_y - 43*mm < 25*mm:
+        pdf.showPage()
+        pdf.setFont(font_name, 9)
+        sum_y = height - 20*mm
     bank_y = sum_y - 15*mm
     pdf.setFont(font_name, 10)
     pdf.drawString(20*mm, bank_y, "【お振込先】")
@@ -850,6 +863,11 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     y = table_top - header_height
     
     for detail in details:
+        # 行を描くスペースがない場合は改ページ（明細は全件表示）
+        if y - row_height < 20*mm:
+            pdf.showPage()
+            pdf.setFont(font_name, 7)
+            y = height - 20*mm
         y -= row_height
         product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         
@@ -902,13 +920,15 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         if product and product.quota_target_flag:
             pdf.drawCentredString(col_positions[7] + col_widths[7] / 2, row_text_y, "○")
         
-        # ページ送り判定
-        if y < 100*mm:
-            pdf.showPage()
-            pdf.setFont(font_name, 7)
-            y = height - 30*mm
+
     
     # ===== 集計部分（詳細版） =====
+    # 集計テーブルが収まらない場合は改ページ
+    # 高さ: ギャップ8mm + ヘッダー6mm + 4行24mm + 税抜合計6mm + 消費税6mm + 税込合計8mm = 58mm
+    if y - 58*mm < 20*mm:
+        pdf.showPage()
+        pdf.setFont(font_name, 8)
+        y = height - 20*mm
     summary_top = y - 8*mm
     summary_left = table_left
     summary_width = table_width
@@ -1037,6 +1057,12 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
     pdf.drawRightString(sum_col_positions[4] + sum_col_widths[4] - 2*mm, row_text_y, f"¥{invoice.total_amount_inc_tax:,}")
     
     # ===== 振込先情報 =====
+    # 振込先情報が収まらない場合は改ページ
+    # 高さ: ギャップ15mm + 4行7mm(28mm) = 43mm、下余白25mm
+    if sum_y - 43*mm < 25*mm:
+        pdf.showPage()
+        pdf.setFont(font_name, 9)
+        sum_y = height - 20*mm
     bank_y = sum_y - 15*mm
     pdf.setFont(font_name, 10)
     pdf.drawString(20*mm, bank_y, "【お振込先】")
