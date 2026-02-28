@@ -8,8 +8,8 @@
 
 - **フロントエンド**: Next.js 14 (App Router) を使用したSPA/SSRハイブリッドアプリケーション
 - **バックエンド**: FastAPI を使用したREST APIサーバー
-- **データベース**: PostgreSQL を使用したRDBMS
-- **外部サービス**: Google Gemini API (画像認識), Google Drive API (ファイルストレージ)
+- **データベース**: PostgreSQL (本番・ステージング: Neon PostgreSQL)
+- **外部サービス**: Google Gemini API (画像認識/OCR)
 
 ### アーキテクチャ図
 ```
@@ -66,7 +66,6 @@
 
 ### 外部API・サービス
 - **AI/OCR**: Google Gemini API (gemini-1.5-flash)
-- **ファイルストレージ**: Google Drive API
 - **PDF生成**: ReportLab (Python)
 
 ## 4. コンポーネント設計
@@ -92,12 +91,14 @@
 4. 解析結果をデータベースに保存
 5. ユーザーが結果を確認・編集
 6. 月次で請求書を自動生成
-7. PDFを生成し、Google Driveに保存
+7. PDFを生成しダウンロード
 
 ## 6. セキュリティ設計
 - HTTPS通信必須
-- JWT認証
-- CORS設定
+- JWT認証（アクセストークン: 60分、リフレッシュトークン: 7日）
+- CORS設定（フロントエンドドメインのみ許可）
+- 機密情報は全て環境変数経由で管理（会社情報・口座情報含む）
+- Fly.io Secretsで本番・ステージングの認証情報を管理
 - XSS/CSRF対策
 - SQLインジェクション対策（ORM使用）
 - 機密情報の環境変数管理

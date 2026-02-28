@@ -8,11 +8,13 @@ RESTful APIを採用し、JSON形式で通信します。認証はJWTを使用�
 - **認証**: Bearer Token (JWT)
 - **Content-Type**: application/json
 - **レスポンス形式**: JSON
+- **IDフィールド名視則**:
+  - マスタテーブル: INTEGER PK （例: `sales_person_id`, `product_id`）
+  - トランザクションテーブル: UUID （例: `delivery_note_id`, `sales_invoice_id`）
 - **エラーレスポンス**:
   ```json
   {
-    "error": "error_code",
-    "message": "error message"
+    "detail": "error message"
   }
   ```
 
@@ -59,28 +61,18 @@ RESTful APIを採用し、JSON形式で通信します。認証はJWTを使用�
 ### マスタAPI
 #### GET /api/sales-persons
 販売員一覧取得
-**Query Parameters:**
-- page: integer (default: 1)
-- limit: integer (default: 10)
-- search: string
-- sort: string (name, created_at)
-
 **Response:**
 ```json
-{
-  "data": [
-    {
-      "id": 1,
-      "name": "string",
-      "deleted_flag": false,
-      "created_at": "2023-01-01T00:00:00Z",
-      "updated_at": "2023-01-01T00:00:00Z"
-    }
-  ],
-  "total": 32,
-  "page": 1,
-  "limit": 10
-}
+[
+  {
+    "sales_person_id": 1,
+    "name": "string",
+    "deleted_flag": false,
+    "display_order": 0,
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z"
+  }
+]
 ```
 
 #### POST /api/sales-persons
@@ -88,26 +80,40 @@ RESTful APIを採用し、JSON形式で通信します。認証はJWTを使用�
 **Request:**
 ```json
 {
-  "name": "string"
+  "name": "string",
+  "display_order": 0
 }
 ```
 
-#### GET /api/sales-persons/{id}
+#### GET /api/sales-persons/{sales_person_id}
 販売員詳細取得
 
-#### PUT /api/sales-persons/{id}
+#### PUT /api/sales-persons/{sales_person_id}
 販売員更新
-**Request:**
-```json
-{
-  "name": "string"
-}
-```
 
-#### DELETE /api/sales-persons/{id}
+#### DELETE /api/sales-persons/{sales_person_id}
 販売員削除（論理削除）
 
-同様のエンドポイントが商品(products)、委託先(contractors)、税率(tax-rates)、割引率(discount-rates)にも存在します。
+同様のエンドポイントが商品（products）、委託先（contractors）にも存在します。
+パスパラメータはそれぞれ `{product_id}`, `{contractor_id}` を使用します。
+
+#### GET /api/discount-rates
+割引率一覧取得（読み取りのみ）
+**Response:**
+```json
+[
+  {
+    "discount_rate_id": 1,
+    "rate": "0.20",
+    "threshold_amount": 42000,
+    "sales_person_flag": true,
+    "deleted_flag": false
+  }
+]
+```
+
+#### GET /api/tax-rates
+税率一覧取得（読み取りのみ）
 
 ### 納品書API
 #### POST /api/delivery-notes/recognize-image
@@ -122,7 +128,7 @@ RESTful APIを採用し、JSON形式で通信します。認証はJWTを使用�
   "success": true,
   "data": {
     "sales_person_id": 1,
-    "delivery_date": "2023-01-01",
+    "delivery_date": "2024-01-01",
     "details": [
       {
         "product_id": 1,
@@ -137,7 +143,6 @@ RESTful APIを採用し、JSON形式で通信します。認証はJWTを使用�
 #### GET /api/delivery-notes
 納品書一覧取得
 **Query Parameters:**
-- page, limit, search, sort
 - sales_person_id: integer
 - start_date, end_date: date
 
@@ -148,8 +153,8 @@ RESTful APIを採用し、JSON形式で通信します。認証はJWTを使用�
 {
   "sales_person_id": 1,
   "tax_rate_id": 1,
-  "delivery_date": "2023-01-01",
-  "billing_date": "2023-01-01",
+  "delivery_date": "2024-01-01",
+  "billing_date": "2024-01-20",
   "remarks": "string",
   "details": [
     {
@@ -162,38 +167,73 @@ RESTful APIを採用し、JSON形式で通信します。認証はJWTを使用�
 }
 ```
 
-#### GET /api/delivery-notes/{id}
+#### GET /api/delivery-notes/{delivery_note_id}
 納品書詳細取得
 
-#### PUT /api/delivery-notes/{id}
+#### PUT /api/delivery-notes/{delivery_note_id}
 納品書更新
 
-#### DELETE /api/delivery-notes/{id}
+#### DELETE /api/delivery-notes/{delivery_note_id}
 納品書削除
 
-#### GET /api/delivery-notes/{id}/pdf
+#### GET /api/delivery-notes/{delivery_note_id}/pdf
 PDF生成・ダウンロード
 
 ### 請求書API
-#### POST /api/sales-invoices/generate
-販売員請求書生成
+#### POST /api/sales-invoices/bulk-generate
+販売員請求書一括生成
 **Request:**
 ```json
 {
-  "sales_person_id": 1,
-  "start_date": "2023-01-01",
-  "end_date": "2023-01-31",
-  "discount_rate_id": 1
+  "closing_date": "2025-12-20",
+  "sales_person_ids": [1, 2, 3]
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "generated_count": 5,
+  "skipped_count": 2,
+  "skipped_persons": ["田中太郎", "佐藤花子"],
+  "invoices": [...],
+  "period": {
+    "start_date": "2025-11-21",
+    "end_date": "2025-12-20"
+  }
+}
+```
+
+#### PATCH /api/sales-invoices/{sales_invoice_id}/discount-rate
+割引率変更および金額再計算
+**Request:**
+```json
+{
+  "discount_rate_id": 2
 }
 ```
 
 #### GET /api/sales-invoices
 販売員請求書一覧取得
+**Query Parameters:**
+- sales_person_id: integer (フィルタ, 省略可)
 
-#### GET /api/sales-invoices/{id}/pdf
-PDF取得
+#### GET /api/sales-invoices/{sales_invoice_id}
+販売員請求書詳細取得
 
-委託先請求書も同様のエンドポイントがあります。
+#### GET /api/sales-invoices/{sales_invoice_id}/pdf
+請求書PDF取得
+
+#### GET /api/sales-invoices/{sales_invoice_id}/receipt-pdf
+領収書PDF取得
+
+#### PUT /api/sales-invoices/{sales_invoice_id}/receipt-date
+領収日更新
+
+#### DELETE /api/sales-invoices/{sales_invoice_id}
+請求書削除（論理削除）
+
+委託先請求書も同様のエンドポイントがあります。プレフィックス: `/api/contractor-invoices`、パスパラメータ: `{contractor_invoice_id}`
 
 ## 4. エラーハンドリング
 - 400: Bad Request (バリデーションエラー)

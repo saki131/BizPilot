@@ -57,7 +57,7 @@
 {
   "success": true,
   "message": "Discount rate updated successfully",
-  "invoice_id": 123,
+  "sales_invoice_id": "550e8400-e29b-41d4-a716-446655440000",
   "old_rate": 0.0,
   "new_rate": 0.1,
   "new_total_amount_inc_tax": 99000
@@ -77,13 +77,12 @@
 ```json
 [
   {
-    "id": 1,
+    "sales_invoice_id": "550e8400-e29b-41d4-a716-446655440000",
     "sales_person_id": 5,
     "sales_person_name": "山田太郎",
-    "invoice_number": "[COMPANY_REGISTRATION_NUMBER]",
     "start_date": "2025-11-21",
     "end_date": "2025-12-20",
-    "discount_rate_id": 8,
+    "discount_rate_id": 1,
     "discount_rate": 0.0,
     "quota_subtotal": 30000,
     "quota_discount_amount": 0,
@@ -91,13 +90,25 @@
     "non_quota_subtotal": 5000,
     "non_quota_discount_amount": 0,
     "non_quota_total": 5000,
+    "non_discountable_amount": 0,
     "total_amount_ex_tax": 35000,
-    "tax_amount": 3000,
-    "total_amount_inc_tax": 38000,
+    "tax_amount": 3500,
+    "total_amount_inc_tax": 38500,
+    "invoice_date": "2025-12-20",
+    "receipt_date": null,
     "details": [
       {
-        "id": 1,
+        "sales_invoice_detail_id": "660e8400-e29b-41d4-a716-446655440001",
         "product_id": 10,
+        "product_name": "商品A",
+        "total_quantity": 100,
+        "unit_price": 300,
+        "amount": 30000
+      }
+    ]
+  }
+]
+```
         "product_name": "商品A",
         "total_quantity": 100,
         "unit_price": 300,
@@ -112,18 +123,17 @@
 
 ### 4. 請求書詳細取得
 
-**エンドポイント**: `GET /api/sales-invoices/{invoice_id}`
+**エンドポイント**: `GET /api/sales-invoices/{sales_invoice_id}`
 
 **レスポンス**: 
 ```json
 {
-  "id": 1,
+  "sales_invoice_id": "550e8400-e29b-41d4-a716-446655440000",
   "sales_person_id": 5,
   "sales_person_name": "山田太郎",
-  "invoice_number": "[COMPANY_REGISTRATION_NUMBER]",
   "start_date": "2025-11-21",
   "end_date": "2025-12-20",
-  "discount_rate_id": 8,
+  "discount_rate_id": 1,
   "discount_rate": 0.0,
   "quota_subtotal": 30000,
   "quota_discount_amount": 0,
@@ -131,12 +141,15 @@
   "non_quota_subtotal": 5000,
   "non_quota_discount_amount": 0,
   "non_quota_total": 5000,
+  "non_discountable_amount": 0,
   "total_amount_ex_tax": 35000,
-  "tax_amount": 3000,
-  "total_amount_inc_tax": 38000,
+  "tax_amount": 3500,
+  "total_amount_inc_tax": 38500,
+  "invoice_date": "2025-12-20",
+  "receipt_date": null,
   "details": [
     {
-      "id": 1,
+      "sales_invoice_detail_id": "660e8400-e29b-41d4-a716-446655440001",
       "product_id": 10,
       "product_name": "商品A",
       "total_quantity": 100,
@@ -148,16 +161,20 @@
 ```
 
 **レスポンスフィールド**:
+- `sales_invoice_id`: 請求書ID (UUID)
 - `sales_person_name`: 販売員名（一覧画面で表示用）
 - `start_date`, `end_date`: 請求期間（一覧画面で表示用）
 - `total_amount_inc_tax`: 税込合計金額（一覧画面で強調表示）
+- `non_discountable_amount`: 割引対象外金額
+- `invoice_date`: 請求日（締め日）
+- `receipt_date`: 領収日（未記入の場合 null）
 - `details`: 明細配列（明細ダイアログで表示用）
 
 ---
 
 ### 5. PDF生成
 
-**エンドポイント**: `GET /api/sales-invoices/{invoice_id}/pdf`
+**エンドポイント**: `GET /api/sales-invoices/{sales_invoice_id}/pdf`
 
 **レスポンス**: PDFファイル（application/pdf）
 

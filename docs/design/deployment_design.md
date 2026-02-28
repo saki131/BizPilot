@@ -1,7 +1,7 @@
 # デプロイ設計書
 
 ## 1. デプロイ概要
-システムはVercel、Fly.io、Supabaseの無料枠を使用し、CI/CDパイプラインで自動デプロイします。
+システムはVercel、Fly.io、Neon PostgreSQLを使用し、ブランチ戦略に基づいて本番/ステージングへデプロイします。
 
 ## 2. インフラ構成
 
@@ -14,14 +14,16 @@
 ### バックエンド (Fly.io)
 - **プラットフォーム**: Fly.io
 - **ランタイム**: Python 3.11 + FastAPI
-- **データベース**: Supabase PostgreSQL
-- **ストレージ**: Google Drive API
+- **本番アプリ**: `bizpilot-backend`
+- **ステージングアプリ**: `bizpilot-backend-staging`
+- **コンテナ**: Docker (Dockerfile in `backend/`)
 
-### データベース (Supabase)
-- **サービス**: Supabase
-- **データベース**: PostgreSQL 15
-- **バックアップ**: 自動日次バックアップ
-- **レプリケーション**: 自動
+### データベース (Neon PostgreSQL)
+- **サービス**: Neon PostgreSQL
+- **リージョン**: ap-southeast-1 (シンガポール)
+- **接続**: Pooler接続 (`-pooler.ap-southeast-1.aws.neon.tech`)
+- **SSL**: `sslmode=require` 必須
+- **バックアップ**: Neon 自動バックアップ
 
 ## 3. CI/CDパイプライン
 
@@ -73,30 +75,58 @@ jobs:
 ### 環境変数
 #### フロントエンド (.env.local)
 ```
-NEXT_PUBLIC_API_URL=https://api.example.com
-NEXT_PUBLIC_GEMINI_API_KEY=...
+NEXT_PUBLIC_API_URL=https://bizpilot-backend.fly.dev
 ```
 
 #### バックエンド (.env)
 ```
-DATABASE_URL=postgresql://...
-SECRET_KEY=...
-GEMINI_API_KEY=...
-GOOGLE_DRIVE_CREDENTIALS=...
-JWT_SECRET_KEY=...
+DATABASE_URL=postgresql://neondb_owner:...@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+SECRET_KEY=<ランダムな長文字列>
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+REFRESH_TOKEN_EXPIRE_DAYS=7
+GEMINI_KEY=<APIキー>              # 単体キー（後方互換）
+GEMINI_KEY_1=<APIキー1>          # 複数キーローテーション用
+GEMINI_KEY_2=<APIキー2>
+# 会社情報
+COMPANY_NAME=
+COMPANY_REPRESENTATIVE=
+COMPANY_POSTAL_CODE=
+COMPANY_ADDRESS1=
+COMPANY_ADDRESS2=
+COMPANY_BRANCH_NAME=
+COMPANY_REGISTRATION_NUMBER=
+# 振込先情報
+BANK_NAME=
+BANK_BRANCH_NAME=
+BANK_ACCOUNT_TYPE=普通
+BANK_ACCOUNT_NUMBER=
+BANK_ACCOUNT_HOLDER=
+BANK_YUCHO_SYMBOL=
+BANK_YUCHO_NUMBER=
+```
+
+> **重要**: `.env` は Git 管理外 (`.gitignore` 追加済み)。テンプレートは `.env.example` を参照。  
+> 本番・ステージング環境の秘密情報は `flyctl secrets set` で管理します。
+
+```bash
+# Fly.io Secrets 設定例（本番）
+flyctl secrets set COMPANY_NAME="..." BANK_NAME="..." -a bizpilot-backend
+# ステージング
+flyctl secrets set COMPANY_NAME="..." BANK_NAME="..." -a bizpilot-backend-staging
 ```
 
 ### 環境別設定
-- **開発環境**: ローカル開発
-- **ステージング環境**: テスト用デプロイ
-- **本番環境**: ユーザー向け
+- **開発環境**: ローカル開発 (`.env` ファイル使用)
+- **ステージング環境**: Fly.io Secrets + Vercel 環境変数
+- **本番環境**: Fly.io Secrets + Vercel 環境変数
 
 ## 5. バックアップ・復元
 
 ### データベースバックアップ
-- **自動バックアップ**: Supabase自動日次バックアップ
+- **自動バックアップ**: Neon 自動バックアップ
 - **手動バックアップ**: pg_dumpコマンド
-- **保存期間**: 30日
+- **保存期間**: Neon プランに依存
 - **復元テスト**: 月次実施
 
 ### ファイルバックアップ
@@ -108,7 +138,7 @@ JWT_SECRET_KEY=...
 ### アプリケーション監視
 - **Vercel Analytics**: パフォーマンス監視
 - **Fly.io Metrics**: サーバー監視
-- **Supabase Dashboard**: データベース監視
+- **Neon Dashboard**: データベース監視
 
 ### ログ管理
 - **アプリケーションログ**: 構造化ログ出力
@@ -120,7 +150,7 @@ JWT_SECRET_KEY=...
 ### 無料枠制限
 - **Vercel**: 100GB/月、1000関数実行/月
 - **Fly.io**: 3GB RAM、160GB/月転送
-- **Supabase**: 500MBデータベース、50MBファイルストレージ
+- **Neon**: 0.5 GiB ストレージ (Free プラン)、10 GiB 転送
 
 ### スケーリング戦略
 - **垂直スケーリング**: メモリ/CPU増加
@@ -132,7 +162,7 @@ JWT_SECRET_KEY=...
 ### デプロイロールバック
 - **Vercel**: 自動ロールバック機能
 - **Fly.io**: 以前のリリースへのロールバック
-- **データベース**: ポイントインタイムリカバリ
+- **データベース**: Neon ポイントインタイムリカバリ
 
 ### 手順
 1. 問題検知

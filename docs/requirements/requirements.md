@@ -32,8 +32,7 @@
 
 #### 外部API・サービス
 - **AI/OCR**: Google Gemini API (gemini-1.5-flash)
-- **ファイルストレージ**: Google Drive API
-- **PDF生成**: ReportLab (Python) または react-pdf
+- **PDF生成**: ReportLab (Python)
 
 #### デプロイ・インフラ
 - **フロントエンド**: Vercel (無料枠)
@@ -42,9 +41,8 @@
 - **バックエンド**: Fly.io (無料枠)
   - 本番: bizpilot-backend
   - ステージング: bizpilot-backend-staging
-- **データベース**: Supabase PostgreSQL (無料枠)
-  - 本番: bizpilot-production
-  - ステージング: bizpilot-staging
+- **データベース**: Neon PostgreSQL
+  - 本番・ステージング共用: ap-southeast-1 リージョン
 
 #### 開発ツール
 - **IDE**: Visual Studio Code
@@ -256,9 +254,9 @@
 #### 環境一覧
 | 環境 | 用途 | URL/接続先 | データベース |
 |------|------|-----------|-------------|
-| Local | ローカル開発 | localhost:3000 / localhost:8000 | Docker PostgreSQL |
-| Staging | テスト環境 | staging.bizpilot.vercel.app / bizpilot-backend-staging.fly.dev | Supabase (bizpilot-staging) |
-| Production | 本番環境 | bizpilot.vercel.app / bizpilot-backend.fly.dev | Supabase (bizpilot-production) |
+| Local | ローカル開発 | localhost:3000 / localhost:8000 | Neon PostgreSQL (`.env` で接続) |
+| Staging | テスト環境 | staging.bizpilot.vercel.app / bizpilot-backend-staging.fly.dev | Neon PostgreSQL |
+| Production | 本番環境 | bizpilot.vercel.app / bizpilot-backend.fly.dev | Neon PostgreSQL |
 
 #### ブランチ戦略
 ```
@@ -281,10 +279,22 @@ master (本番ブランチ)
 - `.env` ファイルは Git 管理外（`.gitignore` に追加済み）
 - `.env.example` をテンプレートとして利用
 - 環境ごとに異なる設定:
-  - `DATABASE_URL`: Supabase接続文字列
+  - `DATABASE_URL`: Neon PostgreSQL 接続文字列
   - `SECRET_KEY`: JWT署名キー
-  - `GEMINI_API_KEY`: Gemini API認証キー
+  - `ALGORITHM`: JWTアルゴリズム（デフォルト: HS256）
+  - `ACCESS_TOKEN_EXPIRE_MINUTES`: アクセストークン有効期限（デフォルト: 60分）
+  - `REFRESH_TOKEN_EXPIRE_DAYS`: リフレッシュトークン有効期限（デフォルト: 7日）
+  - `GEMINI_KEY`: Gemini API認証キー（単体）
+  - `GEMINI_KEY_1`, `GEMINI_KEY_2`, ...: 複数Gemini APIキー（ローテーション対応）
+  - `GEMINI_KEYS`: カンマ区切りの複数APIキー（代替形式）
   - `NEXT_PUBLIC_API_URL`: バックエンドAPIエンドポイント
+  - `COMPANY_NAME`, `COMPANY_REPRESENTATIVE`, `COMPANY_POSTAL_CODE`: 会社情報
+  - `COMPANY_ADDRESS1`, `COMPANY_ADDRESS2`, `COMPANY_BRANCH_NAME`: 会社住所・拠点名
+  - `COMPANY_REGISTRATION_NUMBER`: インボイス登録番号
+  - `BANK_NAME`, `BANK_BRANCH_NAME`, `BANK_ACCOUNT_TYPE`: 振込先銀行情報
+  - `BANK_ACCOUNT_NUMBER`, `BANK_ACCOUNT_HOLDER`: 口座番号・名義
+  - `BANK_YUCHO_SYMBOL`, `BANK_YUCHO_NUMBER`: ゆうちょ記号・番号
+- 本番・ステージング環境の秘密情報は Fly.io Secrets で管理（`flyctl secrets set`）
 
 詳細なセットアップ手順は [STAGING_SETUP.md](../STAGING_SETUP.md) を参照。
 
@@ -321,25 +331,27 @@ master (本番ブランチ)
 
 #### users（管理者）
 ```sql
-- id: SERIAL PRIMARY KEY
+- user_id: INTEGER PRIMARY KEY (SERIAL)
 - username: VARCHAR(100) UNIQUE NOT NULL
 - hashed_password: VARCHAR(255) NOT NULL
+- deleted_flag: BOOLEAN DEFAULT FALSE
 - created_at: TIMESTAMP DEFAULT NOW()
 - updated_at: TIMESTAMP DEFAULT NOW()
 ```
 
 #### sales_persons（販売員）
 ```sql
-- id: SERIAL PRIMARY KEY
+- sales_person_id: INTEGER PRIMARY KEY (SERIAL)
 - name: VARCHAR(100) NOT NULL
 - deleted_flag: BOOLEAN DEFAULT FALSE
+- display_order: INTEGER DEFAULT 0
 - created_at: TIMESTAMP DEFAULT NOW()
 - updated_at: TIMESTAMP DEFAULT NOW()
 ```
 
 #### products（商品）
 ```sql
-- id: SERIAL PRIMARY KEY
+- product_id: INTEGER PRIMARY KEY (SERIAL)
 - name: VARCHAR(200) NOT NULL
 - price: INTEGER NOT NULL
 - discount_exclusion_flag: BOOLEAN DEFAULT FALSE
@@ -353,16 +365,17 @@ master (本番ブランチ)
 
 #### contractors（委託先）
 ```sql
-- id: SERIAL PRIMARY KEY
+- contractor_id: INTEGER PRIMARY KEY (SERIAL)
 - name: VARCHAR(100) NOT NULL
 - deleted_flag: BOOLEAN DEFAULT FALSE
+- display_order: INTEGER DEFAULT 0
 - created_at: TIMESTAMP DEFAULT NOW()
 - updated_at: TIMESTAMP DEFAULT NOW()
 ```
 
 #### tax_rates（税率）
 ```sql
-- id: SERIAL PRIMARY KEY
+- tax_rate_id: INTEGER PRIMARY KEY (SERIAL)
 - rate: DECIMAL(4,2) NOT NULL
 - display_name: VARCHAR(20) NOT NULL
 - deleted_flag: BOOLEAN DEFAULT FALSE
@@ -372,9 +385,10 @@ master (本番ブランチ)
 
 #### discount_rates（割引率）
 ```sql
-- id: SERIAL PRIMARY KEY
-- rate: DECIMAL(4,2) NOT NULL
-- sales_person_flag: BOOLEAN DEFAULT TRUE
+- discount_rate_id: INTEGER PRIMARY KEY (SERIAL)
+- rate: DECIMAL(4,2) NOT NULL        -- 保存形式: 小数(0.20) or 整数(20) が混在する可能性あり
+- threshold_amount: INTEGER DEFAULT 0 -- 割引適用下限金額
+- sales_person_flag: BOOLEAN DEFAULT TRUE  -- True=販売員向け, False=委託先向け
 - deleted_flag: BOOLEAN DEFAULT FALSE
 - created_at: TIMESTAMP DEFAULT NOW()
 - updated_at: TIMESTAMP DEFAULT NOW()
@@ -382,40 +396,115 @@ master (本番ブランチ)
 
 #### delivery_notes（納品書）
 ```sql
-- id: SERIAL PRIMARY KEY
-- sales_person_id: INTEGER REFERENCES sales_persons(id)
-- tax_rate_id: INTEGER REFERENCES tax_rates(id)
+- delivery_note_id: UUID PRIMARY KEY
+- sales_person_id: INTEGER REFERENCES sales_persons(sales_person_id)
+- tax_rate_id: INTEGER REFERENCES tax_rates(tax_rate_id)
 - quota_amount: INTEGER DEFAULT 0
 - non_quota_amount: INTEGER DEFAULT 0
 - tax_amount: INTEGER DEFAULT 0
 - total_amount_ex_tax: INTEGER DEFAULT 0
 - total_amount_inc_tax: INTEGER DEFAULT 0
 - remarks: TEXT
-- delivery_note_number: VARCHAR(50) UNIQUE NOT NULL
 - file_path: VARCHAR(500)
-- delivery_date: DATE NOT NULL
-- billing_date: DATE NOT NULL
-- image_recognition_data: JSONB (Gemini APIレスポンス保存用)
+- image_filename: VARCHAR(500)  -- アップロード画像ファイル名
+- delivery_date: TIMESTAMP NOT NULL
+- billing_date: TIMESTAMP NOT NULL
+- image_recognition_data: JSON  -- Gemini APIレスポンス保存用
+- deleted_flag: BOOLEAN DEFAULT FALSE
 - created_at: TIMESTAMP DEFAULT NOW()
 - updated_at: TIMESTAMP DEFAULT NOW()
 ```
 
 #### delivery_note_details（納品書明細）
 ```sql
-- id: SERIAL PRIMARY KEY
-- delivery_note_id: INTEGER REFERENCES delivery_notes(id) ON DELETE CASCADE
-- product_id: INTEGER REFERENCES products(id)
+- delivery_note_detail_id: UUID PRIMARY KEY
+- delivery_note_id: UUID REFERENCES delivery_notes(delivery_note_id) ON DELETE CASCADE
+- product_id: INTEGER REFERENCES products(product_id)
 - quantity: INTEGER NOT NULL
 - unit_price: INTEGER NOT NULL
 - amount: INTEGER NOT NULL
 - remarks: VARCHAR(200)
+- deleted_flag: BOOLEAN DEFAULT FALSE
 - created_at: TIMESTAMP DEFAULT NOW()
 - updated_at: TIMESTAMP DEFAULT NOW()
 ```
 
 #### sales_invoices（販売員請求書）
+```sql
+- sales_invoice_id: UUID PRIMARY KEY
+- sales_person_id: INTEGER REFERENCES sales_persons(sales_person_id) NOT NULL
+- tax_rate_id: INTEGER REFERENCES tax_rates(tax_rate_id) NOT NULL
+- discount_rate_id: INTEGER REFERENCES discount_rates(discount_rate_id) NOT NULL
+- invoice_date: DATE
+- receipt_date: DATE
+- note: VARCHAR(500)                  -- 但し書き
+- non_discountable_amount: INTEGER DEFAULT 0
+- quota_subtotal: INTEGER DEFAULT 0   -- ノルマ対象小計
+- quota_discount_amount: INTEGER DEFAULT 0
+- quota_total: INTEGER DEFAULT 0
+- non_quota_subtotal: INTEGER DEFAULT 0
+- non_quota_discount_amount: INTEGER DEFAULT 0
+- non_quota_total: INTEGER DEFAULT 0
+- total_amount_ex_tax: INTEGER DEFAULT 0
+- tax_amount: INTEGER DEFAULT 0
+- total_amount_inc_tax: INTEGER DEFAULT 0
+- deleted_flag: BOOLEAN DEFAULT FALSE
+- created_at: TIMESTAMP DEFAULT NOW()
+- updated_at: TIMESTAMP DEFAULT NOW()
+```
+
+#### sales_invoice_details（販売員請求書明細）
+```sql
+- sales_invoice_detail_id: UUID PRIMARY KEY
+- sales_invoice_id: UUID REFERENCES sales_invoices(sales_invoice_id) ON DELETE CASCADE
+- product_id: INTEGER REFERENCES products(product_id)
+- total_quantity: INTEGER DEFAULT 0
+- unit_price: INTEGER NOT NULL
+- amount: INTEGER NOT NULL
+- deleted_flag: BOOLEAN DEFAULT FALSE
+- created_at: TIMESTAMP DEFAULT NOW()
+- updated_at: TIMESTAMP DEFAULT NOW()
+```
+
 #### contractor_invoices（委託先請求書）
-（詳細は省略）
+```sql
+- contractor_invoice_id: UUID PRIMARY KEY
+- contractor_id: INTEGER REFERENCES contractors(contractor_id) NOT NULL
+- discount_rate_id: INTEGER REFERENCES discount_rates(discount_rate_id) NOT NULL
+- tax_rate_id: INTEGER REFERENCES tax_rates(tax_rate_id) NOT NULL
+- invoice_date: DATE NOT NULL
+- receipt_date: DATE
+- payment_due_date: DATE
+- note: VARCHAR(500)
+- non_discountable_amount: INTEGER DEFAULT 0
+- quota_subtotal: INTEGER DEFAULT 0
+- quota_discount_amount: INTEGER DEFAULT 0
+- quota_total: INTEGER DEFAULT 0
+- non_quota_subtotal: INTEGER DEFAULT 0
+- non_quota_discount_amount: INTEGER DEFAULT 0
+- non_quota_total: INTEGER DEFAULT 0
+- total_amount_ex_tax: INTEGER DEFAULT 0
+- total_discount_amount: INTEGER DEFAULT 0
+- total_after_discount: INTEGER DEFAULT 0
+- tax_amount: INTEGER DEFAULT 0
+- total_amount_inc_tax: INTEGER DEFAULT 0
+- deleted_flag: BOOLEAN DEFAULT FALSE
+- created_at: TIMESTAMP DEFAULT NOW()
+- updated_at: TIMESTAMP DEFAULT NOW()
+```
+
+#### contractor_invoice_details（委託先請求書明細）
+```sql
+- contractor_invoice_detail_id: UUID PRIMARY KEY
+- contractor_invoice_id: UUID REFERENCES contractor_invoices(contractor_invoice_id) ON DELETE CASCADE
+- product_id: INTEGER REFERENCES products(product_id)
+- total_quantity: INTEGER DEFAULT 0
+- unit_price: INTEGER NOT NULL
+- amount: INTEGER NOT NULL
+- deleted_flag: BOOLEAN DEFAULT FALSE
+- created_at: TIMESTAMP DEFAULT NOW()
+- updated_at: TIMESTAMP DEFAULT NOW()
+```
 
 ### 5.2 インデックス設計
 ```sql
