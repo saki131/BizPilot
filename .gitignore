@@ -9,6 +9,12 @@
 # Database credentials (データベース認証情報)
 **/*credentials*.json
 **/*secrets*.json
+**/service_account.json
+**/gdrive_oauth_client.json
+**/gdrive_token.json
+
+# Backup files (バックアップファイル)
+backend/data/backups/
 
 # Business Data (実業務データ)
 backend/data/input/

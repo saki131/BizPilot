@@ -148,3 +148,79 @@ flyctl deploy
 必要に応じて以下の環境変数を設定してください：
 - `DATABASE_URL`: PostgreSQL接続文字列
 - `SECRET_KEY`: JWTシークレットキー
+
+## DBバックアップ設定
+
+### バックアップ構成
+- **スクリプト**: `backend/scripts/backup_db.py`
+- **保存先**: Google Drive（サービスアカウント経由）+ ローカル `backend/data/backups/`
+- **スケジュール**: Windows タスクスケジューラで毎日 02:00 実行
+- **世代管理**: ローカル 7 世代 / Google Drive 30 世代
+
+### セットアップ手順
+
+#### 1. 必要パッケージのインストール
+```bash
+cd backend
+pip install google-api-python-client google-auth psycopg2-binary
+```
+
+#### 2. Google Drive サービスアカウントの作成
+1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを開く（または新規作成）
+2. **APIとサービス** → **ライブラリ** → "Google Drive API" を有効化
+3. **APIとサービス** → **認証情報** → **サービスアカウントを作成**
+4. サービスアカウントのキーを JSON 形式でダウンロード
+5. ダウンロードした JSON を `backend/service_account.json` として保存  
+   ⚠️ `.gitignore` に追加して Git にコミットしないこと
+
+#### 3. Google Drive フォルダの共有設定
+1. Google Drive でバックアップ用フォルダを作成（例: `BizPilot Backups`）
+2. フォルダを右クリック → **共有** → サービスアカウントのメールアドレスを「編集者」で追加
+3. フォルダのURLの末尾部分（`/folders/` 以降）をコピー → `GDRIVE_FOLDER_ID` に設定
+
+#### 4. 環境変数の追加（backend/.env）
+```env
+# Google Drive バックアップ設定
+GDRIVE_FOLDER_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GDRIVE_SERVICE_ACCOUNT_JSON=service_account.json
+BACKUP_KEEP_GENERATIONS=7
+GDRIVE_KEEP_GENERATIONS=30
+```
+
+#### 5. 手動テスト
+```bash
+cd backend
+python scripts/backup_db.py
+```
+
+#### 6. タスクスケジューラへの登録（毎日 02:00 自動実行）
+```powershell
+# 管理者権限の PowerShell で実行
+cd backend\scripts
+.\setup_backup_task.ps1
+```
+
+#### 7. タスクの動作確認
+```powershell
+# 即時テスト実行
+Start-ScheduledTask -TaskName "BizPilot-DBBackup"
+
+# ログ確認
+Get-Content logs\backup\backup_202603.log
+```
+
+### 手動バックアップ（緊急時）
+```bash
+cd backend
+python scripts/backup_db.py
+```
+バックアップファイルは `backend/data/backups/bizpilot_backup_YYYYMMDD_HHMMSS.dump` に保存されます。
+
+### バックアップからの復元
+```bash
+# pg_restore を使用（.dump 形式）
+pg_restore -d "$DATABASE_URL" backend/data/backups/bizpilot_backup_YYYYMMDD_HHMMSS.dump
+
+# SQL 形式（.sql）の場合
+psql "$DATABASE_URL" -f backend/data/backups/bizpilot_backup_YYYYMMDD_HHMMSS.sql
+```
