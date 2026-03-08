@@ -333,3 +333,79 @@ class ContractorInvoiceDetail(Base):
 
     contractor_invoice = relationship("ContractorInvoice", back_populates="details")
     product = relationship("Product")
+
+# 顧客マスタ
+class Customer(Base):
+    __tablename__ = "customers"
+    # Columns:
+    # customer_id: 主キー（顧客ID）
+    # name: 顧客名
+    # name_kana: 顧客名カナ（振込人名照合用）
+    # deleted_flag: 削除フラグ
+    # display_order: 表示順
+    # created_at: 作成日時
+    # updated_at: 更新日時
+    customer_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    name_kana = Column(String(200))
+    deleted_flag = Column(Boolean, default=False)
+    display_order = Column(Integer, default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    orders = relationship("CustomerOrder", back_populates="customer")
+
+# 顧客注文テーブル
+class CustomerOrder(Base):
+    __tablename__ = "customer_orders"
+    # Columns:
+    # customer_order_id: 主キー（注文ID, UUID）
+    # customer_id: 顧客ID（外部キー）
+    # order_date: 注文日
+    # order_amount: 注文金額
+    # payment_due_date: 入金期限
+    # payment_status: 入金ステータス（unpaid / paid / overdue）
+    # deposit_record_id: 紐付き入金記録ID
+    # memo: メモ
+    # deleted_flag: 削除フラグ
+    # created_at: 作成日時
+    # updated_at: 更新日時
+    customer_order_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.customer_id"), nullable=False)
+    order_date = Column(Date, nullable=False)
+    order_amount = Column(Integer, nullable=False)
+    payment_due_date = Column(Date, nullable=False)
+    payment_status = Column(String(20), default="unpaid", nullable=False)
+    deposit_record_id = Column(UUID(as_uuid=True), ForeignKey("deposit_records.deposit_record_id"), nullable=True)
+    memo = Column(Text)
+    deleted_flag = Column(Boolean, default=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    customer = relationship("Customer", back_populates="orders")
+    deposit_record = relationship("DepositRecord", back_populates="matched_order", foreign_keys=[deposit_record_id])
+
+# 入金記録テーブル（ゆうちょCSVアップロード）
+class DepositRecord(Base):
+    __tablename__ = "deposit_records"
+    # Columns:
+    # deposit_record_id: 主キー（入金記録ID, UUID）
+    # deposit_date: 入金日
+    # depositor_name: 振込人名
+    # amount: 入金額
+    # detail1: CSV詳細1
+    # detail2: CSV詳細2
+    # matched_order_id: 照合済み注文ID
+    # upload_batch_id: アップロードバッチID
+    # created_at: 作成日時
+    deposit_record_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    deposit_date = Column(Date, nullable=False)
+    depositor_name = Column(String(200))
+    amount = Column(Integer, nullable=False)
+    detail1 = Column(String(500))
+    detail2 = Column(String(500))
+    matched_order_id = Column(UUID(as_uuid=True), ForeignKey("customer_orders.customer_order_id"), nullable=True)
+    upload_batch_id = Column(String(100))
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    matched_order = relationship("CustomerOrder", back_populates="deposit_record", foreign_keys=[matched_order_id])

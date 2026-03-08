@@ -565,6 +565,89 @@ class ApiClient {
       grand_total_quantity: number;
     }>>(`/sales-stats/monthly-product-quantities?year=${year}&month=${month}`, { method: 'GET' });
   }
+
+  // Customers API (マスタ)
+  async getCustomers() {
+    return this.request('/masters/customers');
+  }
+
+  async createCustomer(data: { name: string; name_kana?: string }) {
+    return this.request('/masters/customers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCustomer(id: number, data: { name: string; name_kana?: string }) {
+    return this.request(`/masters/customers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCustomer(id: number) {
+    return this.request(`/masters/customers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Customer Orders API
+  async getCustomerOrders(params?: { status?: string; customer_id?: number; due_from?: string; due_to?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.customer_id) searchParams.append('customer_id', params.customer_id.toString());
+    if (params?.due_from) searchParams.append('due_from', params.due_from);
+    if (params?.due_to) searchParams.append('due_to', params.due_to);
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return this.request(`/customer-orders/${qs}`, { method: 'GET' });
+  }
+
+  async createCustomerOrder(data: { customer_id: number; order_date: string; order_amount: number; payment_due_date: string; memo?: string }) {
+    return this.request('/customer-orders/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCustomerOrder(orderId: string, data: { customer_id?: number; order_date?: string; order_amount?: number; payment_due_date?: string; memo?: string }) {
+    return this.request(`/customer-orders/${orderId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCustomerOrder(orderId: string) {
+    return this.request(`/customer-orders/${orderId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Deposit Records API
+  async uploadDepositsCSV(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/customer-orders/deposits/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async getDepositRecords(unmatchedOnly?: boolean) {
+    const qs = unmatchedOnly ? '?unmatched_only=true' : '';
+    return this.request(`/customer-orders/deposits/${qs}`, { method: 'GET' });
+  }
+
+  async manualMatchDeposit(depositId: string, orderId: string) {
+    return this.request(`/customer-orders/deposits/${depositId}/match/${orderId}`, {
+      method: 'POST',
+    });
+  }
+
+  async unmatchDeposit(depositId: string) {
+    return this.request(`/customer-orders/deposits/${depositId}/match`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

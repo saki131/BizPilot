@@ -9,6 +9,7 @@ from routers import auth_router, masters_router, delivery_notes_router
 from routers.sales_invoices import router as sales_invoices_router
 from routers.contractor_invoices import router as contractor_invoices_router
 from routers.sales_stats import router as sales_stats_router
+from routers.customer_orders import router as customer_orders_router
 
 app = FastAPI(title="Invoice Management API", version="1.0.0")
 
@@ -35,6 +36,7 @@ app.include_router(delivery_notes_router, prefix="/api")
 app.include_router(sales_invoices_router, prefix="/api/sales-invoices", tags=["sales-invoices"])
 app.include_router(contractor_invoices_router, prefix="/api/contractor-invoices", tags=["contractor-invoices"])
 app.include_router(sales_stats_router, prefix="/api/sales-stats", tags=["sales-stats"])
+app.include_router(customer_orders_router, prefix="/api/customer-orders", tags=["customer-orders"])
 
 @app.get("/")
 async def root():

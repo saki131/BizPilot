@@ -109,6 +109,12 @@
 #### 3.2.5 割引率管理
 - 割引率マスタ管理（0%〜40%）
 
+#### 3.2.6 顧客管理
+- 顧客情報のCRUD
+- 顧客名、顧客名カナ（振込人名照合用）
+- 削除フラグによる論理削除
+- マスタ管理画面の「顧客」タブで管理
+
 ### 3.3 納品書管理機能
 
 #### 3.3.1 納品書画像認識機能（コア機能）
@@ -263,6 +269,44 @@
   - 合計数量
 - 数量0の商品は表示しない
 - 商品マスタの`display_order`順で並べる
+
+### 3.9 顧客注文管理機能
+
+#### 3.9.1 注文入力
+- 顧客マスタから顧客を選択
+- 注文金額、入金期限日を入力
+- メモの入力（任意）
+- 注文の編集・削除
+
+#### 3.9.2 注文一覧
+- 全注文の一覧表示
+- 入金ステータスによるフィルタ（未入金・入金済・期限超過）
+- 顧客、期間によるフィルタ
+- 入金期限超過の注文は赤色で強調表示
+
+#### 3.9.3 ステータス管理
+- 未入金（unpaid）: デフォルト
+- 入金済（paid）: 入金照合完了
+- 期限超過（overdue）: 入金期限超過かつ未入金
+- 期限超過ステータスはAPI呼び出し時に自動判定
+
+### 3.10 ゆうちょ入金チェック機能
+
+#### 3.10.1 CSVアップロード
+- ゆうちょダイレクトからダウンロードした入出金明細CSVをアップロード
+- 入金行（お預り金額 > 0）のみを処理対象
+- 重複アップロード防止機能
+
+#### 3.10.2 自動照合
+- 照合条件:
+  - 入金額 = 注文金額
+  - 振込人名 ⊇ 顧客名 or 顧客名カナ（部分一致）
+- 照合成功した注文は自動的に「入金済」に更新
+- 照合できなかった入金は未照合リストに表示
+
+#### 3.10.3 手動紐付け
+- 未照合の入金記録を手動で注文に紐付け
+- 紐付け解除機能
 
 ## 4. 非機能要件
 
@@ -530,11 +574,54 @@ master (本番ブランチ)
 - updated_at: TIMESTAMP DEFAULT NOW()
 ```
 
+#### customers（顧客）
+```sql
+- customer_id: INTEGER PRIMARY KEY (SERIAL)
+- name: VARCHAR(200) NOT NULL
+- name_kana: VARCHAR(200)             -- 顧客名カナ（振込人名照合用）
+- deleted_flag: BOOLEAN DEFAULT FALSE
+- display_order: INTEGER DEFAULT 0
+- created_at: TIMESTAMP DEFAULT NOW()
+- updated_at: TIMESTAMP DEFAULT NOW()
+```
+
+#### customer_orders（顧客注文）
+```sql
+- customer_order_id: UUID PRIMARY KEY
+- customer_id: INTEGER REFERENCES customers(customer_id) NOT NULL
+- order_date: DATE NOT NULL
+- order_amount: INTEGER NOT NULL
+- payment_due_date: DATE NOT NULL
+- payment_status: VARCHAR(20) DEFAULT 'unpaid' NOT NULL  -- unpaid / paid / overdue
+- deposit_record_id: UUID REFERENCES deposit_records(deposit_record_id)
+- memo: TEXT
+- deleted_flag: BOOLEAN DEFAULT FALSE
+- created_at: TIMESTAMP DEFAULT NOW()
+- updated_at: TIMESTAMP DEFAULT NOW()
+```
+
+#### deposit_records（入金記録）
+```sql
+- deposit_record_id: UUID PRIMARY KEY
+- deposit_date: DATE NOT NULL
+- depositor_name: VARCHAR(200)
+- amount: INTEGER NOT NULL
+- detail1: VARCHAR(500)
+- detail2: VARCHAR(500)
+- matched_order_id: UUID REFERENCES customer_orders(customer_order_id)
+- upload_batch_id: VARCHAR(100)
+- created_at: TIMESTAMP DEFAULT NOW()
+```
+
 ### 5.2 インデックス設計
 ```sql
 CREATE INDEX idx_delivery_notes_sales_person ON delivery_notes(sales_person_id);
 CREATE INDEX idx_delivery_notes_date ON delivery_notes(delivery_date);
 CREATE INDEX idx_delivery_note_details_delivery_note ON delivery_note_details(delivery_note_id);
+CREATE INDEX idx_customer_orders_customer ON customer_orders(customer_id);
+CREATE INDEX idx_customer_orders_status ON customer_orders(payment_status);
+CREATE INDEX idx_customer_orders_due_date ON customer_orders(payment_due_date);
+CREATE INDEX idx_deposit_records_matched ON deposit_records(matched_order_id);
 ```
 
 ## 6. API設計
@@ -554,7 +641,7 @@ GET    /api/sales-persons/{id}  販売員詳細
 PUT    /api/sales-persons/{id}  販売員更新
 DELETE /api/sales-persons/{id}  販売員削除
 
-（商品、委託先、税率、割引率も同様）
+（商品、委託先、税率、割引率、顧客も同様）
 ```
 
 ### 6.3 納品書API
@@ -585,6 +672,18 @@ GET    /api/sales-stats/monthly-totals            月別売上合計（年指定
 GET    /api/sales-stats/monthly-product-quantities 月別商品別数量合計（年月指定）
 ```
 
+### 6.6 顧客注文API
+```
+GET    /api/customer-orders/                                        注文一覧
+POST   /api/customer-orders/                                        注文作成
+PUT    /api/customer-orders/{id}                                    注文更新
+DELETE /api/customer-orders/{id}                                    注文削除
+POST   /api/customer-orders/deposits/upload                         CSVアップロード & 自動照合
+GET    /api/customer-orders/deposits/                                入金記録一覧
+POST   /api/customer-orders/deposits/{deposit_id}/match/{order_id}  手動紐付け
+DELETE /api/customer-orders/deposits/{deposit_id}/match             紐付け解除
+```
+
 ## 7. 画面設計
 
 ### 7.1 画面一覧
@@ -604,9 +703,13 @@ GET    /api/sales-stats/monthly-product-quantities 月別商品別数量合計�
    - 販売員一覧
    - 商品一覧
    - 委託先一覧
+   - **顧客一覧**
 6. 領収管理画面
 7. **売上表示画面**
 8. 設定画面
+9. **顧客注文管理**
+   - 注文一覧・入力画面
+   - 入金チェック画面（CSVアップロード・照合結果・手動紐付け）
 
 ### 7.2 主要画面のUI/UX
 
