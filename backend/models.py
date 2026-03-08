@@ -383,7 +383,7 @@ class CustomerOrder(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     customer = relationship("Customer", back_populates="orders")
-    deposit_record = relationship("DepositRecord", back_populates="matched_order", foreign_keys=[deposit_record_id])
+    deposit_record = relationship("DepositRecord", foreign_keys=[deposit_record_id], overlaps="matched_order")
 
 # 入金記録テーブル（ゆうちょCSVアップロード）
 class DepositRecord(Base):
@@ -408,4 +408,4 @@ class DepositRecord(Base):
     upload_batch_id = Column(String(100))
     created_at = Column(TIMESTAMP, server_default=func.now())
 
-    matched_order = relationship("CustomerOrder", back_populates="deposit_record", foreign_keys=[matched_order_id])
+    matched_order = relationship("CustomerOrder", foreign_keys=[matched_order_id], overlaps="deposit_record")
