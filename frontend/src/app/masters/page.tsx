@@ -29,13 +29,21 @@ interface Contractor {
   display_order: number;
 }
 
+interface Customer {
+  customer_id: number;
+  name: string;
+  name_kana: string;
+  display_order: number;
+}
+
 export default function MastersPage() {
   const [salesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [contractors, setContractors] = useState<Contractor[]>([]);
-  const [activeTab, setActiveTab] = useState<'sales-persons' | 'products' | 'contractors'>('sales-persons');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [activeTab, setActiveTab] = useState<'sales-persons' | 'products' | 'contractors' | 'customers'>('sales-persons');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newItem, setNewItem] = useState({ name: '', price: '' });
+  const [newItem, setNewItem] = useState({ name: '', price: '', name_kana: '' });
   const router = useRouter();
 
   useEffect(() => {
@@ -49,15 +57,17 @@ export default function MastersPage() {
 
   const loadData = async () => {
     try {
-      const [salesPersonsRes, productsRes, contractorsRes] = await Promise.all([
+      const [salesPersonsRes, productsRes, contractorsRes, customersRes] = await Promise.all([
         apiClient.getSalesPersons(),
         apiClient.getProducts(),
         apiClient.getContractors(),
+        apiClient.getCustomers(),
       ]);
 
       if (salesPersonsRes.data) setSalesPersons(salesPersonsRes.data as SalesPerson[]);
       if (productsRes.data) setProducts(productsRes.data as Product[]);
       if (contractorsRes.data) setContractors(contractorsRes.data as Contractor[]);
+      if (customersRes.data) setCustomers(customersRes.data as Customer[]);
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -72,11 +82,13 @@ export default function MastersPage() {
         result = await apiClient.createProduct({ name: newItem.name, price: parseInt(newItem.price) });
       } else if (activeTab === 'contractors') {
         result = await apiClient.createContractor({ name: newItem.name });
+      } else if (activeTab === 'customers') {
+        result = await apiClient.createCustomer({ name: newItem.name, name_kana: newItem.name_kana || undefined });
       }
 
       if (result?.data) {
         setIsDialogOpen(false);
-        setNewItem({ name: '', price: '' });
+        setNewItem({ name: '', price: '', name_kana: '' });
         loadData();
       }
     } catch (error) {
@@ -159,6 +171,32 @@ export default function MastersPage() {
           </TableBody>
         </Table>
       );
+    } else if (activeTab === 'customers') {
+      return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>顧客名</TableHead>
+              <TableHead>カナ</TableHead>
+              <TableHead>操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {customers.map((customer) => (
+              <TableRow key={customer.customer_id}>
+                <TableCell>{customer.customer_id}</TableCell>
+                <TableCell>{customer.name}</TableCell>
+                <TableCell>{customer.name_kana || '-'}</TableCell>
+                <TableCell>
+                  <Button variant="outline" size="sm">編集</Button>
+                  <Button variant="destructive" size="sm" className="ml-2">削除</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      );
     }
   };
 
@@ -200,6 +238,13 @@ export default function MastersPage() {
               >
                 委託先
               </Button>
+              <Button
+                variant={activeTab === 'customers' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('customers')}
+                className={activeTab === 'customers' ? 'text-white' : ''}
+              >
+                顧客
+              </Button>
             </div>
           </div>
 
@@ -211,11 +256,13 @@ export default function MastersPage() {
                     {activeTab === 'sales-persons' && '販売員一覧'}
                     {activeTab === 'products' && '商品一覧'}
                     {activeTab === 'contractors' && '委託先一覧'}
+                    {activeTab === 'customers' && '顧客一覧'}
                   </CardTitle>
                   <CardDescription>
                     {activeTab === 'sales-persons' && '販売員の管理を行います'}
                     {activeTab === 'products' && '商品の管理を行います'}
                     {activeTab === 'contractors' && '委託先の管理を行います'}
+                    {activeTab === 'customers' && '顧客の管理を行います'}
                   </CardDescription>
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -228,6 +275,7 @@ export default function MastersPage() {
                         {activeTab === 'sales-persons' && '販売員新規作成'}
                         {activeTab === 'products' && '商品新規作成'}
                         {activeTab === 'contractors' && '委託先新規作成'}
+                        {activeTab === 'customers' && '顧客新規作成'}
                       </DialogTitle>
                       <DialogDescription>
                         新しい項目を作成します。
@@ -256,6 +304,20 @@ export default function MastersPage() {
                             value={newItem.price}
                             onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
                             className="col-span-3"
+                          />
+                        </div>
+                      )}
+                      {activeTab === 'customers' && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="name_kana" className="text-right">
+                            カナ
+                          </Label>
+                          <Input
+                            id="name_kana"
+                            value={newItem.name_kana}
+                            onChange={(e) => setNewItem({ ...newItem, name_kana: e.target.value })}
+                            className="col-span-3"
+                            placeholder="カタカナ（任意）"
                           />
                         </div>
                       )}

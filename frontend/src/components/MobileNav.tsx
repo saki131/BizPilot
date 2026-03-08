@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, FileText, Package, Settings, LogOut, BarChart2 } from 'lucide-react';
+import { Home, FileText, Package, Settings, LogOut, BarChart2, ShoppingCart } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -31,6 +31,7 @@ export function MobileNav() {
     { icon: Home, label: 'ホーム', path: '/dashboard' },
     { icon: Package, label: '納品書', path: '/delivery-notes' },
     { icon: FileText, label: '請求書', path: '/invoices' },
+    { icon: ShoppingCart, label: '注文', path: '/customers' },
     { icon: BarChart2, label: '売上', path: '/sales' },
     { icon: Settings, label: 'マスタ', path: '/masters' },
   ];

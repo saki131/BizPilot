@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
-from models import SalesPerson, Product, Contractor, DiscountRate, TaxRate
+from models import SalesPerson, Product, Contractor, DiscountRate, TaxRate, Customer
 from dependencies import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
@@ -268,3 +268,58 @@ async def get_tax_rates(db: Session = Depends(get_db), current_user = Depends(ge
         ))
     
     return result
+
+# Customer endpoints
+class CustomerBase(BaseModel):
+    name: str
+    name_kana: Optional[str] = None
+
+class CustomerCreate(CustomerBase):
+    pass
+
+class CustomerResponse(CustomerBase):
+    customer_id: int
+    display_order: int
+    deleted_flag: bool
+
+    class Config:
+        from_attributes = True
+
+@router.get("/customers", response_model=List[CustomerResponse])
+async def get_customers(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    customers = db.query(Customer).filter(Customer.deleted_flag == False).order_by(Customer.display_order).all()
+    return customers
+
+@router.post("/customers", response_model=CustomerResponse)
+async def create_customer(customer: CustomerCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    db_customer = Customer(**customer.dict())
+    db.add(db_customer)
+    db.commit()
+    db.refresh(db_customer)
+    return db_customer
+
+@router.put("/customers/{customer_id}", response_model=CustomerResponse)
+async def update_customer(customer_id: int, customer: CustomerCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    db_customer = db.query(Customer).filter(
+        Customer.customer_id == customer_id,
+        Customer.deleted_flag == False
+    ).first()
+    if db_customer is None:
+        raise HTTPException(status_code=404, detail="顧客が見つかりません")
+    for key, value in customer.dict().items():
+        setattr(db_customer, key, value)
+    db.commit()
+    db.refresh(db_customer)
+    return db_customer
+
+@router.delete("/customers/{customer_id}")
+async def delete_customer(customer_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    db_customer = db.query(Customer).filter(
+        Customer.customer_id == customer_id,
+        Customer.deleted_flag == False
+    ).first()
+    if db_customer is None:
+        raise HTTPException(status_code=404, detail="顧客が見つかりません")
+    db_customer.deleted_flag = True
+    db.commit()
+    return {"message": "顧客を削除しました"}

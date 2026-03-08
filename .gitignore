@@ -16,6 +16,15 @@
 # Backup files (バックアップファイル)
 backend/data/backups/
 
+# Google OAuth / Service Account / Token (認証情報)
+**/gdrive_oauth_client.json
+**/gdrive_token.json
+**/service_account.json
+**/*token*.json
+
+# Database backups (DBバックアップ)
+backend/data/backups/
+
 # Business Data (実業務データ)
 backend/data/input/
 backend/data/output/
