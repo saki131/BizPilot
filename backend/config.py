@@ -8,7 +8,7 @@ class Settings:
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
-    GEMINI_API_KEY: str = os.getenv("GEMINI_KEY", "")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_KEY_1", "") or os.getenv("GEMINI_KEY", "")
     
     # Support multiple Gemini API keys (comma-separated in environment variable)
     @property
