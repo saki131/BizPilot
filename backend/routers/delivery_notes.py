@@ -15,22 +15,18 @@ import traceback
 import re
 from pathlib import Path
 from config import settings
-from genai_wrapper import configure as genai_configure, generate_content_with_image, set_api_keys
+from genai_wrapper import configure as genai_configure, generate_content_with_image
 import os
 
 router = APIRouter(prefix="/delivery-notes", tags=["delivery notes"])
 
-# Configure GenAI client with multiple API keys
-_api_keys = settings.GEMINI_API_KEYS
-if _api_keys:
-    print(f"[DEBUG] Loaded {len(_api_keys)} Gemini API key(s)")
-    for i, key in enumerate(_api_keys):
-        print(f"[DEBUG] API Key {i+1}: ...{key[-8:] if len(key) >= 8 else '***'}")
-    set_api_keys(_api_keys)
-    # Configure with first key initially
-    genai_configure(_api_keys[0])
+# Configure GenAI client with single API key
+_api_key = settings.GEMINI_API_KEY
+if _api_key:
+    print(f"[DEBUG] Gemini API key: ...{_api_key[-8:] if len(_api_key) >= 8 else '***'}")
+    genai_configure(_api_key)
 else:
-    print(f"[WARNING] No Gemini API keys found in environment")
+    print(f"[WARNING] No Gemini API key found in environment")
     
 MODEL_NAME = 'gemini-2.5-flash'  # 費用対効果と高スループット向けに最適化
 
