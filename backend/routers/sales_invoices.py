@@ -154,7 +154,8 @@ def generate_invoice_for_sales_person(
     delivery_notes = db.query(DeliveryNote).filter(
         DeliveryNote.sales_person_id == sales_person_id,
         DeliveryNote.delivery_date >= start_date,
-        DeliveryNote.delivery_date <= end_date
+        DeliveryNote.delivery_date <= end_date,
+        DeliveryNote.deleted_flag == False
     ).all()
     
     if not delivery_notes:
@@ -252,6 +253,7 @@ def generate_invoice_for_sales_person(
     
     if existing_invoice:
         # Update existing invoice
+        existing_invoice.deleted_flag = False  # 削除済みの場合は復元
         existing_invoice.discount_rate_id = discount_rate.discount_rate_id
         existing_invoice.receipt_date = receipt_date
         existing_invoice.note = '御品代として'
