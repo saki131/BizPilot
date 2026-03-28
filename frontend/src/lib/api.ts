@@ -602,10 +602,26 @@ class ApiClient {
     return this.request(`/customer-orders/${qs}`, { method: 'GET' });
   }
 
-  async createCustomerOrder(data: { customer_id: number; order_date: string; order_amount: number; payment_due_date: string; memo?: string }) {
+  async createCustomerOrder(data: { customer_id: number; order_amount: number; memo?: string }) {
     return this.request('/customer-orders/', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async createCustomerOrdersBulk(data: { orders: Array<{ customer_id: number; order_amount: number; memo?: string }> }) {
+    return this.request('/customer-orders/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async recognizeOrderImage(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/customer-orders/recognize-image', {
+      method: 'POST',
+      body: formData,
     });
   }
 
@@ -632,21 +648,15 @@ class ApiClient {
     });
   }
 
-  async getDepositRecords(unmatchedOnly?: boolean) {
-    const qs = unmatchedOnly ? '?unmatched_only=true' : '';
-    return this.request(`/customer-orders/deposits/${qs}`, { method: 'GET' });
-  }
-
-  async manualMatchDeposit(depositId: string, orderId: string) {
-    return this.request(`/customer-orders/deposits/${depositId}/match/${orderId}`, {
+  async confirmMatch(depositId: string, orderId: string) {
+    return this.request('/customer-orders/deposits/confirm-match', {
       method: 'POST',
+      body: JSON.stringify({ deposit_id: depositId, order_id: orderId }),
     });
   }
 
-  async unmatchDeposit(depositId: string) {
-    return this.request(`/customer-orders/deposits/${depositId}/match`, {
-      method: 'DELETE',
-    });
+  async getDepositRecords() {
+    return this.request('/customer-orders/deposits/', { method: 'GET' });
   }
 }
 

@@ -390,20 +390,24 @@ class DepositRecord(Base):
     __tablename__ = "deposit_records"
     # Columns:
     # deposit_record_id: 主キー（入金記録ID, UUID）
-    # deposit_date: 入金日
-    # depositor_name: 振込人名
+    # deposit_date: 入金日（取引日）
+    # transaction_id: 入出金取引番号
+    # depositor_name: 振込人名（CSV詳細2）
     # amount: 入金額
-    # detail1: CSV詳細1
-    # detail2: CSV詳細2
+    # detail1: CSV詳細1（入金/振込等の区分）
+    # detail2: CSV詳細2（振込人名）
+    # balance: 残高
     # matched_order_id: 照合済み注文ID
     # upload_batch_id: アップロードバッチID
     # created_at: 作成日時
     deposit_record_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     deposit_date = Column(Date, nullable=False)
+    transaction_id = Column(String(100))
     depositor_name = Column(String(200))
     amount = Column(Integer, nullable=False)
     detail1 = Column(String(500))
     detail2 = Column(String(500))
+    balance = Column(Integer)
     matched_order_id = Column(UUID(as_uuid=True), ForeignKey("customer_orders.customer_order_id"), nullable=True)
     upload_batch_id = Column(String(100))
     created_at = Column(TIMESTAMP, server_default=func.now())

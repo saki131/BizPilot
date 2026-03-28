@@ -5,10 +5,13 @@ from models import CustomerOrder, Customer, DepositRecord
 from dependencies import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import uuid
 import csv
 import io
+import base64
+import os
+import unicodedata
 
 router = APIRouter(tags=["customer-orders"])
 
@@ -16,10 +19,16 @@ router = APIRouter(tags=["customer-orders"])
 
 class CustomerOrderCreate(BaseModel):
     customer_id: int
-    order_date: str  # YYYY-MM-DD
     order_amount: int
-    payment_due_date: str  # YYYY-MM-DD
     memo: Optional[str] = None
+
+class CustomerOrderBulkItem(BaseModel):
+    customer_id: int
+    order_amount: int
+    memo: Optional[str] = None
+
+class CustomerOrderBulkCreate(BaseModel):
+    orders: List[CustomerOrderBulkItem]
 
 class CustomerOrderUpdate(BaseModel):
     customer_id: Optional[int] = None
@@ -45,37 +54,99 @@ class CustomerOrderResponse(BaseModel):
 class DepositRecordResponse(BaseModel):
     deposit_record_id: str
     deposit_date: str
+    transaction_id: Optional[str] = None
     depositor_name: Optional[str] = None
     amount: int
     detail1: Optional[str] = None
     detail2: Optional[str] = None
-    matched_order_id: Optional[str] = None
-    matched_customer_name: Optional[str] = None
-    matched_order_amount: Optional[int] = None
+    balance: Optional[int] = None
     upload_batch_id: Optional[str] = None
 
     class Config:
         from_attributes = True
 
+class MatchedDetail(BaseModel):
+    deposit_id: str
+    depositor_name: Optional[str]
+    amount: int
+    order_id: str
+    customer_name: str
+    order_amount: int
+
+class PendingMatch(BaseModel):
+    deposit_id: str
+    depositor_name: Optional[str]
+    amount: int
+    order_id: str
+    customer_name: str
+    customer_name_kana: Optional[str]
+    order_amount: int
+
 class DepositUploadResult(BaseModel):
     total_records: int
     deposit_only: int
     auto_matched: int
-    unmatched: int
-    matched_details: List[dict]
-    unmatched_deposits: List[DepositRecordResponse]
+    pending_confirmation: int
+    matched_details: List[MatchedDetail]
+    pending_matches: List[PendingMatch]
+
+class ConfirmMatchRequest(BaseModel):
+    deposit_id: str
+    order_id: str
+
+class ImageRecognitionResult(BaseModel):
+    orders: List[dict]
 
 # ========== ヘルパー関数 ==========
 
-def _update_overdue_status(db: Session):
-    """未入金かつ入金期限超過の注文を overdue に更新"""
-    today = date.today()
-    db.query(CustomerOrder).filter(
-        CustomerOrder.payment_status == "unpaid",
-        CustomerOrder.payment_due_date < today,
-        CustomerOrder.deleted_flag == False
-    ).update({"payment_status": "overdue"})
-    db.commit()
+def _normalize_for_comparison(text: str) -> str:
+    """文字列を正規化して比較用に変換（全角→半角、カタカナ→ひらがな等）"""
+    if not text:
+        return ""
+    # NFKC正規化（全角英数→半角、半角カナ→全角カナ等）
+    normalized = unicodedata.normalize("NFKC", text)
+    # スペースを除去
+    normalized = normalized.replace(" ", "").replace("　", "")
+    return normalized
+
+def _katakana_to_hiragana(text: str) -> str:
+    """カタカナをひらがなに変換"""
+    return "".join(
+        chr(ord(ch) - 0x60) if "\u30A1" <= ch <= "\u30F6" else ch
+        for ch in text
+    )
+
+def _check_name_match(depositor_name: str, customer_name: str, customer_kana: str) -> str:
+    """名前照合: 'exact', 'partial', 'none' を返す"""
+    if not depositor_name:
+        return "none"
+    
+    dep_norm = _normalize_for_comparison(depositor_name)
+    dep_hira = _katakana_to_hiragana(dep_norm)
+    
+    # 完全一致チェック（正規化後）
+    if customer_name:
+        cust_norm = _normalize_for_comparison(customer_name)
+        if cust_norm and (cust_norm in dep_norm or dep_norm in cust_norm):
+            return "exact"
+    
+    if customer_kana:
+        kana_norm = _normalize_for_comparison(customer_kana)
+        if kana_norm and (kana_norm in dep_norm or dep_norm in kana_norm):
+            return "exact"
+    
+    # 部分一致チェック（ひらがな変換後の比較）
+    if customer_name:
+        cust_hira = _katakana_to_hiragana(_normalize_for_comparison(customer_name))
+        if cust_hira and (cust_hira in dep_hira or dep_hira in cust_hira):
+            return "partial"
+    
+    if customer_kana:
+        kana_hira = _katakana_to_hiragana(_normalize_for_comparison(customer_kana))
+        if kana_hira and (kana_hira in dep_hira or dep_hira in kana_hira):
+            return "partial"
+    
+    return "none"
 
 def _order_to_response(order: CustomerOrder) -> CustomerOrderResponse:
     """CustomerOrder モデルをレスポンスに変換"""
@@ -93,21 +164,15 @@ def _order_to_response(order: CustomerOrder) -> CustomerOrderResponse:
 
 def _deposit_to_response(dep: DepositRecord) -> DepositRecordResponse:
     """DepositRecord モデルをレスポンスに変換"""
-    matched_name = None
-    matched_amount = None
-    if dep.matched_order and dep.matched_order.customer:
-        matched_name = dep.matched_order.customer.name
-        matched_amount = dep.matched_order.order_amount
     return DepositRecordResponse(
         deposit_record_id=str(dep.deposit_record_id),
         deposit_date=dep.deposit_date.isoformat() if dep.deposit_date else "",
+        transaction_id=dep.transaction_id,
         depositor_name=dep.depositor_name,
         amount=dep.amount,
         detail1=dep.detail1,
         detail2=dep.detail2,
-        matched_order_id=str(dep.matched_order_id) if dep.matched_order_id else None,
-        matched_customer_name=matched_name,
-        matched_order_amount=matched_amount,
+        balance=dep.balance,
         upload_batch_id=dep.upload_batch_id,
     )
 
@@ -123,8 +188,6 @@ async def get_customer_orders(
     current_user=Depends(get_current_user),
 ):
     """注文一覧取得（フィルタ対応）"""
-    _update_overdue_status(db)
-
     query = db.query(CustomerOrder).options(
         joinedload(CustomerOrder.customer)
     ).filter(CustomerOrder.deleted_flag == False)
@@ -147,8 +210,7 @@ async def create_customer_order(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """注文作成"""
-    # 顧客存在チェック
+    """注文作成（登録日=当日、入金期限=登録日+10日を自動設定）"""
     customer = db.query(Customer).filter(
         Customer.customer_id == order.customer_id,
         Customer.deleted_flag == False
@@ -156,19 +218,117 @@ async def create_customer_order(
     if not customer:
         raise HTTPException(status_code=404, detail="顧客が見つかりません")
 
+    today = date.today()
     db_order = CustomerOrder(
         customer_id=order.customer_id,
-        order_date=date.fromisoformat(order.order_date),
+        order_date=today,
         order_amount=order.order_amount,
-        payment_due_date=date.fromisoformat(order.payment_due_date),
+        payment_due_date=today + timedelta(days=10),
         memo=order.memo,
     )
     db.add(db_order)
     db.commit()
     db.refresh(db_order)
-    # customerリレーション読み込み
     db.refresh(db_order, ["customer"])
     return _order_to_response(db_order)
+
+@router.post("/bulk", response_model=List[CustomerOrderResponse])
+async def create_customer_orders_bulk(
+    data: CustomerOrderBulkCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """注文一括作成（画像認識結果から）"""
+    today = date.today()
+    created_orders = []
+    
+    for item in data.orders:
+        customer = db.query(Customer).filter(
+            Customer.customer_id == item.customer_id,
+            Customer.deleted_flag == False
+        ).first()
+        if not customer:
+            continue
+        
+        db_order = CustomerOrder(
+            customer_id=item.customer_id,
+            order_date=today,
+            order_amount=item.order_amount,
+            payment_due_date=today + timedelta(days=10),
+            memo=item.memo,
+        )
+        db.add(db_order)
+        created_orders.append(db_order)
+    
+    db.commit()
+    for o in created_orders:
+        db.refresh(o)
+        db.refresh(o, ["customer"])
+    
+    return [_order_to_response(o) for o in created_orders]
+
+@router.post("/recognize-image")
+async def recognize_order_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """注文台帳画像認識（Gemini APIで画像から注文情報を読み取り）"""
+    from genai_wrapper import generate_content_with_image
+    
+    content = await file.read()
+    image_b64 = base64.b64encode(content).decode("utf-8")
+    
+    # 顧客マスタを取得してプロンプトに含める
+    customers = db.query(Customer).filter(Customer.deleted_flag == False).all()
+    customer_list = [f"{c.customer_id}: {c.name}" for c in customers]
+    
+    prompt = f"""この画像は注文台帳です。画像から注文情報を読み取ってJSON形式で返してください。
+
+登録されている顧客マスタ:
+{chr(10).join(customer_list)}
+
+以下のJSON形式で返してください。顧客名はマスタのcustomer_idで指定してください。
+マスタに一致する顧客がない場合はcustomer_idを0にしてください。
+
+```json
+{{
+  "orders": [
+    {{
+      "customer_id": 1,
+      "customer_name": "顧客名",
+      "order_amount": 10000,
+      "memo": "メモ（あれば）"
+    }}
+  ]
+}}
+```
+
+注意:
+- 金額はカンマなしの整数で返してください
+- 顧客名はマスタと照合して最も一致するcustomer_idを設定してください
+- 読み取れない部分はnullにしてください
+- JSONのみ返してください（説明文は不要）"""
+
+    try:
+        model_name = "gemini-2.5-flash"
+        response = generate_content_with_image(model_name, prompt, image_b64)
+        
+        import json
+        response_text = response.text if hasattr(response, "text") else str(response)
+        # JSON部分を抽出
+        if "```json" in response_text:
+            json_str = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            json_str = response_text.split("```")[1].split("```")[0].strip()
+        else:
+            json_str = response_text.strip()
+        
+        result = json.loads(json_str)
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"画像認識に失敗しました: {str(e)}")
 
 @router.put("/{order_id}", response_model=CustomerOrderResponse)
 async def update_customer_order(
@@ -214,7 +374,7 @@ async def delete_customer_order(
     db.commit()
     return {"message": "注文を削除しました"}
 
-# ========== 入金チェック ==========
+# ========== 入金履歴 ==========
 
 @router.post("/deposits/upload", response_model=DepositUploadResult)
 async def upload_deposits_csv(
@@ -241,27 +401,29 @@ async def upload_deposits_csv(
 
     deposit_records = []
     for row_idx, row in enumerate(reader):
-        if row_idx == 0:
-            # ヘッダー行をスキップ（ただし列数チェック）
+        # ヘッダー行（先頭3行）をスキップ
+        if row_idx < 3:
             continue
         if len(row) < 4:
             continue
 
-        # ゆうちょCSV想定フォーマット: 取引日, 摘要(詳細1), お支払金額, お預り金額, 差引残高, メモ(詳細2)
+        # ゆうちょ残高等通知明細フォーマット:
+        # 取引日, 入出金取引番号, お預り金額(円), お支払金額(円), 詳細1, 詳細2, 残高(残付)額
         try:
             deposit_date_str = row[0].strip()
-            detail1 = row[1].strip() if len(row) > 1 else ""
-            withdrawal = row[2].strip() if len(row) > 2 else ""
-            deposit_amount_str = row[3].strip() if len(row) > 3 else ""
+            transaction_id = row[1].strip() if len(row) > 1 else ""
+            deposit_amount_str = row[2].strip() if len(row) > 2 else ""
+            detail1 = row[4].strip() if len(row) > 4 else ""
             detail2 = row[5].strip() if len(row) > 5 else ""
+            balance_str = row[6].strip() if len(row) > 6 else ""
 
             # 入金額が空または0の場合はスキップ（出金行）
             if not deposit_amount_str or deposit_amount_str == "0":
                 continue
 
-            # 日付パース（複数形式対応）
+            # 日付パース（YYYYMMDD形式）
             deposit_date = None
-            for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%Y年%m月%d日"):
+            for fmt in ("%Y%m%d", "%Y/%m/%d", "%Y-%m-%d"):
                 try:
                     deposit_date = datetime.strptime(deposit_date_str, fmt).date()
                     break
@@ -271,13 +433,16 @@ async def upload_deposits_csv(
                 continue
 
             amount = int(deposit_amount_str.replace(",", ""))
+            balance = int(balance_str.replace(",", "")) if balance_str else None
 
             dep = DepositRecord(
                 deposit_date=deposit_date,
-                depositor_name=detail1,
+                transaction_id=transaction_id,
+                depositor_name=detail2,  # 詳細2が振込人名
                 amount=amount,
                 detail1=detail1,
                 detail2=detail2,
+                balance=balance,
                 upload_batch_id=batch_id,
             )
             deposit_records.append(dep)
@@ -294,98 +459,87 @@ async def upload_deposits_csv(
     unpaid_orders = db.query(CustomerOrder).options(
         joinedload(CustomerOrder.customer)
     ).filter(
-        CustomerOrder.payment_status.in_(["unpaid", "overdue"]),
+        CustomerOrder.payment_status == "unpaid",
         CustomerOrder.deleted_flag == False
     ).all()
 
     matched_details = []
+    pending_matches = []
     auto_matched = 0
 
     for dep in deposit_records:
         db.refresh(dep)
-        for order in unpaid_orders:
+        for order in list(unpaid_orders):
             # 金額一致チェック
             if dep.amount != order.order_amount:
                 continue
 
-            # 名前照合（部分一致: 振込人名に顧客名 or 顧客名カナが含まれる）
+            # 入金日が登録日～入金期限の範囲内かチェック
+            if not (order.order_date <= dep.deposit_date <= order.payment_due_date):
+                continue
+
+            # 名前照合
             depositor = dep.depositor_name or ""
             customer_name = order.customer.name if order.customer else ""
             customer_kana = order.customer.name_kana if order.customer else ""
 
-            name_match = False
-            if customer_name and customer_name in depositor:
-                name_match = True
-            elif customer_kana and customer_kana in depositor:
-                name_match = True
-            elif customer_name and depositor in customer_name:
-                name_match = True
+            match_type = _check_name_match(depositor, customer_name, customer_kana)
 
-            if name_match:
-                # 照合成功
+            if match_type == "exact":
+                # 完全一致 → 自動でステータス更新
                 dep.matched_order_id = order.customer_order_id
                 order.payment_status = "paid"
                 order.deposit_record_id = dep.deposit_record_id
                 auto_matched += 1
-                matched_details.append({
-                    "deposit_id": str(dep.deposit_record_id),
-                    "depositor_name": dep.depositor_name,
-                    "amount": dep.amount,
-                    "order_id": str(order.customer_order_id),
-                    "customer_name": customer_name,
-                    "order_amount": order.order_amount,
-                })
-                # この注文は照合済みなのでリストから除外
+                matched_details.append(MatchedDetail(
+                    deposit_id=str(dep.deposit_record_id),
+                    depositor_name=dep.depositor_name,
+                    amount=dep.amount,
+                    order_id=str(order.customer_order_id),
+                    customer_name=customer_name,
+                    order_amount=order.order_amount,
+                ))
                 unpaid_orders.remove(order)
+                break
+            elif match_type == "partial":
+                # 部分一致 → 確認待ち
+                pending_matches.append(PendingMatch(
+                    deposit_id=str(dep.deposit_record_id),
+                    depositor_name=dep.depositor_name,
+                    amount=dep.amount,
+                    order_id=str(order.customer_order_id),
+                    customer_name=customer_name,
+                    customer_name_kana=customer_kana,
+                    order_amount=order.order_amount,
+                ))
                 break
 
     db.commit()
-
-    # 未照合の入金をレスポンス用に取得
-    unmatched = [dep for dep in deposit_records if dep.matched_order_id is None]
 
     return DepositUploadResult(
         total_records=len(deposit_records),
         deposit_only=len(deposit_records),
         auto_matched=auto_matched,
-        unmatched=len(unmatched),
+        pending_confirmation=len(pending_matches),
         matched_details=matched_details,
-        unmatched_deposits=[_deposit_to_response(d) for d in unmatched],
+        pending_matches=pending_matches,
     )
 
-@router.get("/deposits/", response_model=List[DepositRecordResponse])
-async def get_deposit_records(
-    unmatched_only: bool = False,
+@router.post("/deposits/confirm-match")
+async def confirm_match(
+    req: ConfirmMatchRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """入金記録一覧"""
-    query = db.query(DepositRecord).options(
-        joinedload(DepositRecord.matched_order).joinedload(CustomerOrder.customer)
-    )
-    if unmatched_only:
-        query = query.filter(DepositRecord.matched_order_id == None)
-    deposits = query.order_by(DepositRecord.deposit_date.desc()).all()
-    return [_deposit_to_response(d) for d in deposits]
-
-@router.post("/deposits/{deposit_id}/match/{order_id}")
-async def manual_match(
-    deposit_id: str,
-    order_id: str,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    """手動紐付け"""
+    """部分一致確認後のステータス更新"""
     dep = db.query(DepositRecord).filter(
-        DepositRecord.deposit_record_id == deposit_id
+        DepositRecord.deposit_record_id == req.deposit_id
     ).first()
     if not dep:
         raise HTTPException(status_code=404, detail="入金記録が見つかりません")
-    if dep.matched_order_id:
-        raise HTTPException(status_code=400, detail="この入金記録は既に紐付け済みです")
 
     order = db.query(CustomerOrder).filter(
-        CustomerOrder.customer_order_id == order_id,
+        CustomerOrder.customer_order_id == req.order_id,
         CustomerOrder.deleted_flag == False
     ).first()
     if not order:
@@ -395,35 +549,15 @@ async def manual_match(
     order.payment_status = "paid"
     order.deposit_record_id = dep.deposit_record_id
     db.commit()
-    return {"message": "紐付けが完了しました"}
+    return {"message": "入金確認が完了しました"}
 
-@router.delete("/deposits/{deposit_id}/match")
-async def unmatch_deposit(
-    deposit_id: str,
+@router.get("/deposits/", response_model=List[DepositRecordResponse])
+async def get_deposit_records(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """紐付け解除"""
-    dep = db.query(DepositRecord).filter(
-        DepositRecord.deposit_record_id == deposit_id
-    ).first()
-    if not dep:
-        raise HTTPException(status_code=404, detail="入金記録が見つかりません")
-    if not dep.matched_order_id:
-        raise HTTPException(status_code=400, detail="この入金記録は紐付けされていません")
-
-    # 注文のステータスを元に戻す
-    order = db.query(CustomerOrder).filter(
-        CustomerOrder.customer_order_id == dep.matched_order_id
-    ).first()
-    if order:
-        today = date.today()
-        if order.payment_due_date < today:
-            order.payment_status = "overdue"
-        else:
-            order.payment_status = "unpaid"
-        order.deposit_record_id = None
-
-    dep.matched_order_id = None
-    db.commit()
-    return {"message": "紐付けを解除しました"}
+    """入金記録一覧（CSV取り込み分のみ表示、照合結果なし）"""
+    deposits = db.query(DepositRecord).order_by(
+        DepositRecord.deposit_date.desc()
+    ).all()
+    return [_deposit_to_response(d) for d in deposits]
