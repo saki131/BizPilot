@@ -232,22 +232,23 @@ export default function CustomersPage() {
 
   const openPaymentDialog = (order: CustomerOrder) => {
     setSelectedOrder(order);
-    setSelectedDepositId(order.deposit_record_id || '');
+    setSelectedDepositId(order.deposit_record_id || 'none');
     setIsPaymentDialogOpen(true);
   };
 
   const handleManualPaymentUpdate = async (status: 'paid' | 'unpaid') => {
     if (!selectedOrder) return;
     setIsUpdatingPayment(true);
+    const depositId = selectedDepositId && selectedDepositId !== 'none' ? selectedDepositId : null;
     const res = await apiClient.updateOrderPaymentStatus(selectedOrder.customer_order_id, {
       payment_status: status,
-      deposit_record_id: status === 'paid' ? (selectedDepositId || null) : null,
+      deposit_record_id: status === 'paid' ? depositId : null,
     });
     setIsUpdatingPayment(false);
     if (res.data) {
       setIsPaymentDialogOpen(false);
       setSelectedOrder(null);
-      setSelectedDepositId('');
+      setSelectedDepositId('none');
       loadOrders();
       loadDeposits();
     } else {
@@ -727,7 +728,7 @@ export default function CustomersPage() {
                             <SelectValue placeholder="入金記録を選択（任意）" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">選択なし</SelectItem>
+                            <SelectItem value="none">選択なし</SelectItem>
                             {deposits.map((dep) => (
                               <SelectItem key={dep.deposit_record_id} value={dep.deposit_record_id}>
                                 <span className="font-mono text-xs mr-2">{dep.transaction_id || '番号なし'}</span>
