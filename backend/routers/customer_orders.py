@@ -23,7 +23,7 @@ class CustomerOrderCreate(BaseModel):
     memo: Optional[str] = None
 
 class CustomerOrderBulkItem(BaseModel):
-    customer_id: int
+    customer_name: str
     order_amount: int
     order_date: Optional[str] = None
     memo: Optional[str] = None
@@ -244,12 +244,29 @@ async def create_customer_orders_bulk(
     created_orders = []
     
     for item in data.orders:
-        customer = db.query(Customer).filter(
-            Customer.customer_id == item.customer_id,
-            Customer.deleted_flag == False
-        ).first()
-        if not customer:
+        if not item.customer_name or not item.customer_name.strip():
             continue
+        # スペース（全角・半角）を除去して正規化
+        normalized_name = item.customer_name.replace('\u3000', '').replace(' ', '').strip()
+        if not normalized_name:
+            continue
+        # 顧客名でマスタを検索（スペース正規化後に完全一致）
+        # DBの既存顧客名も正規化して比較するため、全件取得してPython側でフィルタ
+        all_customers = db.query(Customer).filter(
+            Customer.deleted_flag == False
+        ).all()
+        customer = next(
+            (c for c in all_customers if c.name.replace('\u3000', '').replace(' ', '').strip() == normalized_name),
+            None
+        )
+        # 一致する顧客がなければ新規作成
+        if not customer:
+            customer = Customer(
+                name=normalized_name,
+                deleted_flag=False,
+            )
+            db.add(customer)
+            db.flush()  # customer_idを取得
         
         if item.order_date:
             try:
@@ -260,7 +277,7 @@ async def create_customer_orders_bulk(
             order_date = today
         
         db_order = CustomerOrder(
-            customer_id=item.customer_id,
+            customer_id=customer.customer_id,
             order_date=order_date,
             order_amount=item.order_amount,
             payment_due_date=order_date + timedelta(days=10),
