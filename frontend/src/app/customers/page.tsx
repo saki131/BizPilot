@@ -134,8 +134,12 @@ export default function CustomersPage() {
   }, [router, loadCustomers]);
 
   useEffect(() => {
-    if (activeTab === 'orders') loadOrders();
-    else loadDeposits();
+    if (activeTab === 'orders') {
+      loadOrders();
+      loadDeposits();
+    } else {
+      loadDeposits();
+    }
   }, [activeTab, statusFilter, loadOrders, loadDeposits]);
 
   const handleCreateOrder = async () => {
