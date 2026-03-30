@@ -25,6 +25,7 @@ class CustomerOrderCreate(BaseModel):
 class CustomerOrderBulkItem(BaseModel):
     customer_id: int
     order_amount: int
+    order_date: Optional[str] = None
     memo: Optional[str] = None
 
 class CustomerOrderBulkCreate(BaseModel):
@@ -250,11 +251,19 @@ async def create_customer_orders_bulk(
         if not customer:
             continue
         
+        if item.order_date:
+            try:
+                order_date = date.fromisoformat(item.order_date)
+            except ValueError:
+                order_date = today
+        else:
+            order_date = today
+        
         db_order = CustomerOrder(
             customer_id=item.customer_id,
-            order_date=today,
+            order_date=order_date,
             order_amount=item.order_amount,
-            payment_due_date=today + timedelta(days=10),
+            payment_due_date=order_date + timedelta(days=10),
             memo=item.memo,
         )
         db.add(db_order)
@@ -283,6 +292,9 @@ async def recognize_order_image(
     customers = db.query(Customer).filter(Customer.deleted_flag == False).all()
     customer_list = [f"{c.customer_id}: {c.name}" for c in customers]
     
+    from datetime import date as date_cls
+    current_year = date_cls.today().year
+    
     prompt = f"""この画像は注文台帳です。画像から注文情報を読み取ってJSON形式で返してください。
 
 登録されている顧客マスタ:
@@ -297,6 +309,7 @@ async def recognize_order_image(
     {{
       "customer_id": 1,
       "customer_name": "顧客名",
+      "order_date": "YYYY-MM-DD",
       "order_amount": 10000,
       "memo": "メモ（あれば）"
     }}
@@ -307,6 +320,8 @@ async def recognize_order_image(
 注意:
 - 金額はカンマなしの整数で返してください
 - 顧客名はマスタと照合して最も一致するcustomer_idを設定してください
+- order_dateは画像の日付欄から読み取ってください。年が記載されていない場合は{current_year}年として解釈してください。形式はYYYY-MM-DDです
+- 日付が読み取れない場合はnullにしてください
 - 読み取れない部分はnullにしてください
 - JSONのみ返してください（説明文は不要）"""
 

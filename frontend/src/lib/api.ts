@@ -609,7 +609,7 @@ class ApiClient {
     });
   }
 
-  async createCustomerOrdersBulk(data: { orders: Array<{ customer_id: number; order_amount: number; memo?: string }> }) {
+  async createCustomerOrdersBulk(data: { orders: Array<{ customer_id: number; order_amount: number; order_date?: string; memo?: string }> }) {
     return this.request('/customer-orders/bulk', {
       method: 'POST',
       body: JSON.stringify(data),

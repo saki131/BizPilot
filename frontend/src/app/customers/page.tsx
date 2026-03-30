@@ -73,6 +73,7 @@ interface UploadResult {
 interface RecognizedOrder {
   customer_id: number;
   customer_name: string;
+  order_date: string | null;
   order_amount: number;
   memo: string | null;
 }
@@ -176,6 +177,7 @@ export default function CustomersPage() {
       orders: validOrders.map(o => ({
         customer_id: o.customer_id,
         order_amount: o.order_amount,
+        order_date: o.order_date || undefined,
         memo: o.memo || undefined,
       })),
     });
@@ -346,6 +348,7 @@ export default function CustomersPage() {
                               <Table>
                                 <TableHeader>
                                   <TableRow>
+                                    <TableHead>登録日</TableHead>
                                     <TableHead>顧客</TableHead>
                                     <TableHead>金額</TableHead>
                                     <TableHead>メモ</TableHead>
@@ -354,6 +357,14 @@ export default function CustomersPage() {
                                 <TableBody>
                                   {recognizedOrders.map((ro, idx) => (
                                     <TableRow key={idx} className={ro.customer_id === 0 ? 'bg-yellow-50' : ''}>
+                                      <TableCell>
+                                        <Input
+                                          type="date"
+                                          value={ro.order_date || ''}
+                                          onChange={(e) => updateRecognizedOrder(idx, 'order_date', e.target.value || null)}
+                                          className="w-[140px]"
+                                        />
+                                      </TableCell>
                                       <TableCell>
                                         <Select
                                           value={ro.customer_id > 0 ? ro.customer_id.toString() : ''}
