@@ -62,9 +62,14 @@ class DepositRecordResponse(BaseModel):
     detail2: Optional[str] = None
     balance: Optional[int] = None
     upload_batch_id: Optional[str] = None
+    matched_order_id: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+class ManualPaymentUpdate(BaseModel):
+    payment_status: str  # "paid" or "unpaid"
+    deposit_record_id: Optional[str] = None
 
 class MatchedDetail(BaseModel):
     deposit_id: str
@@ -175,6 +180,7 @@ def _deposit_to_response(dep: DepositRecord) -> DepositRecordResponse:
         detail2=dep.detail2,
         balance=dep.balance,
         upload_batch_id=dep.upload_batch_id,
+        matched_order_id=str(dep.matched_order_id) if dep.matched_order_id else None,
     )
 
 # ========== 注文 CRUD ==========
@@ -593,3 +599,126 @@ async def get_deposit_records(
         DepositRecord.deposit_date.desc()
     ).all()
     return [_deposit_to_response(d) for d in deposits]
+
+@router.post("/deposits/check-payments", response_model=DepositUploadResult)
+async def check_payments(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """既存の未照合入金記録と未払い注文を再照合してステータス更新"""
+    # 未照合の入金記録を取得
+    unmatched_deposits = db.query(DepositRecord).filter(
+        DepositRecord.matched_order_id == None
+    ).all()
+
+    # 未払い注文を取得
+    unpaid_orders = db.query(CustomerOrder).options(
+        joinedload(CustomerOrder.customer)
+    ).filter(
+        CustomerOrder.payment_status == "unpaid",
+        CustomerOrder.deleted_flag == False
+    ).all()
+
+    matched_details = []
+    pending_matches = []
+    auto_matched = 0
+
+    for dep in unmatched_deposits:
+        for order in list(unpaid_orders):
+            if dep.amount != order.order_amount:
+                continue
+            if not (order.order_date <= dep.deposit_date <= order.payment_due_date):
+                continue
+            depositor = dep.depositor_name or ""
+            customer_name = order.customer.name if order.customer else ""
+            customer_kana = order.customer.name_kana if order.customer else ""
+            match_type = _check_name_match(depositor, customer_name, customer_kana)
+            if match_type == "exact":
+                dep.matched_order_id = order.customer_order_id
+                order.payment_status = "paid"
+                order.deposit_record_id = dep.deposit_record_id
+                auto_matched += 1
+                matched_details.append(MatchedDetail(
+                    deposit_id=str(dep.deposit_record_id),
+                    depositor_name=dep.depositor_name,
+                    amount=dep.amount,
+                    order_id=str(order.customer_order_id),
+                    customer_name=customer_name,
+                    order_amount=order.order_amount,
+                ))
+                unpaid_orders.remove(order)
+                break
+            elif match_type == "partial":
+                pending_matches.append(PendingMatch(
+                    deposit_id=str(dep.deposit_record_id),
+                    depositor_name=dep.depositor_name,
+                    amount=dep.amount,
+                    order_id=str(order.customer_order_id),
+                    customer_name=customer_name,
+                    customer_name_kana=customer_kana,
+                    order_amount=order.order_amount,
+                ))
+                break
+
+    db.commit()
+
+    return DepositUploadResult(
+        total_records=len(unmatched_deposits),
+        deposit_only=len(unmatched_deposits),
+        auto_matched=auto_matched,
+        pending_confirmation=len(pending_matches),
+        matched_details=matched_details,
+        pending_matches=pending_matches,
+    )
+
+@router.patch("/{order_id}/payment-status", response_model=CustomerOrderResponse)
+async def update_payment_status(
+    order_id: str,
+    update: ManualPaymentUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """手動で入金ステータス・紐付け入金記録を更新"""
+    db_order = db.query(CustomerOrder).options(
+        joinedload(CustomerOrder.customer)
+    ).filter(
+        CustomerOrder.customer_order_id == order_id,
+        CustomerOrder.deleted_flag == False
+    ).first()
+    if not db_order:
+        raise HTTPException(status_code=404, detail="注文が見つかりません")
+
+    if update.payment_status not in ("paid", "unpaid"):
+        raise HTTPException(status_code=400, detail="payment_status は 'paid' または 'unpaid' のみ指定できます")
+
+    # 以前に紐付いていた入金記録の matched_order_id を解除
+    if db_order.deposit_record_id:
+        old_dep = db.query(DepositRecord).filter(
+            DepositRecord.deposit_record_id == db_order.deposit_record_id
+        ).first()
+        if old_dep:
+            old_dep.matched_order_id = None
+
+    if update.payment_status == "paid":
+        db_order.payment_status = "paid"
+        if update.deposit_record_id:
+            try:
+                dep_uuid = uuid.UUID(update.deposit_record_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="deposit_record_id が不正なUUIDです")
+            new_dep = db.query(DepositRecord).filter(
+                DepositRecord.deposit_record_id == dep_uuid
+            ).first()
+            if not new_dep:
+                raise HTTPException(status_code=404, detail="入金記録が見つかりません")
+            new_dep.matched_order_id = db_order.customer_order_id
+            db_order.deposit_record_id = new_dep.deposit_record_id
+        else:
+            db_order.deposit_record_id = None
+    else:  # unpaid
+        db_order.payment_status = "unpaid"
+        db_order.deposit_record_id = None
+
+    db.commit()
+    db.refresh(db_order)
+    return _order_to_response(db_order)

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, CheckCircle, Clock, Camera } from 'lucide-react';
+import { Upload, CheckCircle, Clock, Camera, RefreshCw, CreditCard, XCircle } from 'lucide-react';
 
 interface Customer {
   customer_id: number;
@@ -40,6 +40,7 @@ interface DepositRecord {
   detail2: string | null;
   balance: number | null;
   upload_batch_id: string | null;
+  matched_order_id: string | null;
 }
 
 interface MatchedDetail {
@@ -100,6 +101,13 @@ export default function CustomersPage() {
   const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
   const [currentPendingIndex, setCurrentPendingIndex] = useState(0);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  // 入金チェック
+  const [isCheckingPayments, setIsCheckingPayments] = useState(false);
+  // 手動入金設定
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null);
+  const [selectedDepositId, setSelectedDepositId] = useState<string>('');
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
   const router = useRouter();
 
   const loadOrders = useCallback(async () => {
@@ -197,6 +205,54 @@ export default function CustomersPage() {
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
+  };
+
+  const handleCheckPayments = async () => {
+    setIsCheckingPayments(true);
+    setUploadResult(null);
+    const res = await apiClient.checkPayments();
+    setIsCheckingPayments(false);
+    if (res.data) {
+      const result = res.data as UploadResult;
+      setUploadResult(result);
+      loadDeposits();
+      loadOrders();
+      if (result.pending_matches && result.pending_matches.length > 0) {
+        setPendingMatches(result.pending_matches);
+        setCurrentPendingIndex(0);
+        setIsConfirmDialogOpen(true);
+      } else if (result.auto_matched === 0 && result.pending_confirmation === 0) {
+        alert('照合対象の入金記録が見つかりませんでした。');
+        setUploadResult(null);
+      }
+    } else {
+      alert('入金チェックに失敗しました: ' + (res.error || '不明なエラー'));
+    }
+  };
+
+  const openPaymentDialog = (order: CustomerOrder) => {
+    setSelectedOrder(order);
+    setSelectedDepositId(order.deposit_record_id || '');
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleManualPaymentUpdate = async (status: 'paid' | 'unpaid') => {
+    if (!selectedOrder) return;
+    setIsUpdatingPayment(true);
+    const res = await apiClient.updateOrderPaymentStatus(selectedOrder.customer_order_id, {
+      payment_status: status,
+      deposit_record_id: status === 'paid' ? (selectedDepositId || null) : null,
+    });
+    setIsUpdatingPayment(false);
+    if (res.data) {
+      setIsPaymentDialogOpen(false);
+      setSelectedOrder(null);
+      setSelectedDepositId('');
+      loadOrders();
+      loadDeposits();
+    } else {
+      alert('更新に失敗しました: ' + (res.error || '不明なエラー'));
+    }
   };
 
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -457,13 +513,14 @@ export default function CustomersPage() {
                       <TableHead>入金期限</TableHead>
                       <TableHead>ステータス</TableHead>
                       <TableHead>メモ</TableHead>
+                      <TableHead>入金設定</TableHead>
                       <TableHead>操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">注文データがありません</TableCell>
+                        <TableCell colSpan={8} className="text-center py-8 text-gray-500">注文データがありません</TableCell>
                       </TableRow>
                     ) : (
                       orders.map((order) => (
@@ -474,6 +531,16 @@ export default function CustomersPage() {
                           <TableCell>{order.payment_due_date}</TableCell>
                           <TableCell>{getStatusBadge(order.payment_status)}</TableCell>
                           <TableCell className="text-sm text-gray-500 max-w-[150px] truncate">{order.memo || '-'}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1"
+                              onClick={() => openPaymentDialog(order)}
+                            >
+                              <CreditCard className="w-3 h-3" />入金設定
+                            </Button>
+                          </TableCell>
                           <TableCell>
                             <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.customer_order_id)}>削除</Button>
                           </TableCell>
@@ -496,12 +563,21 @@ export default function CustomersPage() {
                   <CardDescription>ゆうちょダイレクトからダウンロードした入出金明細CSVをアップロードします</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-wrap">
                     <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors">
                       <Upload className="w-4 h-4" />
                       {isUploading ? 'アップロード中...' : 'CSVファイルを選択'}
                       <input type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" disabled={isUploading} />
                     </label>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      onClick={handleCheckPayments}
+                      disabled={isCheckingPayments || isUploading}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isCheckingPayments ? 'animate-spin' : ''}`} />
+                      {isCheckingPayments ? 'チェック中...' : '入金チェック実行'}
+                    </Button>
                   </div>
 
                   {/* アップロード結果 */}
@@ -610,6 +686,82 @@ export default function CustomersPage() {
                       <div className="flex justify-end gap-3">
                         <Button variant="outline" onClick={handleSkipMatch}>スキップ</Button>
                         <Button onClick={handleConfirmMatch} className="text-white bg-green-600 hover:bg-green-700">OK（一致している）</Button>
+                      </div>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+
+              {/* 手動入金設定ダイアログ */}
+              <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>入金設定</DialogTitle>
+                    <DialogDescription>
+                      {selectedOrder && `${selectedOrder.customer_name}（${formatAmount(selectedOrder.order_amount)}）の入金ステータスを設定します`}
+                    </DialogDescription>
+                  </DialogHeader>
+                  {selectedOrder && (
+                    <div className="space-y-4">
+                      {/* 現在のステータス */}
+                      <div className="p-3 bg-gray-50 rounded-lg text-sm space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">現在のステータス:</span>
+                          {getStatusBadge(selectedOrder.payment_status)}
+                        </div>
+                        {selectedOrder.deposit_record_id && (
+                          <div className="text-gray-500">
+                            紐付け入金記録ID: <span className="font-mono text-xs">{selectedOrder.deposit_record_id.slice(0, 8)}...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 入金記録の選択 */}
+                      <div className="space-y-2">
+                        <Label>紐付ける入金記録（取引番号）</Label>
+                        <Select
+                          value={selectedDepositId}
+                          onValueChange={setSelectedDepositId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="入金記録を選択（任意）" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">選択なし</SelectItem>
+                            {deposits.map((dep) => (
+                              <SelectItem key={dep.deposit_record_id} value={dep.deposit_record_id}>
+                                <span className="font-mono text-xs mr-2">{dep.transaction_id || '番号なし'}</span>
+                                {dep.deposit_date} / {dep.depositor_name || '-'} / {formatAmount(dep.amount)}
+                                {dep.matched_order_id && dep.matched_order_id !== selectedOrder.deposit_record_id && (
+                                  <span className="ml-1 text-xs text-orange-500">（照合済）</span>
+                                )}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500">入金記録を選択しない場合はステータスのみ変更されます</p>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>キャンセル</Button>
+                        {selectedOrder.payment_status === 'paid' ? (
+                          <Button
+                            variant="outline"
+                            className="flex items-center gap-1 border-red-300 text-red-600 hover:bg-red-50"
+                            onClick={() => handleManualPaymentUpdate('unpaid')}
+                            disabled={isUpdatingPayment}
+                          >
+                            <XCircle className="w-4 h-4" />入金を取り消す
+                          </Button>
+                        ) : (
+                          <Button
+                            className="flex items-center gap-1 text-white bg-green-600 hover:bg-green-700"
+                            onClick={() => handleManualPaymentUpdate('paid')}
+                            disabled={isUpdatingPayment}
+                          >
+                            <CheckCircle className="w-4 h-4" />入金済にする
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}

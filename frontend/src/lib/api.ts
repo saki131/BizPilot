@@ -658,6 +658,19 @@ class ApiClient {
   async getDepositRecords() {
     return this.request('/customer-orders/deposits/', { method: 'GET' });
   }
+
+  async checkPayments() {
+    return this.request('/customer-orders/deposits/check-payments', {
+      method: 'POST',
+    });
+  }
+
+  async updateOrderPaymentStatus(orderId: string, data: { payment_status: string; deposit_record_id?: string | null }) {
+    return this.request(`/customer-orders/${orderId}/payment-status`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
