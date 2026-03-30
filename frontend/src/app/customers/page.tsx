@@ -692,84 +692,84 @@ export default function CustomersPage() {
                   )}
                 </DialogContent>
               </Dialog>
-
-              {/* 手動入金設定ダイアログ */}
-              <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>入金設定</DialogTitle>
-                    <DialogDescription>
-                      {selectedOrder && `${selectedOrder.customer_name}（${formatAmount(selectedOrder.order_amount)}）の入金ステータスを設定します`}
-                    </DialogDescription>
-                  </DialogHeader>
-                  {selectedOrder && (
-                    <div className="space-y-4">
-                      {/* 現在のステータス */}
-                      <div className="p-3 bg-gray-50 rounded-lg text-sm space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-500">現在のステータス:</span>
-                          {getStatusBadge(selectedOrder.payment_status)}
-                        </div>
-                        {selectedOrder.deposit_record_id && (
-                          <div className="text-gray-500">
-                            紐付け入金記録ID: <span className="font-mono text-xs">{selectedOrder.deposit_record_id.slice(0, 8)}...</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 入金記録の選択 */}
-                      <div className="space-y-2">
-                        <Label>紐付ける入金記録（取引番号）</Label>
-                        <Select
-                          value={selectedDepositId}
-                          onValueChange={setSelectedDepositId}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="入金記録を選択（任意）" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">選択なし</SelectItem>
-                            {deposits.map((dep) => (
-                              <SelectItem key={dep.deposit_record_id} value={dep.deposit_record_id}>
-                                <span className="font-mono text-xs mr-2">{dep.transaction_id || '番号なし'}</span>
-                                {dep.deposit_date} / {dep.depositor_name || '-'} / {formatAmount(dep.amount)}
-                                {dep.matched_order_id && dep.matched_order_id !== selectedOrder.deposit_record_id && (
-                                  <span className="ml-1 text-xs text-orange-500">（照合済）</span>
-                                )}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-gray-500">入金記録を選択しない場合はステータスのみ変更されます</p>
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-2">
-                        <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>キャンセル</Button>
-                        {selectedOrder.payment_status === 'paid' ? (
-                          <Button
-                            variant="outline"
-                            className="flex items-center gap-1 border-red-300 text-red-600 hover:bg-red-50"
-                            onClick={() => handleManualPaymentUpdate('unpaid')}
-                            disabled={isUpdatingPayment}
-                          >
-                            <XCircle className="w-4 h-4" />入金を取り消す
-                          </Button>
-                        ) : (
-                          <Button
-                            className="flex items-center gap-1 text-white bg-green-600 hover:bg-green-700"
-                            onClick={() => handleManualPaymentUpdate('paid')}
-                            disabled={isUpdatingPayment}
-                          >
-                            <CheckCircle className="w-4 h-4" />入金済にする
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </DialogContent>
-              </Dialog>
             </div>
           )}
+
+          {/* 手動入金設定ダイアログ */}
+          <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>入金設定</DialogTitle>
+                <DialogDescription>
+                  {selectedOrder && `${selectedOrder.customer_name}（${formatAmount(selectedOrder.order_amount)}）の入金ステータスを設定します`}
+                </DialogDescription>
+              </DialogHeader>
+              {selectedOrder && (
+                <div className="space-y-4">
+                  {/* 現在のステータス */}
+                  <div className="p-3 bg-gray-50 rounded-lg text-sm space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">現在のステータス:</span>
+                      {getStatusBadge(selectedOrder.payment_status)}
+                    </div>
+                    {selectedOrder.deposit_record_id && (
+                      <div className="text-gray-500">
+                        紐付け入金記録ID: <span className="font-mono text-xs">{selectedOrder.deposit_record_id.slice(0, 8)}...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 入金記録の選択 */}
+                  <div className="space-y-2">
+                    <Label>紐付ける入金記録（取引番号）</Label>
+                    <Select
+                      value={selectedDepositId}
+                      onValueChange={setSelectedDepositId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="入金記録を選択（任意）" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">選択なし</SelectItem>
+                        {deposits.map((dep) => (
+                          <SelectItem key={dep.deposit_record_id} value={dep.deposit_record_id}>
+                            <span className="font-mono text-xs mr-2">{dep.transaction_id || '番号なし'}</span>
+                            {dep.deposit_date} / {dep.depositor_name || '-'} / {formatAmount(dep.amount)}
+                            {dep.matched_order_id && dep.matched_order_id !== selectedOrder.deposit_record_id && (
+                              <span className="ml-1 text-xs text-orange-500">（照合済）</span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">入金記録を選択しない場合はステータスのみ変更されます</p>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>キャンセル</Button>
+                    {selectedOrder.payment_status === 'paid' ? (
+                      <Button
+                        variant="outline"
+                        className="flex items-center gap-1 border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() => handleManualPaymentUpdate('unpaid')}
+                        disabled={isUpdatingPayment}
+                      >
+                        <XCircle className="w-4 h-4" />入金を取り消す
+                      </Button>
+                    ) : (
+                      <Button
+                        className="flex items-center gap-1 text-white bg-green-600 hover:bg-green-700"
+                        onClick={() => handleManualPaymentUpdate('paid')}
+                        disabled={isUpdatingPayment}
+                      >
+                        <CheckCircle className="w-4 h-4" />入金済にする
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>
