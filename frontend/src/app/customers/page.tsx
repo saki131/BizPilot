@@ -701,7 +701,7 @@ export default function CustomersPage() {
 
           {/* 手動入金設定ダイアログ */}
           <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>入金設定</DialogTitle>
                 <DialogDescription>
@@ -718,35 +718,65 @@ export default function CustomersPage() {
                     </div>
                     {selectedOrder.deposit_record_id && (
                       <div className="text-gray-500">
-                        紐付け入金記録ID: <span className="font-mono text-xs">{selectedOrder.deposit_record_id.slice(0, 8)}...</span>
+                        現在の紐付け取引番号: <span className="font-mono text-xs">{deposits.find(d => d.deposit_record_id === selectedOrder.deposit_record_id)?.transaction_id || selectedOrder.deposit_record_id.slice(0, 8) + '...'}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* 入金記録の選択 */}
+                  {/* 未紐付け入金記録の選択テーブル */}
                   <div className="space-y-2">
-                    <Label>紐付ける入金記録（取引番号）</Label>
-                    <Select
-                      value={selectedDepositId}
-                      onValueChange={setSelectedDepositId}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="入金記録を選択（任意）" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">選択なし</SelectItem>
-                        {deposits.map((dep) => (
-                          <SelectItem key={dep.deposit_record_id} value={dep.deposit_record_id}>
-                            <span className="font-mono text-xs mr-2">{dep.transaction_id || '番号なし'}</span>
-                            {dep.deposit_date} / {dep.depositor_name || '-'} / {formatAmount(dep.amount)}
-                            {dep.matched_order_id && dep.matched_order_id !== selectedOrder.deposit_record_id && (
-                              <span className="ml-1 text-xs text-orange-500">（照合済）</span>
-                            )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500">入金記録を選択しない場合はステータスのみ変更されます</p>
+                    <Label>紐付ける入金記録を選択（任意）</Label>
+                    <div className="border rounded-lg overflow-auto max-h-64">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-8"></TableHead>
+                            <TableHead>入金日</TableHead>
+                            <TableHead>取引番号</TableHead>
+                            <TableHead>振込人名</TableHead>
+                            <TableHead className="text-right">金額</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {deposits.filter(d => !d.matched_order_id || d.deposit_record_id === selectedOrder.deposit_record_id).length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-4 text-gray-500 text-sm">未紐付けの入金記録がありません</TableCell>
+                            </TableRow>
+                          ) : (
+                            deposits
+                              .filter(d => !d.matched_order_id || d.deposit_record_id === selectedOrder.deposit_record_id)
+                              .map((dep) => {
+                                const isSelected = selectedDepositId === dep.deposit_record_id;
+                                const isCurrent = dep.deposit_record_id === selectedOrder.deposit_record_id;
+                                return (
+                                  <TableRow
+                                    key={dep.deposit_record_id}
+                                    className={`cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`}
+                                    onClick={() => setSelectedDepositId(isSelected ? 'none' : dep.deposit_record_id)}
+                                  >
+                                    <TableCell className="pr-0">
+                                      <input
+                                        type="radio"
+                                        readOnly
+                                        checked={isSelected}
+                                        className="accent-blue-600"
+                                      />
+                                    </TableCell>
+                                    <TableCell className="text-sm">{dep.deposit_date}</TableCell>
+                                    <TableCell className="font-mono text-xs text-gray-600">{dep.transaction_id || '-'}</TableCell>
+                                    <TableCell className="text-sm">
+                                      {dep.depositor_name || '-'}
+                                      {isCurrent && <span className="ml-1 text-xs text-blue-600">（現在の紐付け）</span>}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-sm">{formatAmount(dep.amount)}</TableCell>
+                                  </TableRow>
+                                );
+                              })
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <p className="text-xs text-gray-500">行をクリックして選択。もう一度クリックで選択解除。選択しない場合はステータスのみ変更されます。</p>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">
