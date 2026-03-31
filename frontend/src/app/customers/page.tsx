@@ -93,6 +93,8 @@ export default function CustomersPage() {
     order_amount: '',
     memo: '',
   });
+  const [customerNameInput, setCustomerNameInput] = useState('');
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   // 画像一括登録
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -144,15 +146,27 @@ export default function CustomersPage() {
   }, [activeTab, statusFilter, loadOrders, loadDeposits]);
 
   const handleCreateOrder = async () => {
-    if (!newOrder.customer_id || !newOrder.order_amount) return;
+    if (!customerNameInput.trim() || !newOrder.order_amount) return;
+    let customerId = newOrder.customer_id ? parseInt(newOrder.customer_id) : null;
+    if (!customerId) {
+      // 新規顧客を作成
+      const createRes = await apiClient.createCustomer({ name: customerNameInput.trim() });
+      if (!createRes.data) {
+        alert('顧客の作成に失敗しました: ' + (createRes.error || '不明なエラー'));
+        return;
+      }
+      customerId = (createRes.data as { customer_id: number }).customer_id;
+      loadCustomers();
+    }
     const res = await apiClient.createCustomerOrder({
-      customer_id: parseInt(newOrder.customer_id),
+      customer_id: customerId,
       order_amount: parseInt(newOrder.order_amount),
       memo: newOrder.memo || undefined,
     });
     if (res.data) {
       setIsCreateDialogOpen(false);
       setNewOrder({ customer_id: '', order_amount: '', memo: '' });
+      setCustomerNameInput('');
       loadOrders();
     }
   };
@@ -477,20 +491,51 @@ export default function CustomersPage() {
                           <DialogDescription>注文情報を入力してください（登録日: 今日、入金期限: 10日後が自動設定されます）</DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">顧客</Label>
-                            <Select value={newOrder.customer_id} onValueChange={(v) => setNewOrder({ ...newOrder, customer_id: v })}>
-                              <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="顧客を選択" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {customers.map((c) => (
-                                  <SelectItem key={c.customer_id} value={c.customer_id.toString()}>
-                                    {c.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <div className="grid grid-cols-4 items-start gap-4">
+                            <Label className="text-right mt-2">顧客</Label>
+                            <div className="col-span-3 relative">
+                              <Input
+                                value={customerNameInput}
+                                onChange={(e) => {
+                                  setCustomerNameInput(e.target.value);
+                                  setNewOrder({ ...newOrder, customer_id: '' });
+                                  setShowCustomerSuggestions(true);
+                                }}
+                                onFocus={() => setShowCustomerSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 150)}
+                                placeholder="顧客名を入力"
+                              />
+                              {showCustomerSuggestions && customerNameInput.trim().length > 0 && (() => {
+                                const filtered = customers.filter(c =>
+                                  c.name.toLowerCase().includes(customerNameInput.toLowerCase()) ||
+                                  (c.name_kana && c.name_kana.toLowerCase().includes(customerNameInput.toLowerCase()))
+                                );
+                                return (
+                                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                    {filtered.map((c) => (
+                                      <button
+                                        key={c.customer_id}
+                                        type="button"
+                                        className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm"
+                                        onMouseDown={() => {
+                                          setCustomerNameInput(c.name);
+                                          setNewOrder({ ...newOrder, customer_id: c.customer_id.toString() });
+                                          setShowCustomerSuggestions(false);
+                                        }}
+                                      >
+                                        {c.name}
+                                        {c.name_kana && <span className="text-gray-400 ml-2 text-xs">{c.name_kana}</span>}
+                                      </button>
+                                    ))}
+                                    {filtered.length === 0 && (
+                                      <div className="px-3 py-2 text-sm text-gray-500">
+                                        <span className="text-blue-600 font-medium">「{customerNameInput}」</span>を新規顧客として登録します
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
                           </div>
                           <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">金額</Label>
