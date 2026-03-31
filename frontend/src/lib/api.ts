@@ -602,7 +602,7 @@ class ApiClient {
     return this.request(`/customer-orders/${qs}`, { method: 'GET' });
   }
 
-  async createCustomerOrder(data: { customer_id: number; order_amount: number; memo?: string }) {
+  async createCustomerOrder(data: { customer_id: number; order_amount: number; order_date?: string; memo?: string }) {
     return this.request('/customer-orders/', {
       method: 'POST',
       body: JSON.stringify(data),

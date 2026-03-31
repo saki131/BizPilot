@@ -20,6 +20,7 @@ router = APIRouter(tags=["customer-orders"])
 class CustomerOrderCreate(BaseModel):
     customer_id: int
     order_amount: int
+    order_date: Optional[str] = None
     memo: Optional[str] = None
 
 class CustomerOrderBulkItem(BaseModel):
@@ -227,11 +228,12 @@ async def create_customer_order(
         raise HTTPException(status_code=404, detail="顧客が見つかりません")
 
     today = date.today()
+    order_date = date.fromisoformat(order.order_date) if order.order_date else today
     db_order = CustomerOrder(
         customer_id=order.customer_id,
-        order_date=today,
+        order_date=order_date,
         order_amount=order.order_amount,
-        payment_due_date=today + timedelta(days=10),
+        payment_due_date=order_date + timedelta(days=10),
         memo=order.memo,
     )
     db.add(db_order)

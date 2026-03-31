@@ -91,6 +91,7 @@ export default function CustomersPage() {
   const [newOrder, setNewOrder] = useState({
     customer_id: '',
     order_amount: '',
+    order_date: '',
     memo: '',
   });
   const [customerNameInput, setCustomerNameInput] = useState('');
@@ -161,11 +162,12 @@ export default function CustomersPage() {
     const res = await apiClient.createCustomerOrder({
       customer_id: customerId,
       order_amount: parseInt(newOrder.order_amount),
+      order_date: newOrder.order_date || undefined,
       memo: newOrder.memo || undefined,
     });
     if (res.data) {
       setIsCreateDialogOpen(false);
-      setNewOrder({ customer_id: '', order_amount: '', memo: '' });
+      setNewOrder({ customer_id: '', order_amount: '', order_date: '', memo: '' });
       setCustomerNameInput('');
       loadOrders();
     }
@@ -488,7 +490,7 @@ export default function CustomersPage() {
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>新規注文作成</DialogTitle>
-                          <DialogDescription>注文情報を入力してください（登録日: 今日、入金期限: 10日後が自動設定されます）</DialogDescription>
+                          <DialogDescription>注文情報を入力してください（登録日未入力の場合は今日、入金期限は登録日+10日が自動設定されます）</DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                           <div className="grid grid-cols-4 items-start gap-4">
@@ -536,6 +538,10 @@ export default function CustomersPage() {
                                 );
                               })()}
                             </div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">登録日</Label>
+                            <Input type="date" value={newOrder.order_date} onChange={(e) => setNewOrder({ ...newOrder, order_date: e.target.value })} className="col-span-3" />
                           </div>
                           <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">金額</Label>
