@@ -352,7 +352,9 @@ async def recognize_order_image(
 - JSONのみ返してください（説明文は不要）"""
 
     try:
-        model_name = "gemini-2.5-flash"
+        from routers.admin import get_gemini_models
+        models = get_gemini_models(db)
+        model_name = models["model"]
         response = generate_content_with_image(model_name, prompt, image_b64)
         
         import json

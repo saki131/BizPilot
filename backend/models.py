@@ -4,6 +4,12 @@ from sqlalchemy.orm import relationship
 from database import Base
 import uuid
 
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+    key = Column(String(100), primary_key=True)
+    value = Column(Text, nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
 class User(Base):
     __tablename__ = "users"
 

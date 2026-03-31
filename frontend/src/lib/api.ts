@@ -671,6 +671,18 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Admin Settings API
+  async getGeminiModelSetting() {
+    return this.request<{ model: string; fallback_model: string }>('/admin/settings/gemini-model');
+  }
+
+  async updateGeminiModelSetting(data: { model: string; fallback_model: string }) {
+    return this.request<{ model: string; fallback_model: string }>('/admin/settings/gemini-model', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

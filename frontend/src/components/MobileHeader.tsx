@@ -20,6 +20,8 @@ export function MobileHeader({ title }: MobileHeaderProps) {
         return '納品書管理';
       case '/masters':
         return 'マスタ管理';
+      case '/settings':
+        return 'システム設定';
       default:
         return '請求書管理システム';
     }

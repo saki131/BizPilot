@@ -27,9 +27,16 @@ if _api_key:
     genai_configure(_api_key)
 else:
     print(f"[WARNING] No Gemini API key found in environment")
-    
-MODEL_NAME = 'gemini-3.1-flash-lite-preview'  # 費用対効果と高スループット向けに最適化
-FALLBACK_MODEL_NAME = 'gemini-2.5-flash'  # プレビュー版が利用不可の場合のフォールバック
+
+# デフォルトモデル名（DBに設定がない場合のフォールバック）
+MODEL_NAME = 'gemini-3.1-flash-lite-preview'
+FALLBACK_MODEL_NAME = 'gemini-2.5-flash'
+
+def _get_model_names(db: Session) -> tuple[str, str]:
+    """DBからGeminiモデル名を取得する。設定がなければデフォルト値を返す。"""
+    from routers.admin import get_gemini_models
+    models = get_gemini_models(db)
+    return models["model"], models["fallback_model"]
 
 def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
     """Gemini APIを使って納品書画像を認識する"""
@@ -138,13 +145,15 @@ def recognize_delivery_note_image(image_path: str, db: Session) -> dict:
         
         # Gemini / GenAI API呼び出し（wrapper経由）
         try:
+            # DBからモデル名を動的に取得
+            primary_model, fallback_model = _get_model_names(db)
             try:
-                response = generate_content_with_image(MODEL_NAME, prompt, image_data)
-                print(f"GenAI API call completed (model: {MODEL_NAME})")
+                response = generate_content_with_image(primary_model, prompt, image_data)
+                print(f"GenAI API call completed (model: {primary_model})")
             except Exception as e_primary:
-                print(f"Primary model ({MODEL_NAME}) failed: {e_primary}. Falling back to {FALLBACK_MODEL_NAME}.")
-                response = generate_content_with_image(FALLBACK_MODEL_NAME, prompt, image_data)
-                print(f"GenAI API call completed (fallback model: {FALLBACK_MODEL_NAME})")
+                print(f"Primary model ({primary_model}) failed: {e_primary}. Falling back to {fallback_model}.")
+                response = generate_content_with_image(fallback_model, prompt, image_data)
+                print(f"GenAI API call completed (fallback model: {fallback_model})")
 
             # レスポンスを抽出
             result_text = getattr(response, 'text', None)

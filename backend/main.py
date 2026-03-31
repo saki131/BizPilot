@@ -5,7 +5,7 @@ import re
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth_router, masters_router, delivery_notes_router
+from routers import auth_router, masters_router, delivery_notes_router, admin_router
 from routers.sales_invoices import router as sales_invoices_router
 from routers.contractor_invoices import router as contractor_invoices_router
 from routers.sales_stats import router as sales_stats_router
@@ -37,6 +37,7 @@ app.include_router(sales_invoices_router, prefix="/api/sales-invoices", tags=["s
 app.include_router(contractor_invoices_router, prefix="/api/contractor-invoices", tags=["contractor-invoices"])
 app.include_router(sales_stats_router, prefix="/api/sales-stats", tags=["sales-stats"])
 app.include_router(customer_orders_router, prefix="/api/customer-orders", tags=["customer-orders"])
+app.include_router(admin_router, prefix="/api")
 
 @app.get("/")
 async def root():
