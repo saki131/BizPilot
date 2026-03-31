@@ -73,7 +73,7 @@ interface UploadResult {
 }
 
 interface RecognizedOrder {
-  customer_name: string;
+  customer_name: string | null;
   order_date: string | null;
   order_amount: number;
   memo: string | null;
@@ -196,12 +196,12 @@ export default function CustomersPage() {
 
   // 一括登録
   const handleBulkRegister = async () => {
-    const validOrders = recognizedOrders.filter(o => o.customer_name.trim() !== '' && o.order_amount > 0);
+    const validOrders = recognizedOrders.filter(o => (o.customer_name || '').trim() !== '' && o.order_amount > 0);
     if (validOrders.length === 0) return;
     setIsBulkRegistering(true);
     const res = await apiClient.createCustomerOrdersBulk({
       orders: validOrders.map(o => ({
-        customer_name: o.customer_name.trim(),
+        customer_name: (o.customer_name || '').trim(),
         order_amount: o.order_amount,
         order_date: o.order_date || undefined,
         memo: o.memo || undefined,
@@ -431,7 +431,7 @@ export default function CustomersPage() {
                                 </TableHeader>
                                 <TableBody>
                                   {recognizedOrders.map((ro, idx) => (
-                                    <TableRow key={idx} className={!ro.customer_name.trim() ? 'bg-yellow-50' : ''}>
+                                    <TableRow key={idx} className={!(ro.customer_name || '').trim() ? 'bg-yellow-50' : ''}>
                                       <TableCell>
                                         <Input
                                           type="date"
@@ -442,7 +442,7 @@ export default function CustomersPage() {
                                       </TableCell>
                                       <TableCell>
                                         <Input
-                                          value={ro.customer_name}
+                                          value={ro.customer_name || ''}
                                           onChange={(e) => updateRecognizedOrder(idx, 'customer_name', e.target.value)}
                                           className="w-[160px]"
                                           placeholder="顧客名"
@@ -468,11 +468,11 @@ export default function CustomersPage() {
                                 </TableBody>
                               </Table>
                               <div className="flex items-center justify-end gap-3">
-                                {recognizedOrders.some(o => !o.customer_name.trim()) && (
+                                {recognizedOrders.some(o => !(o.customer_name || '').trim()) && (
                                   <span className="text-xs text-yellow-600">※顧客名が空の行は登録されません</span>
                                 )}
                                 <Button onClick={handleBulkRegister} disabled={isBulkRegistering} className="text-white">
-                                  {isBulkRegistering ? '登録中...' : `${recognizedOrders.filter(o => o.customer_name.trim() !== '' && o.order_amount > 0).length}件を一括登録`}
+                                  {isBulkRegistering ? '登録中...' : `${recognizedOrders.filter(o => (o.customer_name || '').trim() !== '' && o.order_amount > 0).length}件を一括登録`}
                                 </Button>
                               </div>
                             </div>
