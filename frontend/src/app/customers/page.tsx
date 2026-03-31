@@ -365,18 +365,18 @@ export default function CustomersPage() {
           {activeTab === 'orders' && (
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center flex-wrap gap-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                   <div>
                     <CardTitle>注文一覧</CardTitle>
                     <CardDescription>顧客からの注文を管理します</CardDescription>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     {/* ステータスフィルタ */}
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-[140px]">
+                      <SelectTrigger className="w-[140px] bg-white">
                         <SelectValue placeholder="ステータス" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white">
                         <SelectItem value="all">すべて</SelectItem>
                         <SelectItem value="unpaid">未入金</SelectItem>
                         <SelectItem value="paid">入金済</SelectItem>
@@ -468,7 +468,7 @@ export default function CustomersPage() {
                     {/* 新規注文ボタン */}
                     <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button className="text-white">新規注文</Button>
+                        <Button className="text-white whitespace-nowrap">新規注文</Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
@@ -512,42 +512,39 @@ export default function CustomersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>顧客名</TableHead>
-                      <TableHead>登録日</TableHead>
-                      <TableHead>金額</TableHead>
-                      <TableHead>入金期限</TableHead>
-                      <TableHead>ステータス</TableHead>
-                      <TableHead>メモ</TableHead>
-                      <TableHead>入金設定</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead className="whitespace-nowrap">顧客名</TableHead>
+                      <TableHead className="whitespace-nowrap">登録日</TableHead>
+                      <TableHead className="whitespace-nowrap">金額</TableHead>
+                      <TableHead className="whitespace-nowrap">入金期限</TableHead>
+                      <TableHead className="whitespace-nowrap">ステータス</TableHead>
+                      <TableHead className="whitespace-nowrap">メモ</TableHead>
+                      <TableHead className="whitespace-nowrap">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-gray-500">注文データがありません</TableCell>
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">注文データがありません</TableCell>
                       </TableRow>
                     ) : (
                       orders.map((order) => (
-                        <TableRow key={order.customer_order_id} className={isOverdue(order) ? 'bg-red-50 text-red-900' : ''}>
-                          <TableCell className="font-medium">{order.customer_name}</TableCell>
-                          <TableCell>{order.order_date}</TableCell>
-                          <TableCell className="font-mono">{formatAmount(order.order_amount)}</TableCell>
-                          <TableCell>{order.payment_due_date}</TableCell>
+                        <TableRow
+                          key={order.customer_order_id}
+                          className={`cursor-pointer transition-colors ${isOverdue(order) ? 'bg-red-50 text-red-900 hover:bg-red-100' : 'hover:bg-blue-50'}`}
+                          onClick={() => openPaymentDialog(order)}
+                        >
+                          <TableCell className="font-medium whitespace-nowrap">{order.customer_name}</TableCell>
+                          <TableCell className="whitespace-nowrap">{order.order_date}</TableCell>
+                          <TableCell className="font-mono whitespace-nowrap">{formatAmount(order.order_amount)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{order.payment_due_date}</TableCell>
                           <TableCell>{getStatusBadge(order.payment_status)}</TableCell>
                           <TableCell className="text-sm text-gray-500 max-w-[150px] truncate">{order.memo || '-'}</TableCell>
                           <TableCell>
                             <Button
-                              variant="outline"
+                              variant="destructive"
                               size="sm"
-                              className="flex items-center gap-1"
-                              onClick={() => openPaymentDialog(order)}
-                            >
-                              <CreditCard className="w-3 h-3" />入金設定
-                            </Button>
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.customer_order_id)}>削除</Button>
+                              onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order.customer_order_id); }}
+                            >削除</Button>
                           </TableCell>
                         </TableRow>
                       ))
