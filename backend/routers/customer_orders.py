@@ -93,6 +93,7 @@ class DepositUploadResult(BaseModel):
     deposit_only: int
     auto_matched: int
     pending_confirmation: int
+    skipped_duplicates: int = 0
     matched_details: List[MatchedDetail]
     pending_matches: List[PendingMatch]
 
@@ -438,6 +439,7 @@ async def upload_deposits_csv(
     batch_id = str(uuid.uuid4())[:8] + "_" + datetime.now().strftime("%Y%m%d%H%M%S")
 
     deposit_records = []
+    skipped_duplicates = 0
     for row_idx, row in enumerate(reader):
         # ヘッダー行（先頭3行）をスキップ
         if row_idx < 3:
@@ -472,6 +474,21 @@ async def upload_deposits_csv(
 
             amount = int(deposit_amount_str.replace(",", ""))
             balance = int(balance_str.replace(",", "")) if balance_str else None
+
+            # 重複チェック：transaction_id がある場合はそれで、ない場合は日付+金額+振込人名で確認
+            if transaction_id:
+                exists = db.query(DepositRecord).filter(
+                    DepositRecord.transaction_id == transaction_id
+                ).first()
+            else:
+                exists = db.query(DepositRecord).filter(
+                    DepositRecord.deposit_date == deposit_date,
+                    DepositRecord.amount == amount,
+                    DepositRecord.depositor_name == detail2,
+                ).first()
+            if exists:
+                skipped_duplicates += 1
+                continue
 
             dep = DepositRecord(
                 deposit_date=deposit_date,
@@ -559,6 +576,7 @@ async def upload_deposits_csv(
         deposit_only=len(deposit_records),
         auto_matched=auto_matched,
         pending_confirmation=len(pending_matches),
+        skipped_duplicates=skipped_duplicates,
         matched_details=matched_details,
         pending_matches=pending_matches,
     )

@@ -67,6 +67,7 @@ interface UploadResult {
   deposit_only: number;
   auto_matched: number;
   pending_confirmation: number;
+  skipped_duplicates: number;
   matched_details: MatchedDetail[];
   pending_matches: PendingMatch[];
 }
@@ -599,6 +600,12 @@ export default function CustomersPage() {
                           <div className="text-2xl font-bold text-yellow-700">{uploadResult.pending_confirmation}</div>
                           <div className="text-sm text-yellow-600">要確認</div>
                         </div>
+                        {uploadResult.skipped_duplicates > 0 && (
+                          <div className="bg-gray-100 p-3 rounded shadow-sm text-center">
+                            <div className="text-2xl font-bold text-gray-500">{uploadResult.skipped_duplicates}</div>
+                            <div className="text-sm text-gray-400">登録済みスキップ</div>
+                          </div>
+                        )}
                       </div>
 
                       {/* 自動照合成功リスト */}
