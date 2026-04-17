@@ -73,7 +73,9 @@ interface UploadResult {
 }
 
 interface RecognizedOrder {
+  customer_id: number | null;
   customer_name: string | null;
+  customer_name_kana: string | null;
   order_date: string | null;
   order_amount: number;
   memo: string | null;
@@ -101,6 +103,7 @@ export default function CustomersPage() {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [recognizedOrders, setRecognizedOrders] = useState<RecognizedOrder[]>([]);
   const [isBulkRegistering, setIsBulkRegistering] = useState(false);
+  const [editingRows, setEditingRows] = useState<Set<number>>(new Set());
   // 部分一致確認
   const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
   const [currentPendingIndex, setCurrentPendingIndex] = useState(0);
@@ -204,6 +207,7 @@ export default function CustomersPage() {
     const res = await apiClient.createCustomerOrdersBulk({
       orders: validOrders.map(o => ({
         customer_name: (o.customer_name || '').trim(),
+        name_kana: (o.customer_name_kana || '').trim() || undefined,
         order_amount: o.order_amount,
         order_date: o.order_date || undefined,
         memo: o.memo || undefined,
@@ -213,6 +217,7 @@ export default function CustomersPage() {
     if (res.data) {
       setIsImageDialogOpen(false);
       setRecognizedOrders([]);
+      setEditingRows(new Set());
       loadOrders();
     } else {
       alert('一括登録に失敗しました: ' + (res.error || ''));
@@ -400,7 +405,7 @@ export default function CustomersPage() {
                       </SelectContent>
                     </Select>
                     {/* 画像一括登録ボタン */}
-                    <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+                    <Dialog open={isImageDialogOpen} onOpenChange={(open) => { setIsImageDialogOpen(open); if (!open) { setRecognizedOrders([]); setEditingRows(new Set()); } }}>
                       <DialogTrigger asChild>
                         <Button variant="outline" className="flex items-center gap-2">
                           <Camera className="w-4 h-4" />画像一括登録
@@ -426,47 +431,77 @@ export default function CustomersPage() {
                                 <TableHeader>
                                   <TableRow>
                                     <TableHead>登録日</TableHead>
-                                    <TableHead>顧客</TableHead>
+                                    <TableHead>顧客名（漢字）</TableHead>
+                                    <TableHead>読み仮名（カタカナ）</TableHead>
                                     <TableHead>金額</TableHead>
                                     <TableHead>メモ</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {recognizedOrders.map((ro, idx) => (
-                                    <TableRow key={idx} className={!(ro.customer_name || '').trim() ? 'bg-yellow-50' : ''}>
-                                      <TableCell>
-                                        <Input
-                                          type="date"
-                                          value={ro.order_date || ''}
-                                          onChange={(e) => updateRecognizedOrder(idx, 'order_date', e.target.value || null)}
-                                          className="w-[140px]"
-                                        />
-                                      </TableCell>
-                                      <TableCell>
-                                        <Input
-                                          value={ro.customer_name || ''}
-                                          onChange={(e) => updateRecognizedOrder(idx, 'customer_name', e.target.value)}
-                                          className="w-[160px]"
-                                          placeholder="顧客名"
-                                        />
-                                      </TableCell>
-                                      <TableCell>
-                                        <Input
-                                          type="number"
-                                          value={ro.order_amount}
-                                          onChange={(e) => updateRecognizedOrder(idx, 'order_amount', parseInt(e.target.value) || 0)}
-                                          className="w-[120px]"
-                                        />
-                                      </TableCell>
-                                      <TableCell>
-                                        <Input
-                                          value={ro.memo || ''}
-                                          onChange={(e) => updateRecognizedOrder(idx, 'memo', e.target.value || null)}
-                                          className="w-[150px]"
-                                        />
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
+                                  {recognizedOrders.map((ro, idx) => {
+                                    const isLocked = (ro.customer_id ?? 0) > 0 && !editingRows.has(idx);
+                                    return (
+                                      <TableRow key={idx} className={!(ro.customer_name || '').trim() ? 'bg-yellow-50' : ''}>
+                                        <TableCell>
+                                          <Input
+                                            type="date"
+                                            value={ro.order_date || ''}
+                                            onChange={(e) => updateRecognizedOrder(idx, 'order_date', e.target.value || null)}
+                                            className="w-[140px]"
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          {isLocked ? (
+                                            <div className="flex items-center gap-1 w-[200px]">
+                                              <span className="text-sm text-gray-700 flex-1">{ro.customer_name}</span>
+                                              <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full whitespace-nowrap">登録済</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => setEditingRows(prev => { const s = new Set(prev); s.add(idx); return s; })}
+                                                className="text-[10px] text-blue-500 underline whitespace-nowrap"
+                                              >
+                                                変更
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <Input
+                                              value={ro.customer_name || ''}
+                                              onChange={(e) => updateRecognizedOrder(idx, 'customer_name', e.target.value)}
+                                              className="w-[160px]"
+                                              placeholder="顧客名（漢字）"
+                                            />
+                                          )}
+                                        </TableCell>
+                                        <TableCell>
+                                          {isLocked ? (
+                                            <span className="text-sm text-gray-500 w-[160px] inline-block">{ro.customer_name_kana || '—'}</span>
+                                          ) : (
+                                            <Input
+                                              value={ro.customer_name_kana || ''}
+                                              onChange={(e) => updateRecognizedOrder(idx, 'customer_name_kana', e.target.value || null)}
+                                              className="w-[160px]"
+                                              placeholder="カタカナ読み仮名"
+                                            />
+                                          )}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Input
+                                            type="number"
+                                            value={ro.order_amount}
+                                            onChange={(e) => updateRecognizedOrder(idx, 'order_amount', parseInt(e.target.value) || 0)}
+                                            className="w-[120px]"
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Input
+                                            value={ro.memo || ''}
+                                            onChange={(e) => updateRecognizedOrder(idx, 'memo', e.target.value || null)}
+                                            className="w-[150px]"
+                                          />
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
                                 </TableBody>
                               </Table>
                               <div className="flex items-center justify-end gap-3">

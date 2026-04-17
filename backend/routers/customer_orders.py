@@ -25,6 +25,7 @@ class CustomerOrderCreate(BaseModel):
 
 class CustomerOrderBulkItem(BaseModel):
     customer_name: str
+    name_kana: Optional[str] = None
     order_amount: int
     order_date: Optional[str] = None
     memo: Optional[str] = None
@@ -259,19 +260,32 @@ async def create_customer_orders_bulk(
         normalized_name = item.customer_name.replace('\u3000', '').replace(' ', '').strip()
         if not normalized_name:
             continue
+        normalized_kana = item.name_kana.replace('\u3000', '').replace(' ', '').strip() if item.name_kana else None
         # 顧客名でマスタを検索（スペース正規化後に完全一致）
         # DBの既存顧客名も正規化して比較するため、全件取得してPython側でフィルタ
         all_customers = db.query(Customer).filter(
             Customer.deleted_flag == False
         ).all()
-        customer = next(
-            (c for c in all_customers if c.name.replace('\u3000', '').replace(' ', '').strip() == normalized_name),
-            None
-        )
+        def _norm(s: str) -> str:
+            return s.replace('\u3000', '').replace(' ', '').strip() if s else ''
+        if normalized_kana:
+            # カナ名がある場合: 漢字名 AND カナ名の両方が一致する顧客のみ既存とみなす
+            customer = next(
+                (c for c in all_customers
+                 if _norm(c.name) == normalized_name and _norm(c.name_kana or '') == normalized_kana),
+                None
+            )
+        else:
+            # カナ名がない場合: 漢字名のみで照合
+            customer = next(
+                (c for c in all_customers if _norm(c.name) == normalized_name),
+                None
+            )
         # 一致する顧客がなければ新規作成
         if not customer:
             customer = Customer(
                 name=normalized_name,
+                name_kana=normalized_kana,
                 deleted_flag=False,
             )
             db.add(customer)
@@ -321,32 +335,44 @@ async def recognize_order_image(
     from datetime import date as date_cls
     current_year = date_cls.today().year
     
-    prompt = f"""この画像は注文台帳です。画像から注文情報を読み取ってJSON形式で返してください。
+    prompt = f"""この画像は手書きの注文台帳です。以下の構造を理解した上で読み取ってください。
+
+【注文台帳の構造】
+- 表の左端の列：商品名（縦方向に商品が並ぶ）
+- 表の上部（列ヘッダー）：顧客名が横方向に並ぶ（各列＝1人の顧客）
+- 顧客名の下：その顧客の注文日がある場合があります
+- 表の下部の「謝礼」または「合計」行：各顧客列の注文金額合計
+
+つまり、顧客名は表の「列ヘッダー」（横方向）に書かれています。
+行ヘッダー（縦方向の左端）は商品名であり、顧客名ではありません。
 
 登録されている顧客マスタ:
 {chr(10).join(customer_list)}
 
-以下のJSON形式で返してください。顧客名はマスタのcustomer_idで指定してください。
-マスタに一致する顧客がない場合はcustomer_idを0にしてください。
+各列ヘッダーに書かれた顧客名を正確に読み取り、以下のJSON形式で返してください。
+顧客名はマスタと照合してcustomer_idを設定してください。マスタに一致する顧客がない場合はcustomer_idを0にしてください。
 
 ```json
 {{
   "orders": [
     {{
       "customer_id": 1,
-      "customer_name": "顧客名",
+      "customer_name": "顧客名（画像から読み取った名前をそのまま）",
+      "customer_name_kana": "コキャクメイカタカナ",
       "order_date": "YYYY-MM-DD",
       "order_amount": 10000,
-      "memo": "メモ（あれば）"
+      "memo": null
     }}
   ]
 }}
 ```
 
 注意:
-- 金額はカンマなしの整数で返してください
-- 顧客名はマスタと照合して最も一致するcustomer_idを設定してください
-- order_dateは画像の日付欄から読み取ってください。年が記載されていない場合は{current_year}年として解釈してください。形式はYYYY-MM-DDです
+- 顧客は表の列ごとに1件として読み取ってください（列数＝注文件数）
+- 顧客名は列ヘッダーの手書き文字を丁寧に読んでください（姓名の漢字をそのまま）
+- customer_name_kanaは顧客名の読み仮名をカタカナで返してください（例: カトウミチコ）。読めない場合はnullにしてください
+- 金額は「謝礼」または最下部の合計行から読み取った列ごとの金額（カンマなし整数）
+- order_dateは各顧客の日付欄から読み取ってください。年が記載されていない場合は{current_year}年として解釈してください。形式はYYYY-MM-DDです
 - 日付が読み取れない場合はnullにしてください
 - 読み取れない部分はnullにしてください
 - JSONのみ返してください（説明文は不要）"""
