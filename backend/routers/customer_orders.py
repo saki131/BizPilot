@@ -281,11 +281,11 @@ async def create_customer_orders_bulk(
                 (c for c in all_customers if _norm(c.name) == normalized_name),
                 None
             )
-        # 一致する顧客がなければ新規作成
+        # 一致する顧客がなければ新規作成（スペース付きの元の値で保存）
         if not customer:
             customer = Customer(
-                name=normalized_name,
-                name_kana=normalized_kana,
+                name=item.customer_name.strip(),
+                name_kana=item.name_kana.strip() if item.name_kana else None,
                 deleted_flag=False,
             )
             db.add(customer)
@@ -346,16 +346,18 @@ async def recognize_order_image(
 【最重要：縦書き顧客名の正しい読み方】
 各列の一番上のセルに顧客名が【縦書き】で書かれています（文字が上から下に縦に並んでいる）。
 縦書きの文字を【上から下の順に繋げて】1人分の完全な姓名として読んでください。
+また、姓と名の間には【必ず半角スペースを1つ】入れてください。
 
 間違いの例:
 - ✗ 縦書きの「鹿野内恵子」を「鹿」「野内」「恵子」などに分割する
 - ✗ 隣の列の文字と混同して「井口律子加藤」のように2人分を繋げる
 - ✗ 「植松」「百合子」のように姓だけ・名だけで読む
+- ✗ "井口律子"（姓名の間にスペースなし）
 
 正しい読み方の例:
-- ✓ 1列の縦書き文字「井口律子」→ customer_name: "井口律子"
-- ✓ 1列の縦書き文字「鹿野内恵子」→ customer_name: "鹿野内恵子"
-- ✓ 1列の縦書き文字「植松百合子」→ customer_name: "植松百合子"
+- ✓ 1列の縦書き文字「井口律子」→ customer_name: "井口 律子"
+- ✓ 1列の縦書き文字「鹿野内恵子」→ customer_name: "鹿野内 恵子"
+- ✓ 1列の縦書き文字「植松百合子」→ customer_name: "植松 百合子"
 
 日本人の姓名は通常【姓1〜3文字＋名1〜3文字】の合計2〜6文字です。
 1セルの中の縦書き文字がすべて1人の氏名であることを意識してください。
@@ -370,8 +372,8 @@ async def recognize_order_image(
   "orders": [
     {{
       "customer_id": 1,
-      "customer_name": "顧客名（縦書きを上から繋げた完全な姓名）",
-      "customer_name_kana": "コキャクメイカタカナ",
+      "customer_name": "顧客名（姓と名の間に半角スペース。例: 山田 太郎）",
+      "customer_name_kana": "カタカナ姓名（姓と名の間に半角スペース。例: ヤマダ タロウ）",
       "order_date": "YYYY-MM-DD",
       "order_amount": 10000,
       "memo": null
@@ -383,7 +385,8 @@ async def recognize_order_image(
 注意:
 - 顧客は1列につき1件（金額が入っている列のみ）
 - 顧客名はマスタと照合してcustomer_idを設定、一致しない場合はcustomer_id=0
-- customer_name_kanaは読み仮名をカタカナで（例: イグチリツコ）、読めない場合はnull
+- customer_nameは姓と名の間に半角スペースを1つ入れること（例: "山田 太郎"）
+- customer_name_kanaは読み仮名をカタカナで、姓と名の間に半角スペースを1つ入れること（例: "ヤマダ タロウ"）、読めない場合はnull
 - 金額は「謝礼」行の各列の数値（カンマなし整数）
 - order_dateは各顧客列の日付セルから（年なしの場合は{current_year}年、形式YYYY-MM-DD）
 - 読み取れない項目はnull

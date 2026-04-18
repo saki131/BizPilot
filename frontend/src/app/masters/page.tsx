@@ -291,6 +291,7 @@ export default function MastersPage() {
                           value={newItem.name}
                           onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                           className="col-span-3"
+                          placeholder={activeTab === 'customers' ? '山田 太郎' : ''}
                         />
                       </div>
                       {activeTab === 'products' && (
@@ -317,7 +318,7 @@ export default function MastersPage() {
                             value={newItem.name_kana}
                             onChange={(e) => setNewItem({ ...newItem, name_kana: e.target.value })}
                             className="col-span-3"
-                            placeholder="カタカナ（任意）"
+                            placeholder="ヤマダ タロウ（任意）"
                           />
                         </div>
                       )}

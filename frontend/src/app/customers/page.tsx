@@ -468,7 +468,7 @@ export default function CustomersPage() {
                                               value={ro.customer_name || ''}
                                               onChange={(e) => updateRecognizedOrder(idx, 'customer_name', e.target.value)}
                                               className="w-[160px]"
-                                              placeholder="顧客名（漢字）"
+                                              placeholder="山田 太郎"
                                             />
                                           )}
                                         </TableCell>
@@ -480,7 +480,7 @@ export default function CustomersPage() {
                                               value={ro.customer_name_kana || ''}
                                               onChange={(e) => updateRecognizedOrder(idx, 'customer_name_kana', e.target.value || null)}
                                               className="w-[160px]"
-                                              placeholder="カタカナ読み仮名"
+                                              placeholder="ヤマダ タロウ"
                                             />
                                           )}
                                         </TableCell>
@@ -540,7 +540,7 @@ export default function CustomersPage() {
                                 }}
                                 onFocus={() => setShowCustomerSuggestions(true)}
                                 onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 150)}
-                                placeholder="顧客名を入力"
+                                placeholder="山田 太郎"
                               />
                               {showCustomerSuggestions && customerNameInput.trim().length > 0 && (() => {
                                 const filtered = customers.filter(c =>
