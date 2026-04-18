@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """販売員請求書API"""
+import re
+import zipfile
 from datetime import date, timedelta
+from io import BytesIO
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from urllib.parse import quote
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
@@ -654,6 +658,60 @@ async def get_sales_invoices(
         ))
     
     return result
+
+
+@router.get("/bulk-pdf-download")
+async def bulk_download_invoice_pdfs(
+    closing_date: date = Query(..., description="締め日（YYYY-MM-DD形式、通常は当月20日）"),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """指定した締め日の請求書PDFを一括でZIPダウンロードする
+
+    ファイル名形式: 請求書_{請求日}_{販売員名}.pdf
+    ZIPファイル名: 請求書一括_{closing_date}.zip
+    """
+    invoices = db.query(SalesInvoice).options(
+        joinedload(SalesInvoice.sales_person),
+        joinedload(SalesInvoice.details).joinedload(SalesInvoiceDetail.product),
+        joinedload(SalesInvoice.discount_rate)
+    ).filter(
+        SalesInvoice.invoice_date == closing_date,
+        SalesInvoice.deleted_flag == False
+    ).order_by(SalesInvoice.sales_person_id).all()
+
+    if not invoices:
+        raise HTTPException(
+            status_code=404,
+            detail=f"指定した締め日 ({closing_date}) の請求書が見つかりません"
+        )
+
+    def sanitize_filename(name: str) -> str:
+        """ファイル名に使用できない文字を _ に置換する"""
+        return re.sub(r'[/\\:*?"<>|]', '_', name)
+
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+        for invoice in invoices:
+            sales_person_name = invoice.sales_person.name if invoice.sales_person else "不明"
+            invoice_date_str = invoice.invoice_date.strftime('%Y-%m-%d') if invoice.invoice_date else 'unknown'
+            safe_name = sanitize_filename(sales_person_name)
+            filename = f"請求書_{invoice_date_str}_{safe_name}.pdf"
+
+            pdf_buffer = generate_sales_invoice_pdf(invoice, db)
+            zf.writestr(filename, pdf_buffer.getvalue())
+
+    zip_buffer.seek(0)
+    zip_filename = f"請求書一括_{closing_date}.zip"
+    encoded_filename = quote(zip_filename, safe='')
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        }
+    )
 
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)

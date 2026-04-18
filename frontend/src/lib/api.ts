@@ -365,6 +365,36 @@ class ApiClient {
     });
   }
 
+  async downloadBulkInvoicePDF(closingDate: string) {
+    const url = `${this.baseURL}/sales-invoices/bulk-pdf-download?closing_date=${closingDate}`;
+    const headers: Record<string, string> = {};
+
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(errorText || 'Failed to download bulk PDF');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    const [year, month] = closingDate.split('-');
+    a.download = `請求書一括_${year}年${month}月分.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
   async downloadInvoicePDF(invoiceId: string) {
     const url = `${this.baseURL}/sales-invoices/${invoiceId}/pdf`;
     const headers: Record<string, string> = {};

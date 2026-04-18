@@ -159,6 +159,10 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [showBulkPdfDialog, setShowBulkPdfDialog] = useState(false);
+  const [bulkPdfYear, setBulkPdfYear] = useState<number>(new Date().getFullYear());
+  const [bulkPdfMonth, setBulkPdfMonth] = useState<number>(new Date().getMonth() + 1);
+  const [bulkPdfDownloading, setBulkPdfDownloading] = useState(false);
   const [showDiscountDialog, setShowDiscountDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -483,6 +487,25 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleBulkPDFDownload = async () => {
+    const closingDate = `${bulkPdfYear}-${String(bulkPdfMonth).padStart(2, '0')}-20`;
+    setBulkPdfDownloading(true);
+    try {
+      await apiClient.downloadBulkInvoicePDF(closingDate);
+      setShowBulkPdfDialog(false);
+    } catch (error: any) {
+      console.error('Failed to download bulk PDF:', error);
+      const msg = error?.message || '';
+      if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
+        alert(`${bulkPdfYear}年${bulkPdfMonth}月の請求書が見つかりません`);
+      } else {
+        alert('一括PDFのダウンロードに失敗しました');
+      }
+    } finally {
+      setBulkPdfDownloading(false);
+    }
+  };
+
   const handleDownloadPDF = async (invoiceId: string) => {
     try {
       await apiClient.downloadInvoicePDF(invoiceId);
@@ -735,9 +758,17 @@ export default function InvoicesPage() {
         
         <Button 
           onClick={() => setShowBulkDialog(true)}
-          className="w-full mb-4 h-12 font-semibold bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
+          className="w-full mb-2 h-12 font-semibold bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
         >
           一括請求書反映
+        </Button>
+
+        <Button
+          onClick={() => setShowBulkPdfDialog(true)}
+          variant="outline"
+          className="w-full mb-4 h-10 font-semibold border-blue-500 text-blue-600 hover:bg-blue-50"
+        >
+          📥 請求書PDF一括ダウンロード
         </Button>
 
         {/* フィルター */}
@@ -1008,6 +1039,59 @@ export default function InvoicesPage() {
               </div>
             </DialogContent>
           </Dialog>
+
+      {/* 請求書PDF一括ダウンロードダイアログ */}
+      <Dialog open={showBulkPdfDialog} onOpenChange={setShowBulkPdfDialog}>
+        <DialogContent className="w-[95vw] max-w-sm">
+          <DialogHeader>
+            <DialogTitle>請求書PDF一括ダウンロード</DialogTitle>
+            <DialogDescription>
+              対象月（前月21日〜当月20日）の請求書PDFをZIPでダウンロードします
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label>対象月</Label>
+              <div className="flex gap-2 mt-2">
+                <Select value={bulkPdfYear.toString()} onValueChange={(value) => setBulkPdfYear(parseInt(value))}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="年" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    {[2024, 2025, 2026, 2027, 2028].map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={bulkPdfMonth.toString()} onValueChange={(value) => setBulkPdfMonth(parseInt(value))}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="月" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
+                      <SelectItem key={month} value={month.toString()}>
+                        {month}月
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                締め日: {bulkPdfYear}年{bulkPdfMonth}月20日
+              </p>
+            </div>
+            <Button
+              onClick={handleBulkPDFDownload}
+              disabled={bulkPdfDownloading}
+              className="w-full h-12 text-white bg-blue-600 hover:bg-blue-700"
+            >
+              {bulkPdfDownloading ? 'ダウンロード中...' : '📥 ZIPダウンロード'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Discount Rate Change Dialog */}
       <Dialog open={showDiscountDialog} onOpenChange={setShowDiscountDialog}>
