@@ -83,6 +83,11 @@ export default function MastersPage() {
       } else if (activeTab === 'contractors') {
         result = await apiClient.createContractor({ name: newItem.name });
       } else if (activeTab === 'customers') {
+        const name = newItem.name.trim();
+        if (!name.includes(' ') && !name.includes('\u3000')) {
+          alert('顧客名は姓と名の間に半角スペースを入れてください（例: 山田 太郎）');
+          return;
+        }
         result = await apiClient.createCustomer({ name: newItem.name, name_kana: newItem.name_kana || undefined });
       }
 

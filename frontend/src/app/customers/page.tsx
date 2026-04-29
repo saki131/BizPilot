@@ -97,6 +97,7 @@ export default function CustomersPage() {
     memo: '',
   });
   const [customerNameInput, setCustomerNameInput] = useState('');
+  const [customerKanaInput, setCustomerKanaInput] = useState('');
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   // 画像一括登録
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
@@ -153,8 +154,16 @@ export default function CustomersPage() {
     if (!customerNameInput.trim() || !newOrder.order_amount) return;
     let customerId = newOrder.customer_id ? parseInt(newOrder.customer_id) : null;
     if (!customerId) {
+      const name = customerNameInput.trim();
+      if (!name.includes(' ') && !name.includes('\u3000')) {
+        alert('顧客名は姓と名の間に半角スペースを入れてください（例: 山田 太郎）');
+        return;
+      }
       // 新規顧客を作成
-      const createRes = await apiClient.createCustomer({ name: customerNameInput.trim() });
+      const createRes = await apiClient.createCustomer({
+        name,
+        name_kana: customerKanaInput.trim() || undefined,
+      });
       if (!createRes.data) {
         alert('顧客の作成に失敗しました: ' + (createRes.error || '不明なエラー'));
         return;
@@ -172,6 +181,7 @@ export default function CustomersPage() {
       setIsCreateDialogOpen(false);
       setNewOrder({ customer_id: '', order_amount: '', order_date: '', memo: '' });
       setCustomerNameInput('');
+      setCustomerKanaInput('');
       loadOrders();
     }
   };
@@ -574,6 +584,17 @@ export default function CustomersPage() {
                               })()}
                             </div>
                           </div>
+                          {!newOrder.customer_id && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label className="text-right">カナ</Label>
+                              <Input
+                                value={customerKanaInput}
+                                onChange={(e) => setCustomerKanaInput(e.target.value)}
+                                className="col-span-3"
+                                placeholder="ヤマダ タロウ（任意）"
+                              />
+                            </div>
+                          )}
                           <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">登録日</Label>
                             <Input type="date" value={newOrder.order_date} onChange={(e) => setNewOrder({ ...newOrder, order_date: e.target.value })} className="col-span-3" />
