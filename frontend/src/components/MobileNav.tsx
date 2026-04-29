@@ -37,10 +37,10 @@ export function MobileNav() {
     { icon: Wrench, label: '設定', path: '/settings' },
   ];
 
-  // admin以外のユーザーは納品書と請求書のみ表示
+  // admin以外のユーザーは納品書・請求書・注文・売上のみ表示
   const navItems = username === 'admin' 
     ? allNavItems
-    : allNavItems.filter(item => item.path === '/delivery-notes' || item.path === '/invoices');
+    : allNavItems.filter(item => ['/delivery-notes', '/invoices', '/customers', '/sales'].includes(item.path));
   
   console.log('[MobileNav] Current username:', username, 'isAdmin:', username === 'admin', 'navItems count:', navItems.length);
 
