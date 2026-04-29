@@ -1,0 +1,47 @@
+name: DB Backup
+
+on:
+  schedule:
+    - cron: '0 17 * * *'  # 毎日 02:00 JST（UTC 17:00）
+  workflow_dispatch:       # 手動実行も可能
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install psycopg2-binary \
+            google-api-python-client \
+            google-auth \
+            google-auth-oauthlib \
+            python-dotenv
+
+      - name: Restore Google Drive credentials
+        run: |
+          echo "${{ secrets.GDRIVE_TOKEN_JSON }}" | base64 -d > backend/gdrive_token.json
+          echo "${{ secrets.GDRIVE_OAUTH_CLIENT_JSON }}" | base64 -d > backend/gdrive_oauth_client.json
+
+      - name: Run backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+        run: |
+          cd backend
+          python scripts/backup_db.py
