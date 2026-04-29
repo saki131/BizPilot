@@ -124,14 +124,55 @@ flyctl secrets set COMPANY_NAME="..." BANK_NAME="..." -a bizpilot-backend-stagin
 ## 5. バックアップ・復元
 
 ### データベースバックアップ
-- **自動バックアップ**: Neon 自動バックアップ
-- **手動バックアップ**: pg_dumpコマンド
-- **保存期間**: Neon プランに依存
-- **復元テスト**: 月次実施
+
+#### 実行基盤
+| 基盤 | 実行タイミング | 条件 |
+|------|--------------|------|
+| GitHub Actions | 毎日 02:00 JST（UTC 17:00） | PC不要・クラウド実行 |
+| Windows タスクスケジューラ | 毎日 02:00（ローカル） | PC起動時実行 |
+
+#### バックアップ手順（`scripts/backup_db.py`）
+1. `pg_dump`（バイナリ `.dump` 形式）でダンプ作成
+   - pg_dump が使用不可またはバージョン不一致の場合は psycopg2 で `.sql` 形式にフォールバック
+2. Google Drive の指定フォルダにアップロード
+3. ローカル・Google Drive の古いファイルを自動削除
+
+#### 保存先・世代管理
+| 保存先 | パス / フォルダ | 保持世代数 |
+|--------|--------------|----------|
+| ローカル | `backend/data/backups/` | 7世代 |
+| Google Drive | 専用バックアップフォルダ | 30世代 |
+
+#### ファイル命名規則
+- `bizpilot_backup_YYYYMMDD_HHMMSS.dump`（pg_dump 正常時）
+- `bizpilot_backup_YYYYMMDD_HHMMSS.sql`（フォールバック時）
+
+#### 認証情報
+- Google Drive OAuth2 トークン: `backend/gdrive_token.json`
+- OAuth クライアント情報: `backend/gdrive_oauth_client.json`
+- GitHub Actions では Secrets（`GDRIVE_TOKEN_JSON` / `GDRIVE_OAUTH_CLIENT_JSON`）から復元
+
+#### 関連環境変数
+| 変数名 | 説明 | デフォルト |
+|--------|------|----------|
+| `DATABASE_URL` | バックアップ対象DBの接続文字列 | 必須 |
+| `GDRIVE_FOLDER_ID` | Google Drive の保存先フォルダID | 必須 |
+| `BACKUP_KEEP_GENERATIONS` | ローカル保持世代数 | 7 |
+| `GDRIVE_KEEP_GENERATIONS` | Google Drive 保持世代数 | 30 |
+
+#### 復元手順
+```bash
+# .dump 形式の場合
+pg_restore --dbname=<接続文字列> --clean bizpilot_backup_YYYYMMDD_HHMMSS.dump
+
+# .sql 形式の場合（フォールバック）
+# 1. alembic upgrade head でスキーマを作成した後
+psql <接続文字列> < bizpilot_backup_YYYYMMDD_HHMMSS.sql
+```
 
 ### ファイルバックアップ
-- **Google Drive**: 自動保存
-- **ローカルバックアップ**: 重要ファイルの定期バックアップ
+- **Google Drive**: バックアップファイルを自動アップロード（上記参照）
+- **ローカル**: `backend/data/backups/` に 7世代分を自動保持
 
 ## 6. 監視・ログ
 
