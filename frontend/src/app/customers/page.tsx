@@ -88,6 +88,7 @@ export default function CustomersPage() {
   const [deposits, setDeposits] = useState<DepositRecord[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [newOrder, setNewOrder] = useState({
@@ -159,30 +160,52 @@ export default function CustomersPage() {
         alert('顧客名は姓と名の間に半角スペースを入れてください（例: 山田 太郎）');
         return;
       }
-      // 新規顧客を作成
-      const createRes = await apiClient.createCustomer({
-        name,
-        name_kana: customerKanaInput.trim() || undefined,
-      });
-      if (!createRes.data) {
-        alert('顧客の作成に失敗しました: ' + (createRes.error || '不明なエラー'));
+      const kana = customerKanaInput.trim();
+      if (!kana) {
+        alert('カナ名は必須入力です（例: ヤマダ タロウ）');
         return;
       }
-      customerId = (createRes.data as { customer_id: number }).customer_id;
-      loadCustomers();
+      if (!/^[\u30A0-\u30FF\u30FC\s\u3000]+$/.test(kana)) {
+        alert('カナ名はカタカナで入力してください（例: ヤマダ タロウ）');
+        return;
+      }
+      if (!kana.includes(' ') && !kana.includes('\u3000')) {
+        alert('カナ名は姓と名の間に半角スペースを入れてください（例: ヤマダ タロウ）');
+        return;
+      }
     }
-    const res = await apiClient.createCustomerOrder({
-      customer_id: customerId,
-      order_amount: parseInt(newOrder.order_amount),
-      order_date: newOrder.order_date || undefined,
-      memo: newOrder.memo || undefined,
-    });
-    if (res.data) {
-      setIsCreateDialogOpen(false);
-      setNewOrder({ customer_id: '', order_amount: '', order_date: '', memo: '' });
-      setCustomerNameInput('');
-      setCustomerKanaInput('');
-      loadOrders();
+    setIsCreatingOrder(true);
+    try {
+      if (!customerId) {
+        const name = customerNameInput.trim();
+        const kana = customerKanaInput.trim();
+        // 新規顧客を作成
+        const createRes = await apiClient.createCustomer({
+          name,
+          name_kana: kana,
+        });
+        if (!createRes.data) {
+          alert('顧客の作成に失敗しました: ' + (createRes.error || '不明なエラー'));
+          return;
+        }
+        customerId = (createRes.data as { customer_id: number }).customer_id;
+        loadCustomers();
+      }
+      const res = await apiClient.createCustomerOrder({
+        customer_id: customerId,
+        order_amount: parseInt(newOrder.order_amount),
+        order_date: newOrder.order_date || undefined,
+        memo: newOrder.memo || undefined,
+      });
+      if (res.data) {
+        setIsCreateDialogOpen(false);
+        setNewOrder({ customer_id: '', order_amount: '', order_date: '', memo: '' });
+        setCustomerNameInput('');
+        setCustomerKanaInput('');
+        loadOrders();
+      }
+    } finally {
+      setIsCreatingOrder(false);
     }
   };
 
@@ -591,7 +614,7 @@ export default function CustomersPage() {
                                 value={customerKanaInput}
                                 onChange={(e) => setCustomerKanaInput(e.target.value)}
                                 className="col-span-3"
-                                placeholder="ヤマダ タロウ（任意）"
+                                placeholder="ヤマダ タロウ（必須）"
                               />
                             </div>
                           )}
@@ -609,7 +632,9 @@ export default function CustomersPage() {
                           </div>
                         </div>
                         <div className="flex justify-end">
-                          <Button onClick={handleCreateOrder} className="text-white">作成</Button>
+                          <Button onClick={handleCreateOrder} disabled={isCreatingOrder} className="text-white">
+                            {isCreatingOrder ? '登録中...' : '作成'}
+                          </Button>
                         </div>
                       </DialogContent>
                     </Dialog>

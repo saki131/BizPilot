@@ -88,7 +88,20 @@ export default function MastersPage() {
           alert('顧客名は姓と名の間に半角スペースを入れてください（例: 山田 太郎）');
           return;
         }
-        result = await apiClient.createCustomer({ name: newItem.name, name_kana: newItem.name_kana || undefined });
+        const kana = newItem.name_kana.trim();
+        if (!kana) {
+          alert('カナ名は必須入力です（例: ヤマダ タロウ）');
+          return;
+        }
+        if (!/^[\u30A0-\u30FF\u30FC\s\u3000]+$/.test(kana)) {
+          alert('カナ名はカタカナで入力してください（例: ヤマダ タロウ）');
+          return;
+        }
+        if (!kana.includes(' ') && !kana.includes('\u3000')) {
+          alert('カナ名は姓と名の間に半角スペースを入れてください（例: ヤマダ タロウ）');
+          return;
+        }
+        result = await apiClient.createCustomer({ name: newItem.name, name_kana: kana });
       }
 
       if (result?.data) {
@@ -323,7 +336,7 @@ export default function MastersPage() {
                             value={newItem.name_kana}
                             onChange={(e) => setNewItem({ ...newItem, name_kana: e.target.value })}
                             className="col-span-3"
-                            placeholder="ヤマダ タロウ（任意）"
+                            placeholder="ヤマダ タロウ（必須）"
                           />
                         </div>
                       )}
