@@ -243,55 +243,67 @@ def upload_to_google_drive(file_path: Path, folder_id: str, service_account_json
 
 
 def _get_drive_service(service_account_json: str):
-    """Drive サービスを返す。OAuth2トークン優先、なければブラウザ認証を行う。"""
+    """Drive サービスを返す。サービスアカウント優先、次に OAuth2 トークンリフレッシュ。
+    ブラウザ不要の CI 対応実装。
+    """
     try:
         from googleapiclient.discovery import build
-        from google.oauth2.credentials import Credentials
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        from google.auth.transport.requests import Request
-        import json
     except ImportError:
-        logger.error("pip install google-auth-oauthlib が必要です。")
+        logger.error("pip install google-api-python-client が必要です。")
         return None
 
     SCOPES = ["https://www.googleapis.com/auth/drive"]
-    token_path = Path(service_account_json).parent / "gdrive_token.json"
-    oauth_client_path = Path(service_account_json).parent / "gdrive_oauth_client.json"
 
+    # ── 1. サービスアカウント認証（CI 推奨）
+    sa_path = Path(service_account_json) if service_account_json else None
+    if sa_path and sa_path.exists():
+        try:
+            from google.oauth2 import service_account
+            creds = service_account.Credentials.from_service_account_file(
+                str(sa_path), scopes=SCOPES
+            )
+            service = build("drive", "v3", credentials=creds, cache_discovery=False)
+            logger.info(f"サービスアカウントで Google Drive に接続しました: {sa_path}")
+            return service
+        except Exception as e:
+            logger.warning(f"サービスアカウント認証失敗、OAuth にフォールバック: {e}")
+
+    # ── 2. OAuth2 トークンリフレッシュ（ブラウザなし）
+    try:
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+    except ImportError:
+        logger.error("pip install google-auth が必要です。")
+        return None
+
+    token_path = Path(service_account_json).parent / "gdrive_token.json" if service_account_json else None
     creds = None
 
-    # 保存済みトークンを読み込む
-    if token_path.exists():
-        creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
+    if token_path and token_path.exists():
+        try:
+            creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
+        except Exception as e:
+            logger.warning(f"トークンファイル読み込み失敗: {e}")
 
-    # トークンが無効または期限切れなら更新・再認証
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
                 logger.info("Google Drive トークンを更新しました。")
-            except Exception:
+                with open(token_path, "w") as f:
+                    f.write(creds.to_json())
+            except Exception as e:
+                logger.error(f"OAuth トークンのリフレッシュ失敗: {e}")
                 creds = None
 
         if not creds:
-            if not oauth_client_path.exists():
-                logger.error(
-                    f"OAuth2 クライアントファイルが見つかりません: {oauth_client_path}\n"
-                    "セットアップ手順:\n"
-                    "  1. Google Cloud Console → 「APIとサービス」→「認証情報」\n"
-                    "  2. 「OAuth 2.0 クライアント ID」を作成（種類: デスクトップアプリ）\n"
-                    "  3. JSON をダウンロードして gdrive_oauth_client.json として保存"
-                )
-                return None
-            flow = InstalledAppFlow.from_client_secrets_file(str(oauth_client_path), SCOPES)
-            creds = flow.run_local_server(port=0)
-            logger.info("Google Drive の認証が完了しました。")
+            logger.error(
+                "Google Drive 認証に失敗しました。\n"
+                "CI 環境では GDRIVE_SERVICE_ACCOUNT_JSON にサービスアカウント JSON のパスを設定するか、\n"
+                "有効なリフレッシュトークンを持つ gdrive_token.json を配置してください。"
+            )
+            return None
 
-        # トークンを保存
-        with open(token_path, "w") as f:
-            f.write(creds.to_json())
-
-    from googleapiclient.discovery import build
     return build("drive", "v3", credentials=creds, cache_discovery=False)
 
 
