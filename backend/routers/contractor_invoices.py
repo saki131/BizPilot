@@ -49,6 +49,7 @@ def create_invoice_response(invoice: ContractorInvoice, db: Session) -> "Contrac
         id=str(invoice.contractor_invoice_id),
         contractor_id=invoice.contractor_id,
         contractor_name=contractor.name if contractor else "",
+        discount_rate_id=invoice.discount_rate_id,
         discount_rate=discount_rate_value,
         tax_rate=tax_rate_value,
         invoice_date=invoice.invoice_date,
@@ -154,6 +155,7 @@ class ContractorInvoiceResponse(BaseModel):
     id: str
     contractor_id: int
     contractor_name: str
+    discount_rate_id: int
     discount_rate: float
     tax_rate: float
     invoice_date: date
@@ -357,7 +359,8 @@ def update_contractor_invoice(
         # 割引率変更時は金額を再計算
         discount_rate = db.query(DiscountRate).filter(DiscountRate.discount_rate_id == request.discount_rate_id).first()
         if discount_rate:
-            discount_rate_value = float(discount_rate.rate) / 100
+            raw_rate = float(discount_rate.rate)
+            discount_rate_value = raw_rate / 100 if raw_rate >= 1 else raw_rate
             invoice.quota_discount_amount = int(invoice.quota_subtotal * discount_rate_value)
             invoice.non_quota_discount_amount = int(invoice.non_quota_subtotal * discount_rate_value)
             invoice.quota_total = invoice.quota_subtotal - invoice.quota_discount_amount

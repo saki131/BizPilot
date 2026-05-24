@@ -79,6 +79,7 @@ interface ContractorInvoice {
   invoice_number: string;
   start_date?: string;
   end_date?: string;
+  discount_rate_id: number;
   discount_rate: number;
   invoice_date?: string;
   receipt_date?: string;
@@ -186,6 +187,7 @@ export default function InvoicesPage() {
     invoice_date: string;
     receipt_date?: string;
     note: string;
+    discount_rate_id?: number;
     details: {
       product_id: number;
       total_quantity: number;
@@ -196,6 +198,7 @@ export default function InvoicesPage() {
     invoice_date: '',
     receipt_date: '',
     note: '',
+    discount_rate_id: undefined,
     details: []
   });
   const [contractorFormData, setContractorFormData] = useState<ContractorInvoiceFormData>({
@@ -248,6 +251,7 @@ export default function InvoicesPage() {
       fetchContractors();
       fetchProducts();
       fetchTaxRates();
+      fetchDiscountRates();
     }
     
     // localStorageから影響を受けた締め日を読み込み
@@ -629,6 +633,7 @@ export default function InvoicesPage() {
       contractor_id: selectedContractorInvoice.contractor_id,
       invoice_date: selectedContractorInvoice.invoice_date || '',
       note: selectedContractorInvoice.note || '',
+      discount_rate_id: selectedContractorInvoice.discount_rate_id,
       details: selectedContractorInvoice.details.map(d => ({
         product_id: d.product_id,
         total_quantity: d.total_quantity,
@@ -661,6 +666,7 @@ export default function InvoicesPage() {
         invoice_date: editingContractorInvoice.invoice_date,
         receipt_date: editingContractorInvoice.receipt_date,
         note: editingContractorInvoice.note,
+        discount_rate_id: editingContractorInvoice.discount_rate_id,
         details
       };
 
@@ -2022,10 +2028,20 @@ export default function InvoicesPage() {
                         </div>
                         <div>
                           <Label>割引率</Label>
-                          <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                            <p className="text-sm text-gray-700">現在の割引率: <span className="font-bold">{((selectedContractorInvoice.discount_rate || 0) * 100).toFixed(0)}%</span></p>
-                            <p className="text-xs text-gray-500 mt-1">※割引率は合計金額から自動設定されます</p>
-                          </div>
+                          <select
+                            value={editingContractorInvoice.discount_rate_id ?? selectedContractorInvoice.discount_rate_id}
+                            onChange={(e) => setEditingContractorInvoice({...editingContractorInvoice, discount_rate_id: Number(e.target.value)})}
+                            className="w-full px-3 py-2 mt-2 border rounded-md bg-white"
+                          >
+                            {discountRates
+                              .filter(dr => !dr.sales_person_flag)
+                              .sort((a, b) => a.rate - b.rate)
+                              .map((rate) => (
+                                <option key={rate.discount_rate_id} value={rate.discount_rate_id}>
+                                  {rate.rate >= 1 ? Math.round(rate.rate) : Math.round(rate.rate * 100)}%
+                                </option>
+                              ))}
+                          </select>
                         </div>
                         <div>
                           <Label htmlFor="note">但（ただし書き）</Label>
