@@ -66,7 +66,13 @@ def is_quota_target(
 
 
 def resolve_sales_discount_threshold(rate: float, threshold_amount: int, period_start: Optional[date]) -> int:
-    """販売員割引率の適用基準額を返す（新ルール期間では 20% の基準額を 50,000 に読み替える）。"""
-    if is_new_rule_period(period_start) and abs(float(rate) - SALES_DISCOUNT_20_RATE) < 1e-9:
+    """販売員割引率の適用基準額を返す（新ルール期間では 20% の基準額を 50,000 に読み替える）。
+
+    rate は DB 格納形式に依らず判定できるよう正規化する（0.20 でも 20 でも 20% と判定）。
+    """
+    normalized_rate = float(rate)
+    if normalized_rate >= 1:
+        normalized_rate = normalized_rate / 100
+    if is_new_rule_period(period_start) and abs(normalized_rate - SALES_DISCOUNT_20_RATE) < 1e-9:
         return SALES_DISCOUNT_20_THRESHOLD_NEW
     return threshold_amount
