@@ -12,6 +12,7 @@ import os
 
 from models import SalesInvoice, SalesInvoiceDetail, Product, SalesPerson, DiscountRate, ContractorInvoice, ContractorInvoiceDetail, Contractor
 import config
+from business_rules import is_quota_target, billing_period_start
 
 def get_company_info() -> dict:
     """環境変数から会社情報を取得"""
@@ -293,6 +294,8 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
     
     # 請求日・支払期日の計算
     billing_date = invoice.invoice_date if invoice.invoice_date else datetime.now().date()
+    # ノルマ判定用：請求対象期間の開始日（前月21日）。新旧ルールの切替に使用
+    period_start = billing_period_start(billing_date)
     # 支払期日：締め日の月の25日
     payment_due = billing_date.replace(day=25)
     
@@ -493,7 +496,7 @@ def generate_sales_invoice_pdf(invoice: SalesInvoice, db: Session) -> BytesIO:
         pdf.drawRightString(col_positions[6] + col_widths[6] - 1*mm, row_text_y, f"¥{item_after_discount:,}")
         
         # ノルマ対象
-        if product and product.quota_target_flag:
+        if product and is_quota_target(product.name, product.quota_target_flag, period_start):
             pdf.drawCentredString(col_positions[7] + col_widths[7] / 2, row_text_y, "○")
         
 
@@ -716,6 +719,8 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         billing_date = datetime.strptime(billing_date, "%Y-%m-%d").date()
     # 締め日を20日に固定
     billing_date = billing_date.replace(day=20)
+    # ノルマ判定用：請求対象期間の開始日（前月21日）。新旧ルールの切替に使用
+    period_start = billing_period_start(billing_date)
     # 支払期日：締め日の月の25日
     payment_due = billing_date.replace(day=25)
     
@@ -917,7 +922,7 @@ def generate_contractor_invoice_pdf(invoice: ContractorInvoice, db: Session) -> 
         pdf.drawRightString(col_positions[6] + col_widths[6] - 1*mm, row_text_y, f"¥{item_after_discount:,}")
         
         # ノルマ対象
-        if product and product.quota_target_flag:
+        if product and is_quota_target(product.name, product.quota_target_flag, period_start):
             pdf.drawCentredString(col_positions[7] + col_widths[7] / 2, row_text_y, "○")
         
 
