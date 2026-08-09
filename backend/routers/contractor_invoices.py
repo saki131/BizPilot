@@ -19,6 +19,7 @@ from models import (
 )
 from dependencies import get_current_user
 from pdf_generator import generate_contractor_invoice_pdf, generate_contractor_receipt_pdf
+from business_rules import billing_period_start, is_quota_target
 
 router = APIRouter()
 
@@ -206,21 +207,24 @@ def create_contractor_invoice(
     non_quota_subtotal = 0
     non_discountable_amount = 0
     details_data = []
-    
+
+    # ノルマ判定の基準となる請求対象期間の開始日（2026/8/21 以降は新ルール）
+    period_start = billing_period_start(request.invoice_date)
+
     for detail in request.details:
         product = db.query(Product).filter(Product.product_id == detail.product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {detail.product_id} not found")
-        
+
         quantity = detail.total_quantity
         unit_price = detail.unit_price if detail.unit_price is not None else product.price
         amount = quantity * unit_price
-        
+
         # 割引対象外の判定
         if product.discount_exclusion_flag:
             non_discountable_amount += amount
-        # ノルマ対象/対象外の判定
-        elif product.quota_target_flag:
+        # ノルマ対象/対象外の判定（2026/8/21 以降は美肌冠・アクアカラーもノルマ対象）
+        elif is_quota_target(product.name, product.quota_target_flag, period_start):
             quota_subtotal += amount
         else:
             non_quota_subtotal += amount
@@ -403,21 +407,24 @@ def update_contractor_invoice(
         quota_subtotal = 0
         non_quota_subtotal = 0
         non_discountable_amount = 0
-        
+
+        # ノルマ判定の基準となる請求対象期間の開始日（2026/8/21 以降は新ルール）
+        period_start = billing_period_start(invoice.invoice_date)
+
         for detail in request.details:
             product = db.query(Product).filter(Product.product_id == detail.product_id).first()
             if not product:
                 continue
-            
+
             quantity = detail.total_quantity
             unit_price = detail.unit_price if detail.unit_price is not None else product.price
             amount = quantity * unit_price
-            
+
             # 割引対象外の判定
             if product.discount_exclusion_flag:
                 non_discountable_amount += amount
-            # ノルマ対象/対象外の判定
-            elif product.quota_target_flag:
+            # ノルマ対象/対象外の判定（2026/8/21 以降は美肌冠・アクアカラーもノルマ対象）
+            elif is_quota_target(product.name, product.quota_target_flag, period_start):
                 quota_subtotal += amount
             else:
                 non_quota_subtotal += amount

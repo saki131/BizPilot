@@ -25,25 +25,27 @@ from models import (
 )
 from dependencies import get_current_user
 from pdf_generator import generate_sales_invoice_pdf, generate_sales_receipt_pdf
+from business_rules import (
+    billing_period_start,
+    is_quota_target,
+    resolve_sales_discount_threshold,
+)
 
 router = APIRouter()
 
 
 def calculate_period_from_invoice_date(invoice_date: date) -> tuple[date, date]:
     """Calculate billing period from invoice date (closing date)
-    
+
     Period: Previous month 21st ~ invoice_date (20th)
     Example: invoice_date=2026-01-20 -> period: 2025-12-21 ~ 2026-01-20
     """
     # Start date = previous month 21st
-    if invoice_date.month == 1:
-        start_date = date(invoice_date.year - 1, 12, 21)
-    else:
-        start_date = date(invoice_date.year, invoice_date.month - 1, 21)
-    
+    start_date = billing_period_start(invoice_date)
+
     # End date = invoice_date (should be 20th)
     end_date = invoice_date
-    
+
     return start_date, end_date
 
 
@@ -54,24 +56,26 @@ class InvoiceUpdateRequest(BaseModel):
 
 
 # Helper function to calculate optimal discount rate
-def calculate_optimal_discount_rate(total_amount: int, db: Session) -> DiscountRate:
+def calculate_optimal_discount_rate(total_amount: int, db: Session, period_start: Optional[date] = None) -> DiscountRate:
     """Calculate optimal discount rate based on total amount
-    
+
     Rules:
     - >= 400,000: 40%
     - >= 200,000: 30%
-    - >= 42,000: 20%
-    - < 42,000: 0% (can be manually changed to 10% later)
+    - >= 42,000（2026/8/21 以降の請求は >= 50,000）: 20%
+    - それ未満: 0% (can be manually changed to 10% later)
     """
     # Get all sales person discount rates ordered by threshold desc
     discount_rates = db.query(DiscountRate).filter(
         DiscountRate.sales_person_flag == True,
         DiscountRate.deleted_flag == False
     ).order_by(DiscountRate.threshold_amount.desc()).all()
-    
+
     # Find the highest applicable rate
+    # 新ルール期間（2026/8/21 以降）では 20% の基準額を 50,000 に読み替える
     for rate in discount_rates:
-        if total_amount >= rate.threshold_amount and rate.rate > 0:
+        threshold = resolve_sales_discount_threshold(float(rate.rate), rate.threshold_amount, period_start)
+        if total_amount >= threshold and rate.rate > 0:
             return rate
     
     # If no rate >= 20% applies, return 0% rate
@@ -177,6 +181,7 @@ def generate_invoice_for_sales_person(
     # Aggregate by product
     aggregated_data = db.query(
         DeliveryNoteDetail.product_id,
+        Product.name,
         Product.discount_exclusion_flag,
         Product.quota_target_flag,
         func.sum(DeliveryNoteDetail.quantity).label('total_quantity'),
@@ -187,6 +192,7 @@ def generate_invoice_for_sales_person(
         DeliveryNoteDetail.delivery_note_id.in_(delivery_note_ids)
     ).group_by(
         DeliveryNoteDetail.product_id,
+        Product.name,
         Product.discount_exclusion_flag,
         Product.quota_target_flag,
         DeliveryNoteDetail.unit_price
@@ -203,8 +209,8 @@ def generate_invoice_for_sales_person(
         # 割引対象外の判定（サンプル、紙袋など）
         if item.discount_exclusion_flag:
             non_discountable_amount += amount
-        # ノルマ対象の判定
-        elif item.quota_target_flag:
+        # ノルマ対象の判定（2026/8/21 以降は美肌冠・アクアカラーもノルマ対象）
+        elif is_quota_target(item.name, item.quota_target_flag, start_date):
             quota_subtotal += amount
         else:
             non_quota_subtotal += amount
@@ -219,8 +225,8 @@ def generate_invoice_for_sales_person(
     # Calculate total for discount determination
     total_subtotal = quota_subtotal + non_quota_subtotal
     
-    # Auto-calculate optimal discount rate
-    discount_rate = calculate_optimal_discount_rate(total_subtotal, db)
+    # Auto-calculate optimal discount rate（新ルール期間の基準額は start_date で判定）
+    discount_rate = calculate_optimal_discount_rate(total_subtotal, db, start_date)
     
     # Calculate discount
     discount_rate_value = float(discount_rate.rate)
